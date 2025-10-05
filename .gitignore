@@ -1,3 +1,11 @@
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+out/
+*.ipr
+
+# Maven
 target/
 pom.xml.tag
 pom.xml.releaseBackup
@@ -6,12 +14,21 @@ pom.xml.next
 release.properties
 dependency-reduced-pom.xml
 buildNumber.properties
-.mvn/timing.properties
-# https://maven.apache.org/wrapper/#usage-without-binary-jar
-.mvn/wrapper/maven-wrapper.jar
 
-# Eclipse m2e generated files
-# Eclipse Core
+# Maven Wrapper
+.mvn/
+.mvn/wrapper/maven-wrapper.jar
+.mvn/timing.properties
+
+# Eclipse (se usato da altri membri)
 .project
-# JDT-specific (Eclipse Java Development Tools)
 .classpath
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment
