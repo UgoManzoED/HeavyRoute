@@ -6,7 +6,7 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 /**
- * Membro dello staff addetto alla validazione dei percorsi e permessi.
+ Operatore interno responsabile della gestione degli utenti interni.
  */
 
 @Getter
@@ -15,9 +15,9 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @SuperBuilder
 @Entity
-@Table(name = "traffic_coordinators")
-public class TrafficCoordinator extends InternalUser {
+@Table(name = "account_managers")
+public class AccountManager extends InternalUser {
 
     @Override
-    public UserRole getRole(){ return UserRole.TRAFFIC_COORDINATOR;}
+    public UserRole getRole(){ return UserRole.ACCOUNT_MANAGER;}
 }

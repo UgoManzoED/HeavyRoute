@@ -2,22 +2,31 @@ package com.heavyroute.users.model;
 
 import com.heavyroute.common.model.BaseEntity;
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 
-@Data
+/**
+ * Entità fondamentale che rappresenta un qualsiasi utente registrato nel sistema.
+ * <p>
+ * Gestisce le credenziali di accesso e i dati anagrafici di base.
+ * Utilizza la strategia {@code JOINED} per permettere una specializzazione pulita
+ * tra clienti esterni e personale interno nelle tabelle del database.
+ * </p>
+ */
+
+@Getter
+@Setter
+@EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 @NoArgsConstructor
 @SuperBuilder
 @Entity
-@Table(name = "utenti")
+@Table(name = "users")
 @Inheritance(strategy = InheritanceType.JOINED) // Strategia ottimale per l'ODD
-public abstract class Utente extends BaseEntity {
+public abstract class User extends BaseEntity {
 
     @Column(nullable = false, unique = true)
     protected String username;
 
-    // NFR11: Qui verra salvata la password già hashata con BCrypt (non in chiaro!) [cite: 418]
     @Column(nullable = false)
     protected String password;
 
@@ -26,7 +35,7 @@ public abstract class Utente extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    protected RuoloUtente role;
+    protected UserRole role;
 
     @Column(name = "phone_number", length = 20, nullable = false)
     protected String phoneNumber;
@@ -35,7 +44,8 @@ public abstract class Utente extends BaseEntity {
     protected boolean active=false;
 
     // Metodo di utilità per il login
-    public boolean hasRole(RuoloUtente r) {
+    public boolean hasRole(UserRole r) {
         return this.role == r;
     }
+    public abstract UserRole getRole();
 }
