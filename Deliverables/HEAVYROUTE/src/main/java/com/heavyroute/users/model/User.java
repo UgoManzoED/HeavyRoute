@@ -24,6 +24,12 @@ import lombok.experimental.SuperBuilder;
 @Inheritance(strategy = InheritanceType.JOINED) // Strategia ottimale per l'ODD
 public abstract class User extends BaseEntity {
 
+    @Column(nullable = false)
+    protected String firstName;
+
+    @Column(nullable = false)
+    protected String lastName;
+
     @Column(nullable = false, unique = true)
     protected String username;
 
@@ -33,10 +39,6 @@ public abstract class User extends BaseEntity {
     @Column(nullable = false, unique = true)
     protected String email;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    protected UserRole role;
-
     @Column(name = "phone_number", length = 20, nullable = false)
     protected String phoneNumber;
 
@@ -45,7 +47,16 @@ public abstract class User extends BaseEntity {
 
     // Metodo di utilità per il login
     public boolean hasRole(UserRole r) {
-        return this.role == r;
+        return this.getRole() == r;
     }
+
+    /**
+     * Metodo astratto per recuperare il ruolo specifico associato all'istanza dell'utente.
+     * <p>
+     * Questo metodo permette il polimorfismo tra le diverse tipologie di utenti
+     * (Customer, Driver, etc.) senza dover ricorrere a controlli manuali sul tipo (instanceof).
+     * </p>
+     * @return l'oggetto {@link UserRole} che identifica i permessi dell'utente nel sistema.
+     */
     public abstract UserRole getRole();
 }
