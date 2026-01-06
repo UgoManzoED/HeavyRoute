@@ -1,5 +1,6 @@
 package com.heavyroute.users.model;
 
+import com.heavyroute.users.enums.UserRole;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
