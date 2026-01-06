@@ -24,6 +24,8 @@ public interface TripService {
      *
      * @param requestId L'ID della richiesta pendente (es. da un sistema CRM o modulo Request).
      * @return Il DTO del nuovo viaggio creato (Read Model), pronto per la visualizzazione.
+     * @throws com.heavyroute.common.exception.ResourceNotFoundException se la richiesta non esiste
+     * @throws com.heavyroute.common.exception.BusinessRuleException se la richiesta non è in stato PENDING
      */
     TripDTO approveRequest(Long requestId);
 
@@ -35,7 +37,8 @@ public interface TripService {
      *
      * @param tripId L'ID del viaggio da pianificare.
      * @param dto I dati di pianificazione (driverId, vehiclePlate) validati dal TC.
-     * @throws jakarta.persistence.EntityNotFoundException se il viaggio o l'autista non esistono.
+     * @throws com.heavyroute.common.exception.ResourceNotFoundException se il viaggio non esiste
+     * @throws com.heavyroute.common.exception.BusinessRuleException se il viaggio non è in pianificazione o le risorse non sono
      */
     void planTrip(Long tripId, PlanningDTO dto);
 

@@ -11,6 +11,7 @@ import com.heavyroute.core.model.TransportRequest;
 import com.heavyroute.core.model.Trip;
 import com.heavyroute.core.repository.TransportRequestRepository;
 import com.heavyroute.core.repository.TripRepository;
+import com.heavyroute.core.service.TripMapper;
 import com.heavyroute.core.service.TripService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,7 @@ public class TripServiceImpl implements TripService {
 
     private final TripRepository tripRepository;
     private final TransportRequestRepository requestRepository;
+    private final TripMapper tripMapper;
 
     /**
      * {@inheritDoc}
@@ -64,7 +66,7 @@ public class TripServiceImpl implements TripService {
         Trip savedTrip = tripRepository.save(trip);
 
         // 5. Converte in DTO e restituisce
-        return mapToDTO(savedTrip);
+        return tripMapper.toDTO(savedTrip);
     }
 
     /**
@@ -107,46 +109,6 @@ public class TripServiceImpl implements TripService {
     public TripDTO getTrip(Long id) {
         Trip trip = tripRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Viaggio non trovato con ID: " + id));
-        return mapToDTO(trip);
-    }
-
-    // --- METODI DI AIUTO (MAPPING) ---
-
-    private TripDTO mapToDTO(Trip trip) {
-        TripDTO dto = new TripDTO();
-        dto.setId(trip.getId());
-        dto.setTripCode(trip.getTripCode());
-        dto.setStatus(trip.getStatus().name());
-
-        // Risorse assegnate
-        dto.setDriverId(trip.getDriverId());
-        dto.setVehiclePlate(trip.getVehiclePlate());
-
-        // Mapping dei dati della richiesta originale
-        if (trip.getRequest() != null) {
-            dto.setRequest(mapRequestToDTO(trip.getRequest()));
-        }
-
-        return dto;
-    }
-
-    private RequestDetailDTO mapRequestToDTO(TransportRequest entity) {
-        RequestDetailDTO dto = new RequestDetailDTO();
-        dto.setId(entity.getId());
-        dto.setStatus(entity.getRequestStatus());
-
-        // Mapping dati di indirizzo
-        dto.setOriginAddress(entity.getOriginAddress());
-        dto.setDestinationAddress(entity.getDestinationAddress());
-        dto.setPickupDate(entity.getPickupDate());
-
-        // Mapping dati di carico
-        if (entity.getLoad() != null) {
-            dto.setWeight(entity.getLoad().getWeightKg());
-            dto.setHeight(entity.getLoad().getHeight());
-            dto.setWidth(entity.getLoad().getWidth());
-            dto.setLength(entity.getLoad().getLength());
-        }
-        return dto;
+        return tripMapper.toDTO(trip);
     }
 }
