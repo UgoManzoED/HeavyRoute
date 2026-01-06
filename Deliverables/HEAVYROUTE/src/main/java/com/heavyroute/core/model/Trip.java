@@ -6,6 +6,9 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.Year;
+import java.util.UUID;
+
 /**
  * Rappresenta un Viaggio all'interno del sistema HeavyRoute.
  * <p>
@@ -52,7 +55,6 @@ public class Trip extends BaseEntity {
      * </ul>
      * </p>
      */
-
     @OneToOne(optional = false)
     @JoinColumn(name = "request_id", unique = true)
     private TransportRequest request;
@@ -93,7 +95,9 @@ public class Trip extends BaseEntity {
     @PrePersist
     public void generateCode() {
         if (this.tripCode == null) {
-            this.tripCode = "TRP-" + System.currentTimeMillis();
+            String year = String.valueOf(Year.now().getValue());
+            String sequence = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+            this.tripCode = "TRP-" + year + "-" + sequence;
         }
     }
 }
