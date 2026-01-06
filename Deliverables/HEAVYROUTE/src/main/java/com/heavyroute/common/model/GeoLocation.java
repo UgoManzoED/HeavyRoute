@@ -17,11 +17,10 @@ import lombok.NoArgsConstructor;
 @Embeddable
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 public class GeoLocation {
 
     /**
-     * Latitudine in gradi decimali.
+     * Latitudine e Longitudine in gradi decimali.
      * <p>
      * Si utilizza la classe Wrapper {@code Double} invece della primitiva {@code double}
      * per poter gestire il valore {@code null}. Questo è fondamentale se la posizione
@@ -29,11 +28,36 @@ public class GeoLocation {
      * </p>
      */
     private Double latitude;
+    private Double longitude;
 
     /**
-     * Longitudine in gradi decimali.
+     * Costruttore che applica le invarianti di dominio (Regole OCL).
+     * <p>
+     * Questo metodo implementa il pattern della "Programmazione Difensiva":
+     * impedisce la creazione di istanze di {@code GeoLocation} che non abbiano senso
+     * nel mondo reale (es. coordinate nulle o fuori dai limiti geografici terrestri).
+     * </p>
+     *
+     * @param latitude  Latitudine in gradi decimali. Deve essere compresa tra -90.0 (Sud) e +90.0 (Nord).
+     * @param longitude Longitudine in gradi decimali. Deve essere compresa tra -180.0 (Ovest) e +180.0 (Est).
+     * @throws IllegalArgumentException se uno dei parametri è null o viola i limiti geografici.
      */
-    private Double longitude;
+    public GeoLocation(Double latitude, Double longitude) {
+        // Check di esistenza (Null Safety)
+        if (latitude == null || longitude == null) {
+            throw new IllegalArgumentException("Le coordinate non possono essere nulle");
+        }
+
+        // Check di validità del dominio (Range Check)
+        if (latitude < -90.0 || latitude > 90.0) {
+            throw new IllegalArgumentException("Latitudine non valida: deve essere tra -90 e 90");
+        }
+        if (longitude < -180.0 || longitude > 180.0) {
+            throw new IllegalArgumentException("Longitudine non valida: deve essere tra -180 e 180");
+        }
+        this.latitude = latitude;
+        this.longitude = longitude;
+    }
 
     /**
      * Restituisce una rappresentazione testuale in formato "lat, lon".
