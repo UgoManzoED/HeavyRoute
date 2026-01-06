@@ -73,7 +73,13 @@ public class TripDTO {
      */
     private String vehicleModel;
 
-    // TODO: Scommentare quando il modulo 'Request' sarà mergiato.
-    // Includiamo i dettagli della richiesta originale per mostrare chi ha ordinato il viaggio.
-    // private RequestDTO request;
+    /**
+     * Dettagli completi della Richiesta di Trasporto che ha originato questo viaggio.
+     * <p>
+     * <b>Struttura JSON:</b> Nel payload di risposta, questi dati saranno raggruppati
+     * sotto la chiave {@code "request"}, permettendo al Frontend di passare questo oggetto
+     * direttamente a componenti UI dedicati (es. {@code <RequestSummaryCard data={trip.request} />}).
+     * </p>
+     */
+    private RequestDetailDTO request;
 }
