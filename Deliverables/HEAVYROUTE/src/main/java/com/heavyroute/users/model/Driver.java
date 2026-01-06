@@ -31,7 +31,7 @@ public class Driver extends InternalUser {
     private DriverStatus status;
 
     @OneToOne
-    @Column(name = "id_vehicle")
+    @JoinColumn(name = "id_vehicle")
     private Vehicle vehicle;
 
     public boolean isFree() {
