@@ -6,6 +6,9 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.Year;
+import java.util.UUID;
+
 /**
  * Rappresenta un Viaggio all'interno del sistema HeavyRoute.
  * <p>
@@ -39,6 +42,30 @@ public class Trip extends BaseEntity {
     @Column(nullable = false)
     private TripStatus status;
 
+    // --- RELAZIONI ---
+
+    /**
+     * Riferimento alla Richiesta di Trasporto originale che ha generato questo viaggio.
+     * <p>
+     * Stabilisce un legame forte (Hard Link) tra la fase commerciale (Request) e quella operativa (Trip).
+     * Configurato come One-to-One rigoroso:
+     * <ul>
+     * <li><b>optional = false:</b> A livello JPA, impedisce di salvare un Trip senza una Request associata (non-null).</li>
+     * <li><b>unique = true:</b> A livello DB, impedisce che due viaggi puntino alla stessa richiesta (relazione 1:1 pura).</li>
+     * </ul>
+     * </p>
+     */
+    @OneToOne(optional = false)
+    @JoinColumn(name = "request_id", unique = true)
+    private TransportRequest request;
+
+    // TODO: Decommentare quando push Route
+    // @OneToOne(cascade = CascadeType.ALL)
+    // @JoinColumn(name = "route_id")
+    // private Route route;
+
+    // --- RISORSE ASSEGNATE ---
+
     /**
      * Riferimento all'id dell'autista assegnato.
      * <p>
@@ -68,7 +95,9 @@ public class Trip extends BaseEntity {
     @PrePersist
     public void generateCode() {
         if (this.tripCode == null) {
-            this.tripCode = "TRP-" + System.currentTimeMillis();
+            String year = String.valueOf(Year.now().getValue());
+            String sequence = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+            this.tripCode = "TRP-" + year + "-" + sequence;
         }
     }
 }

@@ -1,0 +1,83 @@
+package com.heavyroute.core.service;
+
+import com.heavyroute.core.dto.RequestDetailDTO;
+import com.heavyroute.core.dto.TripDTO;
+import com.heavyroute.core.model.TransportRequest;
+import com.heavyroute.core.model.Trip;
+import org.springframework.stereotype.Component;
+
+/**
+ * Componente responsabile della conversione (Mapping) tra le Entità di persistenza e i DTO.
+ * <p>
+ * Agisce come un "Traduttore": prende i dati dal formato ottimizzato per il database (Entity)
+ * e li travasa nel formato ottimizzato per la visualizzazione API (DTO).
+ * Implementato come {@link Component} Spring per poter essere iniettato nei Service.
+ * </p>
+ */
+@Component
+public class TripMapper {
+
+    /**
+     * Converte un'entità {@link Trip} nel suo corrispondente {@link TripDTO}.
+     * <p>
+     * Questo metodo gestisce anche la mappatura delle relazioni: se il viaggio
+     * ha una richiesta associata, delega la conversione al metodo specifico,
+     * creando una struttura gerarchica nel JSON finale.
+     * </p>
+     *
+     * @param trip L'entità sorgente (può essere null, il chiamante dovrebbe gestire il caso).
+     * @return Il DTO popolato, pronto per essere restituito dal Controller.
+     */
+    public TripDTO toDTO(Trip trip) {
+        // Best Practice in un mapper manuale, è buona norma controllare se trip è null
+        if (trip == null) return null;
+
+        TripDTO dto = new TripDTO();
+        dto.setId(trip.getId());
+        dto.setTripCode(trip.getTripCode());
+
+        // Conversione Enum in String per stabilità dell'API
+        dto.setStatus(trip.getStatus().name());
+
+        // Copia dei riferimenti semplici (ID e stringhe)
+        dto.setDriverId(trip.getDriverId());
+        dto.setVehiclePlate(trip.getVehiclePlate());
+
+        if (trip.getRequest() != null) {
+            dto.setRequest(toRequestDTO(trip.getRequest()));
+        }
+        return dto;
+    }
+
+    /**
+     * Converte i dettagli della richiesta di trasporto.
+     * <p>
+     * <b>Strategia di Flattening (Appiattimento):</b>
+     * L'entità {@code TransportRequest} contiene un oggetto annidato {@code Load} (Embeddable).
+     * Questo mapper "estrae" i campi interni di {@code Load} (peso, altezza, ecc.) e li porta
+     * al primo livello del {@code RequestDetailDTO} per semplificare la vita al Frontend.
+     * </p>
+     *
+     * @param entity L'entità della richiesta.
+     * @return Il DTO con i dati di carico "appiattiti".
+     */
+    public RequestDetailDTO toRequestDTO(TransportRequest entity) {
+        if (entity == null) return null;
+
+        RequestDetailDTO dto = new RequestDetailDTO();
+        dto.setId(entity.getId());
+        dto.setOriginAddress(entity.getOriginAddress());
+        dto.setDestinationAddress(entity.getDestinationAddress());
+        dto.setPickupDate(entity.getPickupDate());
+        dto.setStatus(entity.getRequestStatus());
+
+        // Logica di estrazione dati dal Value Object 'Load'
+        if (entity.getLoad() != null) {
+            dto.setWeight(entity.getLoad().getWeightKg());
+            dto.setHeight(entity.getLoad().getHeight());
+            dto.setWidth(entity.getLoad().getWidth());
+            dto.setLength(entity.getLoad().getLength());
+        }
+        return dto;
+    }
+}
