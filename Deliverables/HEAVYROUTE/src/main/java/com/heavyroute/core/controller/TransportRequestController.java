@@ -51,7 +51,7 @@ public class TransportRequestController {
      * @return {@link ResponseEntity} contenente il {@link RequestDetailDTO} della richiesta creata e stato HTTP 200 OK.
      */
     @PostMapping
-    public ResponseEntity<RequestDetailDTO> create(@Valid @RequestBody RequestCreationDTO dto) {
+    public ResponseEntity<RequestDetailDTO> createRequest(@Valid @RequestBody RequestCreationDTO dto) {
         return ResponseEntity.ok(requestService.createRequest(dto));
     }
 
@@ -65,7 +65,7 @@ public class TransportRequestController {
      * @return {@link ResponseEntity} contenente la lista di {@link RequestDetailDTO} e stato HTTP 200 OK.
      */
     @GetMapping
-    public ResponseEntity<List<RequestDetailDTO>> getAll() {
+    public ResponseEntity<List<RequestDetailDTO>> getMyRequest() {
         return ResponseEntity.ok(requestService.getAllRequests());
     }
 }
