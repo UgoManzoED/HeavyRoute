@@ -39,13 +39,27 @@ public class TripMapper {
         // Conversione Enum in String per stabilità dell'API
         dto.setStatus(trip.getStatus().name());
 
-        // Copia dei riferimenti semplici (ID e stringhe)
-        dto.setDriverId(trip.getDriverId());
-        dto.setVehiclePlate(trip.getVehiclePlate());
+        if (trip.getDriver() != null) {
+            // Estraiamo l'ID dall'oggetto Driver
+            dto.setDriverId(trip.getDriver().getId());
 
+            String fullName = trip.getDriver().getFirstName() + " " + trip.getDriver().getLastName();
+            dto.setDriverName(fullName);
+        }
+
+        // 2. Mappatura Veicolo
+        if (trip.getVehicle() != null) {
+            // Estraiamo la targa dall'oggetto Vehicle
+            dto.setVehiclePlate(trip.getVehicle().getLicensePlate());
+
+            dto.setVehicleModel(trip.getVehicle().getModel());
+        }
+
+        // 3. Mappatura
         if (trip.getRequest() != null) {
             dto.setRequest(toRequestDTO(trip.getRequest()));
         }
+
         return dto;
     }
 
