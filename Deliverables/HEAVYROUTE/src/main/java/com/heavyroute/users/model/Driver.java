@@ -1,6 +1,7 @@
 package com.heavyroute.users.model;
 
 import com.heavyroute.common.model.GeoLocation;
+import com.heavyroute.resources.model.Vehicle;
 import com.heavyroute.users.enums.DriverStatus;
 import com.heavyroute.users.enums.UserRole;
 import jakarta.persistence.*;
