@@ -57,10 +57,22 @@ public class RoadEventResponseDTO {
     private Double longitude;
 
     /**
-     * Data e ora di scadenza prevista per l'evento.
-     * Oltre questa data, la segnalazione non viene più considerata attiva dal sistema.
+     * Data e ora di inizio validità dell'evento.
+     * <p>
+     * Per incidenti improvvisi, corrisponde al momento della creazione ({@code createdAt}).
+     * Per lavori programmati (es. cantieri), indica quando la strada verrà effettivamente chiusa.
+     * </p>
      */
-    private LocalDateTime expiresAt;
+    private LocalDateTime validFrom;
+
+    /**
+     * Data e ora in cui l'evento cessa di essere valido.
+     * <p>
+     * Se {@code null}, l'evento è considerato a tempo indeterminato (es. strada crollata)
+     * finché non viene chiuso manualmente.
+     * </p>
+     */
+    private LocalDateTime validTo;
 
     /**
      * Indica se l'evento è attualmente attivo in base alla data di scadenza.
