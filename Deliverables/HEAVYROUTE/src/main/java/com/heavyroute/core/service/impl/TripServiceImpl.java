@@ -14,7 +14,9 @@ import com.heavyroute.core.repository.TripRepository;
 import com.heavyroute.core.service.TripMapper;
 import com.heavyroute.core.service.TripService;
 import com.heavyroute.resources.model.Vehicle;
+import com.heavyroute.resources.repository.VehicleRepository;
 import com.heavyroute.users.model.Driver;
+import com.heavyroute.users.repository.DriverRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +38,9 @@ public class TripServiceImpl implements TripService {
     private final TripRepository tripRepository;
     private final TransportRequestRepository requestRepository;
     private final TripMapper tripMapper;
+
+    private final DriverRepository driverRepository;
+    private final VehicleRepository vehicleRepository;
 
     /**
      * {@inheritDoc}
