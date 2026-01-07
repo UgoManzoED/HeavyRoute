@@ -13,6 +13,8 @@ import com.heavyroute.core.repository.TransportRequestRepository;
 import com.heavyroute.core.repository.TripRepository;
 import com.heavyroute.core.service.TripMapper;
 import com.heavyroute.core.service.TripService;
+import com.heavyroute.resources.model.Vehicle;
+import com.heavyroute.users.model.Driver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -88,11 +90,27 @@ public class TripServiceImpl implements TripService {
             throw new BusinessRuleException("Il viaggio non è in fase di pianificazione. Stato attuale: " + trip.getStatus());
         }
 
-        // 3. Aggiorna le risorse (Autista e Veicolo)
-        // In un sistema completo qui chiameremmo il ResourceService per verificare la disponibilità
-        trip.setDriverId(dto.getDriverId());
-        trip.setVehiclePlate(dto.getVehiclePlate());
+        // 3a. Recupera l'Autista reale
+        Driver driver = driverRepository.findById(dto.getDriverId())
+                .orElseThrow(() -> new ResourceNotFoundException("Autista non trovato con ID: " + dto.getDriverId()));
 
+        // 3b. Recupera il Veicolo reale
+        Vehicle vehicle = vehicleRepository.findByLicensePlate(dto.getVehiclePlate())
+                .orElseThrow(() -> new ResourceNotFoundException("Veicolo non trovato con targa: " + dto.getVehiclePlate()));
+
+        // 3c. Controllo di Business: Portata del veicolo
+        Double pesoRichiesto = trip.getRequest().getLoad().getWeightKg();
+        if (vehicle.getMaxLoadCapacity() < pesoRichiesto) {
+            throw new BusinessRuleException(String.format(
+                    "Il veicolo %s ha una portata insufficiente (%s kg) per il carico richiesto (%s kg)",
+                    vehicle.getLicensePlate(), vehicle.getMaxLoadCapacity(), pesoRichiesto));
+        }
+
+        // 4. Associa gli oggetti
+        trip.setDriver(driver);
+        trip.setVehicle(vehicle);
+
+        // 5. Salva
         tripRepository.save(trip);
     }
 

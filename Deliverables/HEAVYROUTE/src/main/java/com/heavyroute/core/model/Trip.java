@@ -2,6 +2,9 @@ package com.heavyroute.core.model;
 
 import com.heavyroute.common.model.BaseEntity;
 import com.heavyroute.core.enums.TripStatus;
+import com.heavyroute.resources.model.Vehicle;
+import com.heavyroute.users.model.Driver;
+// import com.heavyroute.core.model.Route;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -67,20 +70,36 @@ public class Trip extends BaseEntity {
     // --- RISORSE ASSEGNATE ---
 
     /**
-     * Riferimento all'id dell'autista assegnato.
+     * L'autista responsabile del viaggio.
      * <p>
-     * Questo campo memorizza solo l'identificativo.
+     * <b>Configurazione JPA:</b>
+     * <ul>
+     * <li><b>@ManyToOne:</b> Definisce la cardinalità (Molti viaggi -> Un autista).</li>
+     * <li><b>FetchType.LAZY:</b> Cruciale per le performance. I dati dell'autista NON vengono caricati
+     * dal DB quando si carica il viaggio, ma solo alla prima chiamata di {@code getDriver()}.
+     * Questo evita query inutili quando servono solo i dati generali del viaggio.</li>
+     * </ul>
+     * </p>
+     * <p>
+     * <b>Nota:</b> Può essere {@code null} se il viaggio è in stato {@code CREATED}
+     * o {@code IN_PLANNING}, prima dell'assegnazione effettiva delle risorse.
      * </p>
      */
-    @Column(name = "driver_id")
-    private Long driverId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "driver_id")
+    private Driver driver;
 
     /**
-     * Targa del veicolo utilizzato per il viaggio.
-     * Per ricerche rapide.
+     * Il veicolo fisico utilizzato per il trasporto.
+     * <p>
+     * Mappato come relazione Lazy per evitare il caricamento a cascata di dati pesanti
+     * (es. storico manutenzioni del veicolo) quando si consulta un semplice elenco di viaggi.
+     * La colonna {@code vehicle_id} funge da Chiave Esterna (Foreign Key) sul database.
+     * </p>
      */
-    @Column(name = "vehicle_plate")
-    private String vehiclePlate;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vehicle_id")
+    private Vehicle vehicle;
 
     // --- METODI DI BUSINESS ---
 
