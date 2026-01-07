@@ -26,9 +26,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class RoadEventCreateDTO {
 
-
-
-
     /**
      * Tipologia dell'evento stradale (es. OBSTACLE,  ACCIDENT, CONSTRUCTION).
      * Definisce la natura dell'impedimento riscontrato.
@@ -41,7 +38,7 @@ public class RoadEventCreateDTO {
      * Se la gravità è {@code CRITICAL}, l'evento è considerato bloccante e richiede
      * un ricalcolo immediato del percorso.
      */
-    @NotNull(message = "La tipologia di evento è obbligatoria")
+    @NotNull(message = "Il livello di gravitá non puó essere nullo")
     private EventSeverity severity;
 
     /**

@@ -11,8 +11,8 @@ import java.time.LocalDateTime;
 /**
  * Data Transfer Object (DTO) per la rappresentazione di un evento o segnalazione stradale.
  * <p>
- * Viene utilizzato come oggeto di risposta quando andiamo a modificare le informazioni
- * relaztive ad un evento.
+ * Viene utilizzato come oggetto di risposta quando andiamo a modificare le informazioni
+ * relative ad un evento.
  * </p>
  * * @author Heavy Route Team
  */
