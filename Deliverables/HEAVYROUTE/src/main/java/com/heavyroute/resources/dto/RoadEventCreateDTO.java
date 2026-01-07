@@ -2,10 +2,7 @@ package com.heavyroute.resources.dto;
 
 import com.heavyroute.resources.enums.EventSeverity;
 import com.heavyroute.resources.enums.RoadEventType;
-import jakarta.validation.constraints.DecimalMax;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Future;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -65,11 +62,23 @@ public class RoadEventCreateDTO {
     private Double longitude;
 
     /**
-     * Data e ora di scadenza prevista per l'evento.
-     * Oltre questa data, la segnalazione non viene più considerata attiva dal sistema.
+     * Data e ora di inizio validità dell'evento.
+     * <p>
+     * Per incidenti improvvisi, corrisponde al momento della creazione ({@code createdAt}).
+     * Per lavori programmati (es. cantieri), indica quando la strada verrà effettivamente chiusa.
+     * </p>
      */
-    @Future(message = "La data di scadenza deve essere nel futuro")
-    private LocalDateTime expiresAt;
+    @NotBlank(message = "la data di inizio validitá non deve essere nulla")
+    private LocalDateTime validFrom;
+
+    /**
+     * Data e ora in cui l'evento cessa di essere valido.
+     * <p>
+     * Se {@code null}, l'evento è considerato a tempo indeterminato (es. strada crollata)
+     * finché non viene chiuso manualmente.
+     * </p>
+     */
+    private LocalDateTime validTo;
 
 
 }
