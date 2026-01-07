@@ -1,8 +1,10 @@
 package com.heavyroute.resources.dto;
 
+import com.heavyroute.resources.enums.VehicleStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jdk.jshell.Snippet;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -73,6 +75,5 @@ public class VehicleDTO {
      * Stato operativo attuale del veicolo (es. AVAILABLE, BUSY, MAINTENANCE).
      * Determina se il mezzo può essere assegnato a un nuovo viaggio.
      */
-    @NotBlank(message = "Lo stato operativo è obbligatorio")
-    private String status;
+    private VehicleStatus status;
 }
