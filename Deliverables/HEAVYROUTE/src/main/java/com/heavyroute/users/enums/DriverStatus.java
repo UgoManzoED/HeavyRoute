@@ -1,4 +1,4 @@
-package com.heavyroute.users.model;
+package com.heavyroute.users.enums;
 
 public enum DriverStatus {
     FREE,

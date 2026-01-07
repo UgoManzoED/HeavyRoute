@@ -1,6 +1,7 @@
 package com.heavyroute.users.model;
 
 import com.heavyroute.common.model.BaseEntity;
+import com.heavyroute.users.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
