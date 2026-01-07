@@ -44,14 +44,6 @@ public class RoadEvent extends BaseEntity {
     private GeoLocation location;
 
     private LocalDateTime expiresAt; // Data e ora in cui l'evento cessa di essere valido.
-
-    /** Riferimento all'autista che ha segnalato l'evento (opzionale).
-     * Se null, l'evento potrebbe provenire da un'API esterna o dal sistema centrale.
-     */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reported_by_driver_id")
-    private Driver reportedBy;
-
     /** Verifica se l'evento è ancora in corso.
      * @return true se la data di scadenza è futura o nulla.
      */

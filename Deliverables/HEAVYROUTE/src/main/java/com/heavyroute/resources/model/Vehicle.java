@@ -4,6 +4,7 @@ import com.heavyroute.common.model.BaseEntity;
 import com.heavyroute.resources.enums.VehicleStatus;
 import com.heavyroute.users.model.Driver;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Positive;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
@@ -29,16 +30,20 @@ public class Vehicle extends BaseEntity {
     private String model;
 
     @Column(nullable = false)
+    @Positive
     private Double maxLoadCapacity; //portata massima del veicolo in kg
 
     @Column(nullable = false)
-    private Double maxHeight;
+    @Positive
+    private Double maxHeight; //altezza massima del veicolo in metri
 
     @Column(nullable = false)
-    private Double maxWidth;
+    @Positive
+    private Double maxWidth; //larghezza massima del veicolo in metri
 
     @Column(nullable = false)
-    private Double maxLength;
+    @Positive
+    private Double maxLength; //lunghezza massima del veicolo in metri
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
