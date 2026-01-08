@@ -47,4 +47,20 @@ class TokenStorage {
   static Future<void> deleteToken() async {
     await _storage.delete(key: _keyJwt);
   }
+  static const _keyRole = 'user_role';
+  // Salva il ruolo
+  static Future<void> saveRole(String role) async {
+    await _storage.write(key: _keyRole, value: role);
+  }
+  // Leggi il ruolo
+  static Future<String?> getRole() async {
+    return await _storage.read(key: _keyRole);
+  }
+  // Cancella tutto (Logout)
+  static Future<void> deleteAll() async {
+    await _storage.delete(key: _keyJwt);
+    await _storage.delete(key: _keyRole);
+  }
 }
+
+
