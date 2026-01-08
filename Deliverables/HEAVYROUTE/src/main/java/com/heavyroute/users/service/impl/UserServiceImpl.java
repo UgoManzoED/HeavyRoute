@@ -2,7 +2,7 @@ package com.heavyroute.users.service.impl;
 
 import com.heavyroute.common.exception.BusinessRuleException;
 import com.heavyroute.common.exception.ResourceNotFoundException;
-import com.heavyroute.common.exception.UserAlreadyExistsException;
+import com.heavyroute.common.exception.UserAlreadyExistException;
 import com.heavyroute.users.dto.*;
 import com.heavyroute.users.model.*;
 import com.heavyroute.users.repository.CustomerRepository;
@@ -42,15 +42,15 @@ public class UserServiceImpl implements UserService {
     public UserDTO registerNewClient(CustomerRegistrationDTO dto) {
         // OCL Pre-condition check: Unicità Username
         if (userRepository.existsByUsername(dto.getUsername())) {
-            throw new UserAlreadyExistsException("Lo username '" + dto.getUsername() + "' è già utilizzato.");
+            throw new UserAlreadyExistException("Lo username '" + dto.getUsername() + "' è già utilizzato.");
         }
 
         // Business Check: Unicità Email e Dati Fiscali
         if (userRepository.existsByEmail(dto.getEmail())) {
-            throw new UserAlreadyExistsException("L'indirizzo email risulta già registrato.");
+            throw new UserAlreadyExistException("L'indirizzo email risulta già registrato.");
         }
         if (customerRepository.existsByVatNumber(dto.getVatNumber())) {
-            throw new UserAlreadyExistsException("La Partita IVA è già presente a sistema.");
+            throw new UserAlreadyExistException("La Partita IVA è già presente a sistema.");
         }
 
         // Creazione Entità Customer
@@ -87,10 +87,10 @@ public class UserServiceImpl implements UserService {
     public UserDTO createInternalUser(InternalUserCreateDTO dto) {
         // OCL Pre-condition: Unicità Email/Username
         if (userRepository.existsByEmail(dto.getEmail())) {
-            throw new UserAlreadyExistsException("Email aziendale già assegnata.");
+            throw new UserAlreadyExistException("Email aziendale già assegnata.");
         }
         if (userRepository.existsByUsername(dto.getUsername())) {
-            throw new UserAlreadyExistsException("Username già in uso.");
+            throw new UserAlreadyExistException("Username già in uso.");
         }
 
         User user = switch (dto.getRole()) {
