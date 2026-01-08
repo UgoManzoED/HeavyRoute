@@ -1,10 +1,14 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'auth_interceptor.dart';
 
+/// Configurazione Singleton del client HTTP.
+/// <p>
+/// Questa classe è il cuore della comunicazione di rete.
+/// Configura l'URL base, i timeout e, soprattutto, aggancia l'Interceptor
+/// di sicurezza per automatizzare l'invio del Token JWT.
+/// </p>
 class DioClient {
-  // Se usi un emulatore Android, localhost è 10.0.2.2
-  // Se usi iOS o Web, è localhost
-  // Se usi un telefono vero, devi mettere l'IP del tuo PC (es. 192.168.1.X)
   static final String _baseUrl = kIsWeb
       ? 'http://localhost:8080/api'
       : 'http://10.0.2.2:8080/api';
@@ -12,13 +16,14 @@ class DioClient {
   static final Dio _dio = Dio(
     BaseOptions(
       baseUrl: _baseUrl,
-      connectTimeout: const Duration(seconds: 5),
-      receiveTimeout: const Duration(seconds: 5),
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 10),
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
     ),
-  );
+  )..interceptors.add(AuthInterceptor());
 
   static Dio get instance => _dio;
 }
