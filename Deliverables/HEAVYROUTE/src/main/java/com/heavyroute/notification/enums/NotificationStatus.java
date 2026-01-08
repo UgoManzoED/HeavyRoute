@@ -1,4 +1,4 @@
-package com.heavyroute.notication.enums;
+package com.heavyroute.notification.enums;
 
 /**
  * Stato della notifica nel ciclo di vita della lettura da parte dell'utente.

@@ -1,4 +1,4 @@
-package com.heavyroute.notication.enums;
+package com.heavyroute.notification.enums;
 
 /**
  * Definisce la tipologia di notifica in base alla sua natura e priorità.
@@ -12,3 +12,4 @@ package com.heavyroute.notication.enums;
 public enum NotificationType {
     INFO, ALERT, ASSIGNMENT, URGENT
 }
+

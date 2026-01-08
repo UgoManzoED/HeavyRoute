@@ -1,8 +1,8 @@
-package com.heavyroute.notication.model;
+package com.heavyroute.notification.model;
 
 import com.heavyroute.common.model.BaseEntity;
-import com.heavyroute.notication.enums.NotificationStatus;
-import com.heavyroute.notication.enums.NotificationType;
+import com.heavyroute.notification.enums.NotificationStatus;
+import com.heavyroute.notification.enums.NotificationType;
 import jakarta.persistence.*;
 import lombok.*;
 
