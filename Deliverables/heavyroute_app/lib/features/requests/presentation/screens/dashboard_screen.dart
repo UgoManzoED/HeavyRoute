@@ -3,10 +3,11 @@ import '../../models/request_dto.dart';
 import '../../services/request_service.dart';
 
 /**
- * Schermata principale della Dashboard che gestisce la visualizzazione e
- * l'aggiunta di nuovi ordini tramite un menu pop-up.
+ * Schermata della Dashboard del Committente.
+ * Implementa fedelmente il design degli ordini attivi e il sistema
+ * di inserimento tramite dialog a due colonne.
  * * @author Roman
- * @version 1.2
+ * @version 1.7
  */
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -26,19 +27,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   /**
-   * Mostra il pop-up centrale per l'inserimento di un nuovo ordine.
-   * Ricalca il layout a due colonne mostrato nel design di riferimento.
-   * * @param context Il contesto di build necessario per mostrare il dialog.
+   * Apre il dialog per la creazione di un nuovo ordine.
+   * Rimuove le restrizioni 'const' per evitare errori di compilazione con i controller.
+   * * @author Roman
    */
-  void _showAddOrderDialog(BuildContext context) {
+  void _openNewOrderDialog() {
     showDialog(
       context: context,
+      barrierDismissible: true,
       builder: (BuildContext context) {
+        // Rimosso 'const' qui per permettere la creazione dinamica del widget
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(16)),
+          ),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: const NewOrderPopup(),
+            constraints: const BoxConstraints(maxWidth: 650),
+            child: const NewOrderPopup(), // Assicurati che il nome sia identico alla classe sotto
           ),
         );
       },
@@ -54,26 +61,168 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Dashboard Carichi')),
-      body: FutureBuilder<List<RequestCreationDTO>>(
-        future: _requestsFuture,
-        builder: (context, snapshot) {
-          // ... (logica del FutureBuilder come precedentemente implementata)
-          return const Center(child: Text('Dati caricati'));
-        },
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        title: const Text('Dashboard Committente', style: TextStyle(fontWeight: FontWeight.w600)),
+        backgroundColor: Colors.white,
+        elevation: 0,
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddOrderDialog(context),
-        label: const Text('Nuova Inserzione'),
-        icon: const Icon(Icons.add),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          setState(() {
+            _requestsFuture = _requestService.getMyRequests();
+          });
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildAddOrderHeader(),
+              const SizedBox(height: 32),
+              const Text('Ordini Attivi', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text('Monitora lo stato delle tue spedizioni in corso', style: TextStyle(color: Colors.grey, fontSize: 14)),
+              const SizedBox(height: 20),
+              FutureBuilder<List<RequestCreationDTO>>(
+                future: _requestsFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text('Errore: ${snapshot.error}'));
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(child: Text('Nessun ordine presente.'));
+                  }
+                  return ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: snapshot.data!.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 16),
+                    itemBuilder: (context, index) => _OrderCard(request: snapshot.data![index]),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddOrderHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        children: [
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _openNewOrderDialog,
+              borderRadius: BorderRadius.circular(40),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(color: Color(0xFF0D0D1A), shape: BoxShape.circle),
+                child: const Icon(Icons.add, color: Colors.white, size: 32),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text('Aggiungi Nuovo Ordine', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text('Clicca per richiedere una nuova consegna speciale', style: TextStyle(color: Colors.blueGrey, fontSize: 14)),
+        ],
       ),
     );
   }
 }
 
 /**
- * Widget interno che gestisce il form all'interno del pop-up.
- * Implementa la logica di validazione e invio dei dati.
+ * Widget della card ordine (image_bb2e9d.png).
+ */
+class _OrderCard extends StatelessWidget {
+  final RequestCreationDTO request;
+  const _OrderCard({required this.request});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(8)),
+                child: const Icon(Icons.inventory_2_outlined, size: 24, color: Color(0xFF374151)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Ordine', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      decoration: BoxDecoration(color: const Color(0xFF0D0D1A), borderRadius: BorderRadius.circular(4)),
+                      child: const Text('In Transito', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _buildInfoRow(Icons.location_on_outlined, request.originAddress),
+          const SizedBox(height: 10),
+          _buildInfoRow(Icons.monitor_weight_outlined, 'Peso: ${request.weight} ton'),
+          const SizedBox(height: 10),
+          _buildInfoRow(Icons.calendar_today_outlined, request.pickupDate),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {},
+              icon: const Icon(Icons.edit_note, size: 20, color: Colors.black87),
+              label: const Text('Richiedi Modifica o Annullamento', style: TextStyle(color: Colors.black87)),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                side: const BorderSide(color: Color(0xFFE5E7EB)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.grey[600]),
+        const SizedBox(width: 10),
+        Expanded(child: Text(text, style: TextStyle(color: Colors.grey[800], fontSize: 14), overflow: TextOverflow.ellipsis)),
+      ],
+    );
+  }
+}
+
+/**
+ * Widget del Form Pop-up (image_baafda.png).
  */
 class NewOrderPopup extends StatefulWidget {
   const NewOrderPopup({super.key});
@@ -86,42 +235,36 @@ class _NewOrderPopupState extends State<NewOrderPopup> {
   final _formKey = GlobalKey<FormState>();
   final RequestService _requestService = RequestService();
 
-  // Controller per i campi richiesti nell'immagine
-  final _originController = TextEditingController();
-  final _destController = TextEditingController();
-  final _quantityController = TextEditingController();
-  final _lengthController = TextEditingController();
-  final _widthController = TextEditingController();
-  final _weightController = TextEditingController();
-  final _dateController = TextEditingController();
-  final _notesController = TextEditingController();
+  final _originCtrl = TextEditingController();
+  final _destCtrl = TextEditingController();
+  final _quantCtrl = TextEditingController();
+  final _lenCtrl = TextEditingController();
+  final _widCtrl = TextEditingController();
+  final _weightCtrl = TextEditingController();
+  final _dateCtrl = TextEditingController();
+  final _noteCtrl = TextEditingController();
 
-  /**
-   * Gestisce l'invio del form e chiude il pop-up in caso di successo.
-   */
-  void _submit() async {
+  void _handleConfirm() async {
     if (_formKey.currentState!.validate()) {
-      final request = RequestCreationDTO(
-        originAddress: _originController.text,
-        destinationAddress: _destController.text,
-        pickupDate: _dateController.text,
-        weight: double.parse(_weightController.text),
-        length: double.parse(_lengthController.text),
-        width: double.parse(_widthController.text),
-        height: 0.0, // Campo non presente nell'immagine, impostato a default
+      final dto = RequestCreationDTO(
+        originAddress: _originCtrl.text,
+        destinationAddress: _destCtrl.text,
+        pickupDate: _dateCtrl.text,
+        weight: double.tryParse(_weightCtrl.text) ?? 0.0,
+        length: double.tryParse(_lenCtrl.text) ?? 0.0,
+        width: double.tryParse(_widCtrl.text) ?? 0.0,
+        height: 0.0,
       );
 
-      final success = await _requestService.createRequest(request);
-      if (success && mounted) {
-        Navigator.pop(context, true);
-      }
+      final success = await _requestService.createRequest(dto);
+      if (success && mounted) Navigator.pop(context, true);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.all(32.0),
       child: SingleChildScrollView(
         child: Form(
           key: _formKey,
@@ -132,73 +275,71 @@ class _NewOrderPopupState extends State<NewOrderPopup> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Aggiungi Nuovo Ordine', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const Text('Aggiungi Nuovo Ordine', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                   IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
                 ],
               ),
-              const Text('Inserisci i dettagli della consegna speciale che vuoi richiedere.', style: TextStyle(color: Colors.grey)),
-              const SizedBox(height: 24),
+              const Text('Inserisci i dettagli della consegna speciale che vuoi richiedere.', style: TextStyle(color: Colors.grey, fontSize: 14)),
+              const SizedBox(height: 32),
 
-              // Riga 1: Origine e Destinazione
               Row(
                 children: [
-                  Expanded(child: _buildPopupField('Origine del carico *', _originController, 'Es. Milano, Via Roma 123')),
-                  const SizedBox(width: 16),
-                  Expanded(child: _buildPopupField('Destinazione del carico *', _destController, 'Es. Roma, Via del Corso 45')),
+                  Expanded(child: _buildInput('Origine del carico *', 'Es. Milano, Via Roma 123', _originCtrl)),
+                  const SizedBox(width: 20),
+                  Expanded(child: _buildInput('Destinazione del carico *', 'Es. Roma, Via del Corso 45', _destCtrl)),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
-              // Riga 2: Tipologia e Quantità
               Row(
                 children: [
-                  Expanded(child: _buildDropdownField('Tipologia di carico *')),
-                  const SizedBox(width: 16),
-                  Expanded(child: _buildPopupField('Quantità *', _quantityController, 'Es. 1')),
+                  Expanded(child: _buildDropdown('Tipologia di carico *')),
+                  const SizedBox(width: 20),
+                  Expanded(child: _buildInput('Quantità *', 'Es. 1', _quantCtrl, isNum: true)),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
-              // Riga 3: Lunghezza e Larghezza
               Row(
                 children: [
-                  Expanded(child: _buildPopupField('Lunghezza (m) *', _lengthController, 'Es. 5.5')),
-                  const SizedBox(width: 16),
-                  Expanded(child: _buildPopupField('Larghezza (m) *', _widthController, 'Es. 2.5')),
+                  Expanded(child: _buildInput('Lunghezza (m) *', 'Es. 5.5', _lenCtrl, isNum: true)),
+                  const SizedBox(width: 20),
+                  Expanded(child: _buildInput('Larghezza (m) *', 'Es. 2.5', _widCtrl, isNum: true)),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
-              // Riga 4: Peso e Data
               Row(
                 children: [
-                  Expanded(child: _buildPopupField('Peso Totale (kg) *', _weightController, 'Es. 2500')),
-                  const SizedBox(width: 16),
-                  Expanded(child: _buildPopupField('Data di ritiro *', _dateController, 'Seleziona data', isReadOnly: true, onTap: () => _selectDate())),
+                  Expanded(child: _buildInput('Peso Totale (kg) *', 'Es. 2500', _weightCtrl, isNum: true)),
+                  const SizedBox(width: 20),
+                  Expanded(child: _buildInput('Data di ritiro *', 'Seleziona data', _dateCtrl, isDate: true)),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
-              // Note Operative
-              _buildPopupField('Note operative', _notesController, 'Inserisci eventuali note...', maxLines: 3),
-              const SizedBox(height: 24),
+              _buildInput('Note operative', 'Inserisci eventuali note, istruzioni speciali o requisiti particolari...', _noteCtrl, maxLines: 4),
+              const SizedBox(height: 40),
 
-              // Bottoni Azione
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  OutlinedButton(
+                  TextButton(
                     onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16)),
-                    child: const Text('Annulla'),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: const BorderSide(color: Color(0xFFE5E7EB))),
+                    ),
+                    child: const Text('Annulla', style: TextStyle(color: Colors.black87)),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 16),
                   ElevatedButton(
-                    onPressed: _submit,
+                    onPressed: _handleConfirm,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0D0D1A), // Colore scuro come immagine
+                      backgroundColor: const Color(0xFF0D0D1A),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                     child: const Text('Conferma Ordine'),
                   ),
@@ -211,58 +352,55 @@ class _NewOrderPopupState extends State<NewOrderPopup> {
     );
   }
 
-  /**
-   * Helper per costruire i campi di testo del pop-up.
-   */
-  Widget _buildPopupField(String label, TextEditingController controller, String hint, {int maxLines = 1, bool isReadOnly = false, VoidCallback? onTap}) {
+  Widget _buildInput(String label, String hint, TextEditingController ctrl, {int maxLines = 1, bool isDate = false, bool isNum = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF374151))),
         const SizedBox(height: 8),
         TextFormField(
-          controller: controller,
+          controller: ctrl,
           maxLines: maxLines,
-          readOnly: isReadOnly,
-          onTap: onTap,
+          readOnly: isDate,
+          onTap: isDate ? _showPicker : null,
+          keyboardType: isNum ? TextInputType.number : TextInputType.text,
           decoration: InputDecoration(
             hintText: hint,
+            hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
             filled: true,
-            fillColor: Colors.grey[100],
+            fillColor: const Color(0xFFF3F4F6),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),
-          validator: (v) => v!.isEmpty ? 'Richiesto' : null,
+          validator: (v) => v!.isEmpty && label.contains('*') ? 'Richiesto' : null,
         ),
       ],
     );
   }
 
-  /**
-   * Helper per il campo dropdown della tipologia.
-   */
-  Widget _buildDropdownField(String label) {
+  Widget _buildDropdown(String label) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF374151))),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           decoration: InputDecoration(
             filled: true,
-            fillColor: Colors.grey[100],
+            fillColor: const Color(0xFFF3F4F6),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           ),
-          hint: const Text('Seleziona tipologia'),
-          items: const [DropdownMenuItem(value: 'standard', child: Text('Standard'))],
+          hint: Text('Seleziona tipologia', style: TextStyle(color: Colors.grey[400], fontSize: 14)),
+          items: const [DropdownMenuItem(value: 'eco', child: Text('Trasporto Eccezionale'))],
           onChanged: (v) {},
         ),
       ],
     );
   }
 
-  Future<void> _selectDate() async {
-    final DateTime? picked = await showDatePicker(context: context, initialDate: DateTime.now(), firstDate: DateTime.now(), lastDate: DateTime(2030));
-    if (picked != null) setState(() => _dateController.text = picked.toIso8601String().split('T')[0]);
+  Future<void> _showPicker() async {
+    final DateTime? d = await showDatePicker(context: context, initialDate: DateTime.now(), firstDate: DateTime.now(), lastDate: DateTime(2030));
+    if (d != null) setState(() => _dateCtrl.text = d.toIso8601String().split('T')[0]);
   }
 }
