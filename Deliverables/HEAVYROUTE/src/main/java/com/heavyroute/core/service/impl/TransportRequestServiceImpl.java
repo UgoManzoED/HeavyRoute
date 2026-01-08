@@ -1,9 +1,10 @@
-package com.heavyroute.core.service;
+package com.heavyroute.core.service.impl;
 
 import com.heavyroute.core.dto.*;
 import com.heavyroute.core.model.*;
 import com.heavyroute.core.enums.RequestStatus;
 import com.heavyroute.core.repository.TransportRequestRepository;
+import com.heavyroute.core.service.TransportRequestService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
