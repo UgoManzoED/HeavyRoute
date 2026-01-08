@@ -13,6 +13,8 @@ import com.heavyroute.core.repository.TransportRequestRepository;
 import com.heavyroute.core.repository.TripRepository;
 import com.heavyroute.core.dto.TripMapper;
 import com.heavyroute.core.service.TripService;
+import com.heavyroute.notification.enums.NotificationType;
+import com.heavyroute.notification.service.NotificationService;
 import com.heavyroute.resources.enums.VehicleStatus;
 import com.heavyroute.resources.model.Vehicle;
 import com.heavyroute.resources.repository.VehicleRepository;
@@ -45,6 +47,7 @@ public class TripServiceImpl implements TripService {
     private final TripMapper tripMapper;
     private final DriverRepository driverRepository;
     private final VehicleRepository vehicleRepository;
+    private final NotificationService notificationService;
 
     /**
      * {@inheritDoc}
@@ -90,16 +93,16 @@ public class TripServiceImpl implements TripService {
     @Override
     @Transactional
     public void planTrip(Long tripId, PlanningDTO dto) {
-        // 1. Recupera il viaggio
+        // Recupera il viaggio
         Trip trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new ResourceNotFoundException("Viaggio non trovato con ID: " + tripId));
 
-        // 2. Validazione Stato: Si può pianificare solo se è IN_PLANNING
+        // Validazione Stato: Si può pianificare solo se è IN_PLANNING
         if (trip.getStatus() != TripStatus.IN_PLANNING) {
             throw new BusinessRuleException("Il viaggio non è in fase di pianificazione. Stato attuale: " + trip.getStatus());
         }
 
-        // 3a. Recupera l'Autista reale
+        // Recupera l'Autista reale
         Driver driver = driverRepository.findById(dto.getDriverId())
                 .orElseThrow(() -> new ResourceNotFoundException("Autista non trovato con ID: " + dto.getDriverId()));
 
@@ -107,7 +110,7 @@ public class TripServiceImpl implements TripService {
             throw new BusinessRuleException("L'autista selezionato non è disponibile (Stato: " + driver.getStatus() + ")");
         }
 
-        // 3b. Recupera il Veicolo reale
+        // Recupera il Veicolo reale
         Vehicle vehicle = vehicleRepository.findByLicensePlate(dto.getVehiclePlate())
                 .orElseThrow(() -> new ResourceNotFoundException("Veicolo non trovato con targa: " + dto.getVehiclePlate()));
 
@@ -115,7 +118,7 @@ public class TripServiceImpl implements TripService {
             throw new BusinessRuleException("Il veicolo selezionato non è disponibile (Stato: " + vehicle.getStatus() + ")");
         }
 
-        // 3c. Controllo di Business: Portata del veicolo
+        // Controllo di Business: Portata del veicolo
         Double pesoRichiesto = trip.getRequest().getLoad().getWeightKg();
         if (vehicle.getMaxLoadCapacity() < pesoRichiesto) {
             throw new BusinessRuleException(String.format(
@@ -123,12 +126,30 @@ public class TripServiceImpl implements TripService {
                     vehicle.getLicensePlate(), vehicle.getMaxLoadCapacity(), pesoRichiesto));
         }
 
-        // 4. Associa gli oggetti
+        // Associa gli oggetti
         trip.setDriver(driver);
         trip.setVehicle(vehicle);
 
-        // 5. Salva
+        // Salva
         tripRepository.save(trip);
+
+        // Cambia lo stato delle risorse
+        driver.setStatus(DriverStatus.ASSIGNED);
+        vehicle.setStatus(VehicleStatus.IN_USE);
+        trip.setStatus(TripStatus.CONFIRMED);
+
+        driverRepository.save(driver);
+        vehicleRepository.save(vehicle);
+        tripRepository.save(trip);
+
+        // Invia la notifica (usa la tua NotificationService)
+        notificationService.send(
+                driver.getId(),
+                "Nuovo Incarico",
+                "Ti è stato assegnato un nuovo viaggio. Controlla i dettagli.",
+                NotificationType.ASSIGNMENT,
+                trip.getId()
+        );
     }
 
     /**
