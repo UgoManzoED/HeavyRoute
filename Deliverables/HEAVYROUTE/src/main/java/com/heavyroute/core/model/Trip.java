@@ -61,11 +61,10 @@ public class Trip extends BaseEntity {
     @OneToOne(optional = false)
     @JoinColumn(name = "request_id", unique = true)
     private TransportRequest request;
-
-    // TODO: Decommentare quando push Route
-    // @OneToOne(cascade = CascadeType.ALL)
-    // @JoinColumn(name = "route_id")
-    // private Route route;
+    
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "route_id")
+    private Route route;
 
     // --- RISORSE ASSEGNATE ---
 
