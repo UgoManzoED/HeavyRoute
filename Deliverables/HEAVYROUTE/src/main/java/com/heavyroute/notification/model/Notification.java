@@ -5,6 +5,7 @@ import com.heavyroute.notification.enums.NotificationStatus;
 import com.heavyroute.notification.enums.NotificationType;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 /**
  * Entità persistente che rappresenta una notifica inviata a un utente.
@@ -18,7 +19,8 @@ import lombok.*;
 @Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 public class Notification extends BaseEntity {
 
     /**
