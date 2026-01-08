@@ -3,18 +3,21 @@ package com.heavyroute.core.service.impl;
 import com.heavyroute.common.exception.BusinessRuleException;
 import com.heavyroute.common.exception.ResourceNotFoundException;
 import com.heavyroute.core.dto.PlanningDTO;
-import com.heavyroute.core.dto.RequestDetailDTO; // Importante: DTO del Collega 1
+import com.heavyroute.core.dto.RequestDetailDTO;
 import com.heavyroute.core.dto.TripDTO;
 import com.heavyroute.core.enums.RequestStatus;
 import com.heavyroute.core.enums.TripStatus;
+import com.heavyroute.core.model.Route;
 import com.heavyroute.core.model.TransportRequest;
 import com.heavyroute.core.model.Trip;
 import com.heavyroute.core.repository.TransportRequestRepository;
 import com.heavyroute.core.repository.TripRepository;
 import com.heavyroute.core.service.TripMapper;
 import com.heavyroute.core.service.TripService;
+import com.heavyroute.resources.enums.VehicleStatus;
 import com.heavyroute.resources.model.Vehicle;
 import com.heavyroute.resources.repository.VehicleRepository;
+import com.heavyroute.users.enums.DriverStatus;
 import com.heavyroute.users.model.Driver;
 import com.heavyroute.users.repository.DriverRepository;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +41,6 @@ public class TripServiceImpl implements TripService {
     private final TripRepository tripRepository;
     private final TransportRequestRepository requestRepository;
     private final TripMapper tripMapper;
-
     private final DriverRepository driverRepository;
     private final VehicleRepository vehicleRepository;
 
@@ -70,9 +72,9 @@ public class TripServiceImpl implements TripService {
         Trip trip = new Trip();
         trip.setStatus(TripStatus.IN_PLANNING);
         trip.setRequest(request);
-        Trip savedTrip = tripRepository.save(trip);
 
         // 5. Converte in DTO e restituisce
+        Trip savedTrip = tripRepository.save(trip);
         return tripMapper.toDTO(savedTrip);
     }
 
@@ -99,9 +101,17 @@ public class TripServiceImpl implements TripService {
         Driver driver = driverRepository.findById(dto.getDriverId())
                 .orElseThrow(() -> new ResourceNotFoundException("Autista non trovato con ID: " + dto.getDriverId()));
 
+        if (driver.getStatus() != DriverStatus.FREE) {
+            throw new BusinessRuleException("L'autista selezionato non è disponibile (Stato: " + driver.getStatus() + ")");
+        }
+
         // 3b. Recupera il Veicolo reale
         Vehicle vehicle = vehicleRepository.findByLicensePlate(dto.getVehiclePlate())
                 .orElseThrow(() -> new ResourceNotFoundException("Veicolo non trovato con targa: " + dto.getVehiclePlate()));
+
+        if (vehicle.getStatus() != VehicleStatus.AVAILABLE) {
+            throw new BusinessRuleException("Il veicolo selezionato non è disponibile (Stato: " + vehicle.getStatus() + ")");
+        }
 
         // 3c. Controllo di Business: Portata del veicolo
         Double pesoRichiesto = trip.getRequest().getLoad().getWeightKg();
@@ -116,6 +126,38 @@ public class TripServiceImpl implements TripService {
         trip.setVehicle(vehicle);
 
         // 5. Salva
+        tripRepository.save(trip);
+    }
+
+    /**
+     * Calcola e associa il percorso stradale al viaggio.
+     * <p>
+     * Attualmente implementa una logica MOCK: invece di interrogare un provider
+     * cartografico esterno, istanzia un percorso statico
+     * per testare la persistenza e le relazioni del database.
+     * </p>
+     *
+     * @param tripId L'ID del viaggio per cui calcolare il percorso.
+     * @throws ResourceNotFoundException se il viaggio non esiste.
+     */
+    @Override
+    @Transactional
+    public void calculateRoute(Long tripId) {
+        // 1. Fetch dell'entità padre
+        Trip trip = tripRepository.findById(tripId)
+                .orElseThrow(() -> new ResourceNotFoundException("Viaggio non trovato con ID: " + tripId));
+
+        // 2. Simulazione della risposta di un motore di Routing esterno
+        Route route = new Route();
+        route.setRouteDistance(150.5);
+        route.setRouteDuration(120.0);
+        route.setPolyline("u{~vFvyys@fGe}A");
+
+        // 3. Gestione della Relazione Bidirezionale
+        route.setTrip(trip);
+        trip.setRoute(route);
+
+        // 4. Persistenza
         tripRepository.save(trip);
     }
 

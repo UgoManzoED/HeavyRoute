@@ -49,4 +49,14 @@ public interface TripService {
      * @return Un DTO arricchito con descrizioni utile al Frontend.
      */
     TripDTO getTrip(Long id);
+
+    /**
+     * Calcola e associa un percorso ottimale al viaggio.
+     * <p>
+     * Questo metodo invoca il motore di routing (simulato) e salva l'entità Route.
+     * </p>
+     *
+     * @param tripId L'ID del viaggio per cui calcolare il percorso.
+     */
+    void calculateRoute(Long tripId);
 }

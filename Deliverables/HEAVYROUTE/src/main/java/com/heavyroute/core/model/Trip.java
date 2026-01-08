@@ -4,7 +4,7 @@ import com.heavyroute.common.model.BaseEntity;
 import com.heavyroute.core.enums.TripStatus;
 import com.heavyroute.resources.model.Vehicle;
 import com.heavyroute.users.model.Driver;
-// import com.heavyroute.core.model.Route;
+import com.heavyroute.core.model.Route;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
