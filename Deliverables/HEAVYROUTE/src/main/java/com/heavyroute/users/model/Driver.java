@@ -26,7 +26,7 @@ import lombok.experimental.SuperBuilder;
 public class Driver extends InternalUser {
 
     @Column(nullable = false)
-    private String license;
+    private String licensePlate;
 
     @Embedded
     private GeoLocation geoLocation;
