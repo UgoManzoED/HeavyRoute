@@ -4,6 +4,7 @@ import com.heavyroute.common.exception.BusinessRuleException;
 import com.heavyroute.common.exception.ResourceNotFoundException;
 import com.heavyroute.common.exception.UserAlreadyExistException;
 import com.heavyroute.users.dto.*;
+import com.heavyroute.users.enums.UserRole;
 import com.heavyroute.users.model.*;
 import com.heavyroute.users.repository.CustomerRepository;
 import com.heavyroute.users.repository.UserRepository;
@@ -60,8 +61,7 @@ public class UserServiceImpl implements UserService {
         customer.setFirstName(dto.getFirstName());
         customer.setLastName(dto.getLastName());
 
-        // Security: Hashing della password
-        customer.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
+        customer.setPassword(passwordEncoder.encode(dto.getPassword()));
 
         customer.setActive(false); // Richiede approvazione manuale
 
@@ -108,7 +108,7 @@ public class UserServiceImpl implements UserService {
         user.setLastName(dto.getLastName());
 
         // OCL Post: result.passwordHash <> null
-        user.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
 
         // Lo staff interno creato da admin è attivo di default
         user.setActive(true);
@@ -149,7 +149,7 @@ public class UserServiceImpl implements UserService {
 
         // 3. Gestione sicura della password
         if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
-            user.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
+            user.setPassword(passwordEncoder.encode(dto.getPassword()));
         }
 
         return userMapper.toDTO(userRepository.save(user));
@@ -167,7 +167,7 @@ public class UserServiceImpl implements UserService {
 
         // 3. Gestione sicura della password
         if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
-            customer.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
+            customer.setPassword(passwordEncoder.encode(dto.getPassword()));
         }
 
         return userMapper.toDTO(customerRepository.save(customer));
