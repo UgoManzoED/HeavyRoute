@@ -23,6 +23,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 /**
  * Implementazione concreta della logica di business per i viaggi.
  * <p>
@@ -170,9 +173,28 @@ public class TripServiceImpl implements TripService {
      */
     @Override
     @Transactional(readOnly = true)
-    public TripDTO getTrip(Long id) {
+    public TripDTO getTripById(Long id) {
         Trip trip = tripRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Viaggio non trovato con ID: " + id));
         return tripMapper.toDTO(trip);
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Esegue una query di lettura ottimizzata (readOnly = true).
+     * Converte le entità in DTO utilizzando il Mapper per disaccoppiare il dominio dalla vista.
+     * </p>
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<TripDTO> getTripsByStatus(TripStatus status) {
+        // 1. Recupero entità dal DB tramite il metodo aggiunto nel Repository
+        List<Trip> trips = tripRepository.findByStatus(status);
+
+        // 2. Conversione Entity -> DTO tramite Stream API e Mapper
+        return trips.stream()
+                .map(tripMapper::toDTO)
+                .collect(Collectors.toList());
     }
 }
