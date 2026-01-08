@@ -59,4 +59,25 @@ public class ResourceController {
     public ResponseEntity<List<RoadEventResponseDTO>> listActiveEvents() {
         return ResponseEntity.ok(resourceService.getActiveEvents());
     }
+
+    /**
+     * Recupera i veicoli disponibili che soddisfano i requisiti di carico specificati.
+     * <p>
+     * Utilizzato nella fase di pianificazione risorse per filtrare automaticamente
+     * i mezzi idonei al trasporto eccezionale richiesto.
+     * </p>
+     * @param weight Peso richiesto.
+     * @param height Altezza richiesta.
+     * @param width Larghezza richiesta.
+     * @param length Lunghezza richiesta.
+     * @return ResponseEntity con la lista dei veicoli compatibili.
+     */
+    @GetMapping("/vehicles/compatible")
+    public ResponseEntity<List<VehicleDTO>> getCompatibleVehicles(
+            @RequestParam Double weight,
+            @RequestParam Double height,
+            @RequestParam Double width,
+            @RequestParam Double length) {
+        return ResponseEntity.ok(resourceService.getAvailableCompatibleVehicles(weight, height, width, length));
+    }
 }
