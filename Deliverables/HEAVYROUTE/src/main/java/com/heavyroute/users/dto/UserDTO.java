@@ -35,6 +35,16 @@ public class UserDTO {
     private String email;
 
     /**
+     * Nome proprio dell'utente.
+     */
+    private String firstName;
+
+    /**
+     * Cognome dell'utente.
+     */
+    private String lastName;
+
+    /**
      * Ruolo assegnato all'utente (es. ADMIN, PLANNER, DRIVER, CUSTOMER).
      * Determina i permessi di accesso alle varie aree della piattaforma.
      */

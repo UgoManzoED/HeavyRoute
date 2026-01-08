@@ -26,7 +26,7 @@ public class InternalUserCreateDTO {
      * Username aziendale univoco (es. nome.cognome).
      */
     @NotBlank(message = "Lo username è obbligatorio")
-    @Size(min = 4, max = 50, message = "Lo username deve avere tra 4 e 50 caratteri")
+    @Size(min = 4, message = "Lo username deve avere almeno 4 caratteri")
     private String username;
 
     /**
@@ -42,6 +42,18 @@ public class InternalUserCreateDTO {
             message = "Il formato dell'email non è corretto (es. nome.cognome@heavyroute.com)"
     )
     private String email;
+
+    /**
+     * Nome proprio dell'utente.
+     */
+    @NotBlank(message = "Il nome è obbligatorio")
+    private String firstName;
+
+    /**
+     * Cognome dell'utente.
+     */
+    @NotBlank(message = "Il cognome è obbligatorio")
+    private String lastName;
 
     /**
      * Ruolo da assegnare al dipendente.

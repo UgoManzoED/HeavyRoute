@@ -43,6 +43,7 @@ public abstract class User extends BaseEntity {
     @Column(name = "phone_number", length = 20, nullable = false)
     protected String phoneNumber;
 
+    @Builder.Default
     @Column(nullable=false)
     protected boolean active=false;
 
