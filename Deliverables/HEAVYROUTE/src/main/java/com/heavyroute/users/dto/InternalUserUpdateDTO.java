@@ -66,6 +66,18 @@ public class InternalUserUpdateDTO {
     private String password;
 
     /**
+     * Nome proprio dell'utente.
+     */
+    @NotBlank(message = "Il nome è obbligatorio")
+    private String firstName;
+
+    /**
+     * Cognome dell'utente.
+     */
+    @NotBlank(message = "Il cognome è obbligatorio")
+    private String lastName;
+
+    /**
      * Stato di attivazione dell'account.
      * Permette di disabilitare temporaneamente un dipendente.
      */
