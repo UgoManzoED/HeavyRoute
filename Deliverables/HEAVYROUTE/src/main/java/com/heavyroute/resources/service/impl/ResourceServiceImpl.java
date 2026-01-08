@@ -2,23 +2,29 @@ package com.heavyroute.resources.service.impl;
 
 import com.heavyroute.common.exception.BusinessRuleException;
 import com.heavyroute.resources.dto.*;
-import com.heavyroute.resources.model.*;
-import com.heavyroute.resources.repository.*;
+import com.heavyroute.resources.enums.VehicleStatus;
+import com.heavyroute.resources.service.RoadEventMapper;
+import com.heavyroute.resources.service.VehicleMapper;
+import com.heavyroute.resources.model.RoadEvent;
+import com.heavyroute.resources.model.Vehicle;
+import com.heavyroute.resources.repository.RoadEventRepository;
+import com.heavyroute.resources.repository.VehicleRepository;
 import com.heavyroute.resources.service.ResourceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Implementazione concreta del servizio {@link ResourceService}.
+ * Implementazione del servizio per la gestione delle risorse (Veicoli ed Eventi Stradali).
  * <p>
- * Gestisce la persistenza e la validazione dei dati per i moduli Veicoli ed Eventi.
- * Utilizza {@link VehicleRepository} e {@link RoadEventRepository} per l'accesso ai dati.
+ * Questa classe orchestra l'interazione tra i repository e i mapper, applicando le
+ * regole di business definite nell'ODD, come il controllo di unicità della targa
+ * e la verifica della compatibilità dei mezzi.
  * </p>
+ * * @author Heavy Route Team
  */
 @Service
 @RequiredArgsConstructor
@@ -26,81 +32,81 @@ public class ResourceServiceImpl implements ResourceService {
 
     private final VehicleRepository vehicleRepository;
     private final RoadEventRepository eventRepository;
+    private final VehicleMapper vehicleMapper;
+    private final RoadEventMapper eventMapper;
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * <b>Logica di Business:</b> Verifica preventivamente l'esistenza della targa
+     * per evitare violazioni di vincoli a livello DB.
+     * </p>
+     */
     @Override
     @Transactional
     public VehicleDTO createVehicle(VehicleDTO dto) {
-        // Verifica unicità targa (Requisito ODD)
         if (vehicleRepository.existsByLicensePlate(dto.getLicensePlate())) {
-            throw new BusinessRuleException("Veicolo già registrato con targa: " + dto.getLicensePlate());
+            throw new BusinessRuleException("Esiste già un veicolo con targa: " + dto.getLicensePlate());
         }
 
-        Vehicle vehicle = Vehicle.builder()
-                .licensePlate(dto.getLicensePlate())
-                .model(dto.getModel())
-                .maxLoadCapacity(dto.getMaxLoadCapacity())
-                .maxHeight(dto.getMaxHeight())
-                .maxWidth(dto.getMaxWidth())
-                .maxLength(dto.getMaxLength())
-                .status(dto.getStatus())
-                .build();
-
+        Vehicle vehicle = vehicleMapper.toEntity(dto);
         Vehicle saved = vehicleRepository.save(vehicle);
-        return mapToVehicleDTO(saved);
+        return vehicleMapper.toDTO(saved);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional(readOnly = true)
     public List<VehicleDTO> getAllVehicles() {
         return vehicleRepository.findAll().stream()
-                .map(this::mapToVehicleDTO)
+                .map(vehicleMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Ricerca i mezzi che soddisfano i criteri tecnici e hanno stato {@code AVAILABLE}.
+     * </p>
+     */
+
+    @Transactional(readOnly = true)
+    public List<VehicleDTO> getAvailableCompatibleVehicles(Double weight, Double height, Double width, Double length) {
+        return vehicleRepository.findCompatibleVehicles(weight, height, width, length, VehicleStatus.AVAILABLE)
+                .stream()
+                .map(vehicleMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Salva una nuova segnalazione stradale geolocalizzata.
+     * </p>
+     */
     @Override
     @Transactional
     public RoadEventResponseDTO createRoadEvent(RoadEventCreateDTO dto) {
-        RoadEvent event = RoadEvent.builder()
-                .type(dto.getType())
-                .severity(dto.getSeverity())
-                .description(dto.getDescription())
-                .location(new com.heavyroute.common.model.GeoLocation(dto.getLatitude(), dto.getLongitude()))
-                .validFrom(dto.getValidFrom())
-                .validTo(dto.getValidTo())
-                .build();
-
+        RoadEvent event = eventMapper.toEntity(dto);
         RoadEvent saved = eventRepository.save(event);
-        return mapToEventResponseDTO(saved);
+        return eventMapper.toResponseDTO(saved);
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Recupera solo le segnalazioni attive basandosi sulla finestra temporale
+     * {@code validFrom} - {@code validTo}.
+     * </p>
+     */
     @Override
     @Transactional(readOnly = true)
     public List<RoadEventResponseDTO> getActiveEvents() {
         return eventRepository.findAll().stream()
                 .filter(RoadEvent::isActive)
-                .map(this::mapToEventResponseDTO)
+                .map(eventMapper::toResponseDTO)
                 .collect(Collectors.toList());
-    }
-
-    // --- Helper Mappers (In produzione usare MapStruct) ---
-
-    private VehicleDTO mapToVehicleDTO(Vehicle v) {
-        return new VehicleDTO(v.getLicensePlate(), v.getModel(), v.getMaxLoadCapacity(),
-                v.getMaxHeight(), v.getMaxWidth(), v.getMaxLength(), v.getStatus());
-    }
-
-    private RoadEventResponseDTO mapToEventResponseDTO(RoadEvent e) {
-        RoadEventResponseDTO res = new RoadEventResponseDTO();
-        res.setId(e.getId());
-        res.setType(e.getType());
-        res.setSeverity(e.getSeverity());
-        res.setDescription(e.getDescription());
-        res.setLatitude(e.getLocation().getLatitude());
-        res.setLongitude(e.getLocation().getLongitude());
-        res.setValidFrom(e.getValidFrom());
-        res.setValidTo(e.getValidTo());
-        res.setActive(e.isActive());
-        res.setBlocking(e.isBlocking());
-        return res;
     }
 }
