@@ -1,7 +1,5 @@
-package com.heavyroute.core.service;
+package com.heavyroute.core.dto;
 
-import com.heavyroute.core.dto.RequestDetailDTO;
-import com.heavyroute.core.dto.TripDTO;
 import com.heavyroute.core.model.TransportRequest;
 import com.heavyroute.core.model.Trip;
 import org.springframework.stereotype.Component;
