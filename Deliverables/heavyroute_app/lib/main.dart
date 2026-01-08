@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
+import 'features/requests/presentation/screens/dashboard_screen.dart';
 
 void main() {
   runApp(const HeavyRouteApp());
@@ -15,7 +16,7 @@ class HeavyRouteApp extends StatelessWidget {
       title: 'HeavyRoute',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const LoginScreen(),
+      home: const DashboardScreen(),
     );
   }
 }
