@@ -5,6 +5,9 @@ import com.heavyroute.resources.model.Vehicle;
 import com.heavyroute.resources.enums.VehicleStatus;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 /**
  * Componente responsabile della mappatura tra l'entità {@link Vehicle} e il relativo DTO.
  * <p>
@@ -41,6 +44,18 @@ public class VehicleMapper {
         }
 
         return dto;
+    }
+
+    /**
+     * Converte una lista di entità Vehicle in una lista di VehicleDTO.
+     */
+    public List<VehicleDTO> toDTOList(List<Vehicle> entities) {
+        if (entities == null) {
+            return List.of();
+        }
+        return entities.stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
     }
 
     /**
