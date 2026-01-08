@@ -43,4 +43,9 @@ public class Route extends BaseEntity {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String polyline;
 
+    /**
+     * Riferimento inverso al viaggio che utilizza questo percorso.
+     */
+    @OneToOne(mappedBy = "route")
+    private Trip trip;
 }
