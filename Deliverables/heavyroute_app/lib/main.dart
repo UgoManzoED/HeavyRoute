@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:heavyroute_app/features/requests/presentation/screens/create_request_screen.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
+import 'features/landing/presentation/screens/landing_page.dart';
 import 'features/requests/presentation/screens/dashboard_screen.dart';
 
 void main() {
@@ -17,7 +18,11 @@ class HeavyRouteApp extends StatelessWidget {
       title: 'HeavyRoute',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const DashboardScreen(),
+      initialRoute: '/',
+      routes: {
+      '/': (context) => const LandingPage(),
+      '/login': (context) => const LoginScreen(),
+      }
     );
   }
 }
