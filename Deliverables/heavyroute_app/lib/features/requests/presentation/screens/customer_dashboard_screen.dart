@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../models/request_detail_dto.dart';
 import '../../models/request_dto.dart';
 import '../../services/request_service.dart';
 import '../../../auth/services/user_service.dart';

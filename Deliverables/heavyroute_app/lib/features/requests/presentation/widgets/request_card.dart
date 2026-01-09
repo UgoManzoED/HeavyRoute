@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../models/request_dto.dart';
+import '../../models/request_detail_dto.dart';
 
 /**
  * Widget grafico per mostrare una singola richiesta nella lista.
