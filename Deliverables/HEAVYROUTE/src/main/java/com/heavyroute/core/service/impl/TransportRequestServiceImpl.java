@@ -1,10 +1,13 @@
 package com.heavyroute.core.service.impl;
 
+import com.heavyroute.common.exception.ResourceNotFoundException;
 import com.heavyroute.core.dto.*;
 import com.heavyroute.core.model.*;
 import com.heavyroute.core.enums.RequestStatus;
 import com.heavyroute.core.repository.TransportRequestRepository;
 import com.heavyroute.core.service.TransportRequestService;
+import com.heavyroute.users.model.User;
+import com.heavyroute.users.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -23,13 +26,15 @@ import java.util.stream.Collectors;
 public class TransportRequestServiceImpl implements TransportRequestService {
 
     private final TransportRequestRepository repository;
+    private final UserRepository userRepository;
 
     /**
      * Costruttore per l'iniezione del repository tramite Dependency Injection.
      * * @param repository Il repository per l'accesso ai dati delle richieste.
      */
-    public TransportRequestServiceImpl(TransportRequestRepository repository) {
+    public TransportRequestServiceImpl(TransportRequestRepository repository, UserRepository userRepository) {
         this.repository = repository;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -65,6 +70,11 @@ public class TransportRequestServiceImpl implements TransportRequestService {
         load.setWidth(dto.getWidth());
         load.setLength(dto.getLength());
         request.setLoad(load);
+
+        User client = userRepository.findById(dto.getClientId())
+                .orElseThrow(() -> new ResourceNotFoundException("Cliente non trovato con ID: " + dto.getClientId()));
+
+        request.setUserClient(client);
 
         TransportRequest saved = repository.save(request);
         return mapToDetailDTO(saved);
@@ -110,6 +120,13 @@ public class TransportRequestServiceImpl implements TransportRequestService {
             dto.setHeight(entity.getLoad().getHeight());
             dto.setWidth(entity.getLoad().getWidth());
             dto.setLength(entity.getLoad().getLength());
+        }
+
+        // Popolamento Dati Cliente ---
+        if (entity.getUserClient() != null) {
+            dto.setClientId(entity.getUserClient().getId());
+            // Concateniamo nome e cognome per facilitare la visualizzazione al PL
+            dto.setClientFullName(entity.getUserClient().getFirstName() + " " + entity.getUserClient().getLastName());
         }
 
         return dto;

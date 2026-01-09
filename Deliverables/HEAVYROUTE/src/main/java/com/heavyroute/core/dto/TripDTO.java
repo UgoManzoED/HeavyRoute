@@ -40,8 +40,6 @@ public class TripDTO {
      */
     private String status;
 
-    // --- DATI ARRICCHITI (ENRICHED DATA) ---
-
     /**
      * ID dell'autista (riferimento tecnico).
      * Corrisponde al campo 'driverId' dell'Entity.
@@ -82,4 +80,14 @@ public class TripDTO {
      * </p>
      */
     private RequestDetailDTO request;
+
+    /**
+     * ID del Committente (Utente che ha creato la richiesta).
+     */
+    private Long clientId;
+
+    /**
+     * Nome completo del Committente (Dato arricchito per la UI).
+     */
+    private String clientFullName;
 }

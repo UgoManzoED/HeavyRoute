@@ -19,7 +19,7 @@ public interface UserService {
      *
      * @param dto I dati di registrazione e fiscali del cliente.
      * @return Il DTO dell'utente creato (senza dati sensibili).
-     * @throws com.heavyroute.common.exception.UserAlreadyExistsException se lo username è già in uso.
+     * @throws com.heavyroute.common.exception.UserAlreadyExistException se lo username è già in uso.
      */
     UserDTO registerNewClient(CustomerRegistrationDTO dto);
 
@@ -32,7 +32,7 @@ public interface UserService {
      *
      * @param dto I dati anagrafici e il ruolo dello staff.
      * @return Il DTO dell'utente creato.
-     * @throws com.heavyroute.common.exception.UserAlreadyExistsException se l'email o lo username sono già presenti.
+     * @throws com.heavyroute.common.exception.UserAlreadyExistException se l'email o lo username sono già presenti.
      */
     UserDTO createInternalUser(InternalUserCreateDTO dto);
 

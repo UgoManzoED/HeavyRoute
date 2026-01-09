@@ -2,6 +2,7 @@ package com.heavyroute.core.model;
 
 import com.heavyroute.common.model.BaseEntity;
 import com.heavyroute.core.enums.RequestStatus;
+import com.heavyroute.users.model.User;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,6 +20,14 @@ import java.time.LocalDate;
 @Getter
 @Setter
 public class TransportRequest extends BaseEntity {
+
+    /**
+     * Il Committente (Utente con ruolo CUSTOMER) che ha inserito la richiesta.
+     * La relazione è Many-to-One: un utente può inviare molteplici richieste di trasporto.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_client_id", nullable = false)
+    private User userClient;
 
     /**
      * L'indirizzo completo del punto di partenza dove dovrà avvenire il ritiro del carico[cite: 4112, 7048].

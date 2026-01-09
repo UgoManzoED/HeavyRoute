@@ -44,4 +44,9 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
      * @return Una lista di viaggi (può essere vuota, mai null).
      */
     List<Trip> findByDriverIdAndStatus(Long driverId, TripStatus status);
+
+    /**
+     * Recupera tutti i viaggi che si trovano in uno specifico stato operativo.
+     */
+    List<Trip> findByStatus(TripStatus status);
 }

@@ -12,7 +12,7 @@ import lombok.Data;
  * </p>
  */
 @Data
-public class LoginRequest {
+public class LoginRequestDTO {
 
     /**
      * L'identificativo dell'utente.

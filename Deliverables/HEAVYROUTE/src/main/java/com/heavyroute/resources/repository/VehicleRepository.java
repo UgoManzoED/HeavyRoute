@@ -77,4 +77,10 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
             @Param("length") Double length,
             @Param("status") VehicleStatus status
     );
+
+    /**
+     * Recupera tutti i veicoli pronti per l'uso.
+     * @param status Solitamente VehicleStatus.AVAILABLE
+     */
+    List<Vehicle> findAllByStatus(VehicleStatus status);
 }

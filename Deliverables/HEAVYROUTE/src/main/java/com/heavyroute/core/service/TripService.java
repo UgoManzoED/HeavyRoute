@@ -2,7 +2,10 @@ package com.heavyroute.core.service;
 
 import com.heavyroute.core.dto.PlanningDTO;
 import com.heavyroute.core.dto.TripDTO;
+import com.heavyroute.core.enums.TripStatus;
 import com.heavyroute.core.model.Trip;
+
+import java.util.List;
 
 /**
  * Contratto della Logica di Business per la gestione dei Viaggi.
@@ -48,7 +51,18 @@ public interface TripService {
      * @param id L'identificativo del viaggio.
      * @return Un DTO arricchito con descrizioni utile al Frontend.
      */
-    TripDTO getTrip(Long id);
+    TripDTO getTripById(Long id);
+
+    /**
+     * Recupera una lista di viaggi filtrata per stato operativo.
+     * <p>
+     * Utilizzato principalmente per popolare le dashboard operative (es. Worklist del Pianificatore).
+     * </p>
+     *
+     * @param status Lo stato dei viaggi da ricercare (es. IN_PLANNING).
+     * @return Lista di DTO, vuota se non vengono trovati viaggi in quello stato.
+     */
+    List<TripDTO> getTripsByStatus(TripStatus status);
 
     /**
      * Calcola e associa un percorso ottimale al viaggio.
