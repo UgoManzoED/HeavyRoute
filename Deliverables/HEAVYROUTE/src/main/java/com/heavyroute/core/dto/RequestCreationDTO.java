@@ -12,11 +12,12 @@ import java.time.LocalDate;
  * valutare la fattibilità tecnica e classificare il trasporto come "eccezionale"
  * qualora superi i limiti del Codice della Strada.
  * </p>
- * * @author Heavy Route Team
  */
 @Data
 public class RequestCreationDTO {
 
+    private Long clientId;
+    private String clientFullName;
     /**
      * Indirizzo completo del punto di origine per il ritiro del carico.
      * Corrisponde al campo 'Origine' del modulo di richiesta.

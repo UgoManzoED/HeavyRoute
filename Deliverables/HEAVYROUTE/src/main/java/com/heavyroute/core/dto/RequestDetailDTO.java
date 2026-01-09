@@ -16,6 +16,9 @@ import java.time.LocalDate;
 @Data
 public class RequestDetailDTO {
 
+    private Long clientId;
+    private String clientFullName;
+    
     /**
      * Identificatore univoco della richiesta di trasporto nel sistema.
      * Corrisponde alla chiave primaria dell'entità di persistenza.
