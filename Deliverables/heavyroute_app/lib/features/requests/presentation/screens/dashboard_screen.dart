@@ -3,6 +3,7 @@ import '../../models/request_dto.dart';
 import '../../services/request_service.dart';
 import '../../../auth/services/user_service.dart';
 import '../../../auth/models/user_dto.dart';
+import '../widgets/request_card.dart';
 
 /**
  * Schermata della Dashboard del Committente.
@@ -21,7 +22,7 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   final RequestService _requestService = RequestService();
   final UserService _userService = UserService();
-  late Future<List<RequestCreationDTO>> _requestsFuture;
+  late Future<List<RequestDetailDTO>> _requestsFuture;
 
   @override
   void initState() {
@@ -121,7 +122,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const Text('Ordini Attivi', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const Text('Monitora lo stato delle tue spedizioni in corso', style: TextStyle(color: Colors.grey, fontSize: 14)),
               const SizedBox(height: 20),
-              FutureBuilder<List<RequestCreationDTO>>(
+              FutureBuilder<List<RequestDetailDTO>>(
                 future: _requestsFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
@@ -136,7 +137,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: snapshot.data!.length,
                     separatorBuilder: (context, index) => const SizedBox(height: 16),
-                    itemBuilder: (context, index) => _OrderCard(request: snapshot.data![index]),
+                    itemBuilder: (context, index) => RequestCard(request: snapshot.data![index]),
                   );
                 },
               ),

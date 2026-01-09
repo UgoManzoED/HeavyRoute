@@ -13,11 +13,12 @@ class RequestService {
   final Dio _dio = DioClient.instance;
 
   /**
-   * Recupera la lista delle richieste associate all'utente corrente.
+   * Recupera la lista delle richieste associate all'utente corrente (versione base).
    * * @return Una lista di [RequestCreationDTO]. In caso di errore, restituisce una lista vuota.
    * @throws Exception Se si verifica un errore critico durante la comunicazione.
+   * @deprecated Usare getMyRequests() per ottenere RequestDetailDTO con informazioni complete.
    */
-  Future<List<RequestCreationDTO>> getMyRequests() async {
+  Future<List<RequestCreationDTO>> getMyRequestCreations() async {
     try {
       final response = await _dio.get('/requests/me');
 
@@ -31,6 +32,30 @@ class RequestService {
       return [];
     } catch (e) {
       print("Errore generico (GetRequests): $e");
+      return [];
+    }
+  }
+
+  /**
+   * Recupera la lista delle richieste dettagliate associate all'utente corrente.
+   * Include informazioni aggiuntive come ID e stato (PENDING/APPROVED).
+   * * @return Una lista di [RequestDetailDTO]. In caso di errore, restituisce una lista vuota.
+   * @throws Exception Se si verifica un errore critico durante la comunicazione.
+   */
+  Future<List<RequestDetailDTO>> getMyRequests() async {
+    try {
+      final response = await _dio.get('/requests/me');
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data;
+        return data.map((json) => RequestDetailDTO.fromJson(json)).toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      print("Errore API (GetRequestDetails): ${e.response?.statusCode} - ${e.response?.data}");
+      return [];
+    } catch (e) {
+      print("Errore generico (GetRequestDetails): $e");
       return [];
     }
   }
