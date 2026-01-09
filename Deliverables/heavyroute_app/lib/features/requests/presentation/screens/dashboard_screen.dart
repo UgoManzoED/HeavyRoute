@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../models/request_dto.dart';
 import '../../services/request_service.dart';
+import '../../../auth/services/user_service.dart';
+import '../../../auth/models/user_dto.dart';
 
 /**
  * Schermata della Dashboard del Committente.
@@ -18,6 +20,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final RequestService _requestService = RequestService();
+  final UserService _userService = UserService();
   late Future<List<RequestCreationDTO>> _requestsFuture;
 
   @override
@@ -58,6 +61,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
+  /**
+   * Apre il dialog per visualizzare e modificare i dati utente.
+   * @author Roman
+   */
+  void _openUserDataDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(16)),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: UserDataPopup(userService: _userService),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -66,6 +93,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: const Text('Dashboard Committente', style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: IconButton(
+              icon: const Icon(Icons.person_outline, color: Color(0xFF374151)),
+              tooltip: 'Dati Utente',
+              onPressed: _openUserDataDialog,
+            ),
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -402,5 +439,342 @@ class _NewOrderPopupState extends State<NewOrderPopup> {
   Future<void> _showPicker() async {
     final DateTime? d = await showDatePicker(context: context, initialDate: DateTime.now(), firstDate: DateTime.now(), lastDate: DateTime(2030));
     if (d != null) setState(() => _dateCtrl.text = d.toIso8601String().split('T')[0]);
+  }
+}
+
+/**
+ * Widget del Dialog per la visualizzazione e modifica dei dati utente.
+ * @author Roman
+ * @version 1.0
+ */
+class UserDataPopup extends StatefulWidget {
+  final UserService userService;
+  const UserDataPopup({super.key, required this.userService});
+
+  @override
+  State<UserDataPopup> createState() => _UserDataPopupState();
+}
+
+class _UserDataPopupState extends State<UserDataPopup> {
+  final _formKey = GlobalKey<FormState>();
+  late Future<UserDTO?> _userFuture;
+  bool _isEditing = false;
+  bool _isSaving = false;
+
+  final _firstNameCtrl = TextEditingController();
+  final _lastNameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _companyCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _userFuture = widget.userService.getCurrentUser();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final user = await widget.userService.getCurrentUser();
+    if (user != null && mounted) {
+      setState(() {
+        _firstNameCtrl.text = user.firstName ?? '';
+        _lastNameCtrl.text = user.lastName ?? '';
+        _emailCtrl.text = user.email ?? '';
+        _phoneCtrl.text = user.phone ?? '';
+        _companyCtrl.text = user.company ?? '';
+        _addressCtrl.text = user.address ?? '';
+      });
+    }
+  }
+
+  void _toggleEdit() {
+    setState(() {
+      _isEditing = !_isEditing;
+      if (!_isEditing) {
+        // Se si esce dalla modalità modifica, ricarica i dati originali
+        _loadUserData();
+      }
+    });
+  }
+
+  Future<void> _handleSave() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isSaving = true);
+
+    final userData = UserDTO(
+      firstName: _firstNameCtrl.text.trim().isEmpty ? null : _firstNameCtrl.text.trim(),
+      lastName: _lastNameCtrl.text.trim().isEmpty ? null : _lastNameCtrl.text.trim(),
+      email: _emailCtrl.text.trim().isEmpty ? null : _emailCtrl.text.trim(),
+      phone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
+      company: _companyCtrl.text.trim().isEmpty ? null : _companyCtrl.text.trim(),
+      address: _addressCtrl.text.trim().isEmpty ? null : _addressCtrl.text.trim(),
+    );
+
+    final success = await widget.userService.updateUser(userData);
+
+    if (mounted) {
+      setState(() => _isSaving = false);
+      
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Dati utente aggiornati con successo'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        setState(() => _isEditing = false);
+        // Ricarica i dati aggiornati
+        _userFuture = widget.userService.getCurrentUser();
+        await _loadUserData();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Errore durante l\'aggiornamento dei dati'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _firstNameCtrl.dispose();
+    _lastNameCtrl.dispose();
+    _emailCtrl.dispose();
+    _phoneCtrl.dispose();
+    _companyCtrl.dispose();
+    _addressCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(32.0),
+      child: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Dati Utente', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  Row(
+                    children: [
+                      if (_isEditing)
+                        IconButton(
+                          onPressed: _isSaving ? null : _toggleEdit,
+                          icon: const Icon(Icons.close),
+                          tooltip: 'Annulla',
+                        )
+                      else
+                        IconButton(
+                          onPressed: _toggleEdit,
+                          icon: const Icon(Icons.edit),
+                          tooltip: 'Modifica',
+                        ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text('Visualizza e modifica le tue informazioni personali', style: TextStyle(color: Colors.grey, fontSize: 14)),
+              const SizedBox(height: 32),
+              FutureBuilder<UserDTO?>(
+                future: _userFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text('Errore: ${snapshot.error}'));
+                  } else if (!snapshot.hasData) {
+                    return const Center(child: Text('Impossibile caricare i dati utente.'));
+                  }
+
+                  final user = snapshot.data!;
+                  
+                  return Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildInput(
+                              'Nome',
+                              'Inserisci il nome',
+                              _firstNameCtrl,
+                              initialValue: user.firstName,
+                              enabled: _isEditing,
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: _buildInput(
+                              'Cognome',
+                              'Inserisci il cognome',
+                              _lastNameCtrl,
+                              initialValue: user.lastName,
+                              enabled: _isEditing,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      _buildInput(
+                        'Email',
+                        'Inserisci l\'email',
+                        _emailCtrl,
+                        initialValue: user.email,
+                        enabled: _isEditing,
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      const SizedBox(height: 20),
+                      _buildInput(
+                        'Telefono',
+                        'Inserisci il numero di telefono',
+                        _phoneCtrl,
+                        initialValue: user.phone,
+                        enabled: _isEditing,
+                        keyboardType: TextInputType.phone,
+                      ),
+                      const SizedBox(height: 20),
+                      _buildInput(
+                        'Azienda',
+                        'Inserisci il nome dell\'azienda',
+                        _companyCtrl,
+                        initialValue: user.company,
+                        enabled: _isEditing,
+                      ),
+                      const SizedBox(height: 20),
+                      _buildInput(
+                        'Indirizzo',
+                        'Inserisci l\'indirizzo',
+                        _addressCtrl,
+                        initialValue: user.address,
+                        enabled: _isEditing,
+                        maxLines: 2,
+                      ),
+                      const SizedBox(height: 32),
+                      if (_isEditing)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: _isSaving ? null : _toggleEdit,
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  side: const BorderSide(color: Color(0xFFE5E7EB)),
+                                ),
+                              ),
+                              child: const Text('Annulla', style: TextStyle(color: Colors.black87)),
+                            ),
+                            const SizedBox(width: 16),
+                            ElevatedButton(
+                              onPressed: _isSaving ? null : _handleSave,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF0D0D1A),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              child: _isSaving
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      ),
+                                    )
+                                  : const Text('Salva Modifiche'),
+                            ),
+                          ],
+                        )
+                      else
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            ElevatedButton.icon(
+                              onPressed: _toggleEdit,
+                              icon: const Icon(Icons.edit, size: 18),
+                              label: const Text('Modifica Dati'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF0D0D1A),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                            ),
+                          ],
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInput(
+    String label,
+    String hint,
+    TextEditingController ctrl, {
+    String? initialValue,
+    bool enabled = true,
+    TextInputType keyboardType = TextInputType.text,
+    int maxLines = 1,
+  }) {
+    if (initialValue != null && ctrl.text.isEmpty) {
+      ctrl.text = initialValue;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF374151))),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: ctrl,
+          enabled: enabled,
+          keyboardType: keyboardType,
+          maxLines: maxLines,
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+            filled: true,
+            fillColor: enabled ? const Color(0xFFF3F4F6) : Colors.grey[200],
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          ),
+          validator: (v) {
+            if (label == 'Email' && v != null && v.isNotEmpty) {
+              final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+              if (!emailRegex.hasMatch(v)) {
+                return 'Inserisci un\'email valida';
+              }
+            }
+            return null;
+          },
+        ),
+      ],
+    );
   }
 }
