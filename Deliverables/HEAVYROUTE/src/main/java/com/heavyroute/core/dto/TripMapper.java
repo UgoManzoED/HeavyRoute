@@ -53,9 +53,14 @@ public class TripMapper {
             dto.setVehicleModel(trip.getVehicle().getModel());
         }
 
-        // 3. Mappatura
+        // 3. Mappatura Richiesta
         if (trip.getRequest() != null) {
-            dto.setRequest(toRequestDTO(trip.getRequest()));
+            RequestDetailDTO requestDTO = toRequestDTO(trip.getRequest());
+            dto.setRequest(requestDTO);
+
+            // Portiamo i dati del cliente anche al primo livello del TripDTO (Denormalizzazione)
+            dto.setClientId(requestDTO.getClientId());
+            dto.setClientFullName(requestDTO.getClientFullName());
         }
 
         return dto;
@@ -82,6 +87,12 @@ public class TripMapper {
         dto.setDestinationAddress(entity.getDestinationAddress());
         dto.setPickupDate(entity.getPickupDate());
         dto.setStatus(entity.getRequestStatus());
+
+        // Mapping dei dati del Cliente (User)
+        if (entity.getUserClient() != null) {
+            dto.setClientId(entity.getUserClient().getId());
+            dto.setClientFullName(entity.getUserClient().getFirstName() + " " + entity.getUserClient().getLastName());
+        }
 
         // Logica di estrazione dati dal Value Object 'Load'
         if (entity.getLoad() != null) {
