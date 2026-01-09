@@ -1,6 +1,9 @@
 package com.heavyroute.users.service;
 
 import com.heavyroute.users.dto.*;
+import com.heavyroute.users.model.User;
+
+import java.util.Optional;
 
 /**
  * Logica di business per il ciclo di vita e la gestione degli utenti.
@@ -10,6 +13,12 @@ import com.heavyroute.users.dto.*;
  * </p>
  */
 public interface UserService {
+
+    /**
+     * Cerca un utente tramite il suo username.
+     * Usato per l'autenticazione e per recuperare il profilo corrente.
+     */
+    Optional<User> findByUsername(String username);
 
     /**
      * Crea un nuovo committente (Customer) in attesa di approvazione.

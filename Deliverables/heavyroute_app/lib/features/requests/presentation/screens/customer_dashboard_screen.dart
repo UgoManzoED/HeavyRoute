@@ -12,14 +12,14 @@ import '../widgets/request_card.dart';
  * * @author Roman
  * @version 1.7
  */
-class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+class CustomerDashboardScreen extends StatefulWidget {
+  const CustomerDashboardScreen({super.key});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  State<CustomerDashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends State<CustomerDashboardScreen> {
   final RequestService _requestService = RequestService();
   final UserService _userService = UserService();
   late Future<List<RequestDetailDTO>> _requestsFuture;

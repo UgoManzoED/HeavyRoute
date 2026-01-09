@@ -14,14 +14,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-/**
- * Configurazione centrale della sicurezza (Spring Security 6+).
- * <p>
- * Definisce la catena dei filtri (SecurityFilterChain), la politica delle sessioni (Stateless)
- * e le regole di accesso agli endpoint (Authorization).
- * </p>
- */
+import java.util.List;
+
 @Configuration
 @EnableMethodSecurity
 @RequiredArgsConstructor
@@ -30,11 +28,6 @@ public class SecurityConfig {
     private final UserDetailsServiceImpl userDetailsService;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    /**
-     * Configura il Provider di Autenticazione.
-     * Spring userà questo bean per capire come recuperare gli utenti (dal DB)
-     * e come verificare le password (usando BCrypt).
-     */
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
@@ -43,42 +36,47 @@ public class SecurityConfig {
         return authProvider;
     }
 
-    /**
-     * Espone l'AuthenticationManager come Bean riutilizzabile.
-     * Sarà iniettato nel 'AuthController' per eseguire il login manuale (username + password)
-     * e generare il primo token.
-     */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
     }
 
-    /**
-     * Definisce l'algoritmo di hashing.
-     * BCrypt è lento intenzionalmente per rendere costosi gli attacchi Brute-Force.
-     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    /**
-     * Definisce la Security Filter Chain: l'elenco ordinato di regole e filtri.
-     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // 1. Disabilitazione CSRF
+                // 1. ABILITA CORS
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth // 3. Regole di Autorizzazione
-                        .requestMatchers("/api/auth/**").permitAll() // Login è pubblico
-                        .requestMatchers("/api/users/register/**").permitAll() // Registrazione pubblica
-                        .anyRequest().authenticated() // Tutto il resto richiede token
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/users/register/**").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .anyRequest().authenticated()
                 );
 
         http.authenticationProvider(authenticationProvider());
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    // 2. CONFIGURAZIONE CORS
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of("*"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Cache-Control"));
+        configuration.setExposedHeaders(List.of("Authorization"));
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }

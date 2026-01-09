@@ -15,6 +15,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 /**
  * Implementazione concreta della logica di gestione utenti.
  * <p>
@@ -74,6 +76,12 @@ public class UserServiceImpl implements UserService {
         // Persistenza
         User savedUser = customerRepository.save(customer);
         return userMapper.toDTO(savedUser);
+    }
+
+    @Override
+    @Transactional(readOnly = true) // Ottimizza la lettura
+    public Optional<User> findByUsername(String username) {
+        return userRepository.findByUsername(username);
     }
 
     /**
