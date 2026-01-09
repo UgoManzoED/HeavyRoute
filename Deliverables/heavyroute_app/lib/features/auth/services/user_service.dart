@@ -21,6 +21,7 @@ class UserService {
       final response = await _dio.get('/users/me');
 
       if (response.statusCode == 200 && response.data != null) {
+        print("Dati Utente Ricevuti dal Backend: ${response.data}");
         return UserDTO.fromJson(response.data);
       }
       return null;

@@ -12,7 +12,7 @@ class AuthService {
   /// @param username L'identificativo utente (email o username).
   /// @param password La password in chiaro (verrà inviata via HTTPS).
   /// @return `true` se il login ha successo e il token è stato salvato, `false` altrimenti.
-  Future<bool> login(String username, String password) async {
+  Future<String?> login(String username, String password) async {
     try {
       // Chiama l'endpoint del backend
       final response = await _dio.post(
@@ -24,22 +24,24 @@ class AuthService {
       );
 
       if (response.statusCode == 200 && response.data != null) {
-        // Estrai il token dalla risposta
+        // Estrai token e ruolo dalla risposta
         final String token = response.data['token'];
+        final String role = response.data['role'];
 
         // Salva il token in modo sicuro
         await TokenStorage.saveToken(token);
+        await TokenStorage.saveRole(role);
 
-        print("Login Successo! Token salvato.");
-        return true;
+        print("Login Successo!");
+        return role;
       }
-      return false;
+      return null;
     } on DioException catch (e) {
       print("Errore Login: ${e.response?.statusCode} - ${e.response?.data}");
-      return false;
+      return null;
     } catch (e) {
       print("Errore Generico: $e");
-      return false;
+      return null;
     }
   }
 

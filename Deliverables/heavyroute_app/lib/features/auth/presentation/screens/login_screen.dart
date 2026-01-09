@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:heavyroute_app/features/auth/models/user_dto.dart';
+import '../../../requests/presentation/screens/customer_dashboard_screen.dart';
 import '../../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -31,18 +33,36 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     // 3. Chiamata Asincrona al Service
-    final success = await _authService.login(username, password);
+    final String? role = await _authService.login(username, password);
 
     // 4. Ripristino UI
     setState(() => _isLoading = false);
 
-    // 5. Gestione del Risultato
-    if (success && mounted) {
-      // Naviga alla dashboard (sostituisci con la tua rotta)
-      // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DashboardScreen()));
+    if (role != null && mounted) {
+      Widget nextScreen;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Login Riuscito! Token salvato.")),
+      // LOGICA DI SMISTAMENTO
+      switch (role) {
+        case 'LOGISTIC_PLANNER':
+        // nextScreen = const PlannerDashboardScreen();
+          nextScreen = const Scaffold(body: Center(child: Text("Area Planner")));
+          break;
+        case 'CUSTOMER':
+          nextScreen = const CustomerDashboardScreen();
+          break;
+        case 'DRIVER':
+        // nextScreen = const DriverDashboardScreen();
+          nextScreen = const Scaffold(body: Center(child: Text("Area Autista (WIP)")));
+          break;
+        default:
+          nextScreen = const Scaffold(body: Center(child: Text("Ruolo non gestito")));
+      }
+
+      // Vai alla dashboard e rimuovi la storia (così "Indietro" non torna al login)
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => nextScreen),
+            (route) => false,
       );
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -89,14 +109,12 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 24), // Spazio prima del bottone
 
-            // 4. Il tuo Bottone (corretto e inserito nella lista children)
             SizedBox(
-              width: double.infinity, // Rende il bottone largo quanto lo schermo
+              width: double.infinity,
               height: 50,
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _doLogin,
                 child: _isLoading
-                // È meglio dare una dimensione fissa allo spinner dentro un bottone
                     ? const SizedBox(
                   height: 24,
                   width: 24,
