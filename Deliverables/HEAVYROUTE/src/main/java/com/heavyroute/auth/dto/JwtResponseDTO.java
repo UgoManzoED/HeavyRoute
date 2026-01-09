@@ -12,7 +12,7 @@ import lombok.Data;
  */
 @Data
 @AllArgsConstructor
-public class JwtResponse {
+public class JwtResponseDTO {
 
     /**
      * Il Token JWT firmato.
