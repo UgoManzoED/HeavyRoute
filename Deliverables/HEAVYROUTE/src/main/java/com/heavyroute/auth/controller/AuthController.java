@@ -1,7 +1,7 @@
 package com.heavyroute.auth.controller;
 
-import com.heavyroute.auth.dto.JwtResponse;
-import com.heavyroute.auth.dto.LoginRequest;
+import com.heavyroute.auth.dto.JwtResponseDTO;
+import com.heavyroute.auth.dto.LoginRequestDTO;
 import com.heavyroute.auth.security.JwtUtils;
 import com.heavyroute.users.model.User;
 import com.heavyroute.users.repository.UserRepository;
@@ -38,7 +38,7 @@ public class AuthController {
      * 401 Unauthorized se le credenziali sono errate (gestito globalmente).
      */
     @PostMapping("/login")
-    public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequestDTO loginRequest) {
 
         // 1. Autenticazione Core
         Authentication authentication = authenticationManager.authenticate(
@@ -54,7 +54,7 @@ public class AuthController {
         User user = userRepository.findByUsername(loginRequest.getUsername()).orElseThrow();
 
         // 5. Risposta
-        return ResponseEntity.ok(new JwtResponse(
+        return ResponseEntity.ok(new JwtResponseDTO(
                 jwt,
                 "Bearer",
                 user.getId(),
