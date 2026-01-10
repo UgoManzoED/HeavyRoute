@@ -15,16 +15,25 @@ class AuthInterceptor extends Interceptor {
   Future<void> onRequest(
       RequestOptions options, RequestInterceptorHandler handler) async {
 
-    // 1. Recupero Asincrono
+    // --- MODIFICA: LISTA DI ESCLUSIONE ---
+    // Se la richiesta è per il Login o la Registrazione, NON inviare il token.
+    if (options.path.contains('/auth/login') ||
+        options.path.contains('/users/register')) {
+      print("🔓 Interceptor: Richiesta pubblica (${options.path}), token saltato.");
+      return super.onRequest(options, handler);
+    }
+    // -------------------------------------
+
+    // 1. Recupera il token dalla memoria sicura
     final token = await TokenStorage.getToken();
 
-    // 2. Injection del Token
+    // 2. Se il token esiste, aggiungilo all'header
     if (token != null) {
       options.headers['Authorization'] = 'Bearer $token';
-      print("Interceptor: Token aggiunto alla richiesta ${options.path}");
+      print("🔐 Interceptor: Token aggiunto alla richiesta ${options.path}");
     }
 
-    // 3. Passaggio del testimone
+    // 3. Procedi con la richiesta
     return super.onRequest(options, handler);
   }
 
