@@ -17,11 +17,17 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 /**
- * Filtro di sicurezza personalizzato che intercetta ogni singola richiesta HTTP.
+ * Filtro "Gatekeeper" per l'autenticazione Stateless via JWT.
  * <p>
- * Estende {@link OncePerRequestFilter} per garantire un'unica esecuzione per request
- * (evitando duplicazioni in caso di forward/include interni).
- * Il suo scopo è validare il Token JWT e, se valido, registrare l'utente nel contesto di sicurezza.
+ * <b>Ruolo Architetturale:</b> Intercetta ogni richiesta HTTP in ingresso prima che raggiunga i Controller.
+ * <p>
+ * <b>Funzionamento:</b>
+ * <ol>
+ * <li>Cerca l'header {@code Authorization}.</li>
+ * <li>Verifica la validità crittografica del Token (firma e scadenza).</li>
+ * <li>Verifica l'esistenza dell'utente nel Database (Allineamento Stato).</li>
+ * <li>Se tutto è OK, inietta l'identità nel {@link SecurityContextHolder}.</li>
+ * </ol>
  * </p>
  */
 @Component
@@ -32,7 +38,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final UserDetailsServiceImpl userDetailsService;
 
     /**
-     * Logica principale del filtro.
+     * Logica core del filtro.
      *
      * @param request La richiesta HTTP in arrivo.
      * @param response La risposta HTTP in uscita.
@@ -42,39 +48,47 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         try {
-            // 1. Estrae il token dall'header
+            // 1. Estrazione del Token dall'Header
             String jwt = parseJwt(request);
 
-            // 2. Se c'è un token ed è crittograficamente valido
+            // 2. Validazione Crittografica (Stateless)
             if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
-                // 3. Estrae lo username
                 String username = jwtUtils.getUserNameFromJwtToken(jwt);
 
-                // 4. Carica i dettagli completi dal DB
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                // 3. Validazione di Stato (Stateful Check) e Fail-Safe
+                try {
+                    // Proviamo a caricare l'utente dal DB aggiornato.
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                // 5. Crea l'oggetto di Autenticazione
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities());
+                    // Se l'utente esiste, creiamo il token di autenticazione interno di Spring
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails,
+                                    null,
+                                    userDetails.getAuthorities());
 
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    // Aggiungiamo metadati della richiesta
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-                // 6. Imposta l'utente nel SecurityContext
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                    // AUTENTICAZIONE RIUSCITA
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                } catch (Exception e) {
+                    // GESTIONE "ZOMBIE TOKEN" (Token valido, Utente inesistente)
+                    // LOGGARE ma NON ROMPERE la richiesta.
+                    logger.warn("Token valido ma utente non trovato nel DB (DB Resettato?): " + e.getMessage());
+                }
             }
         } catch (Exception e) {
             logger.error("Impossibile impostare l'autenticazione utente: {}", e);
         }
 
-        // 7. Passa al prossimo filtro
+        // 4. Propagazione
         filterChain.doFilter(request, response);
     }
 
     /**
-     * Helper per estrarre il token pulito dall'header HTTP.
+     * Helper per estrarre il token pulito dall'header HTTP Authorization.
+     * Ritorna null se l'header manca o non inizia con "Bearer ".
      */
     private String parseJwt(HttpServletRequest request) {
         String headerAuth = request.getHeader("Authorization");

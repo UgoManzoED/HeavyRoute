@@ -1,5 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:heavyroute_app/features/auth/presentation/screens/widgets/registration_form.dart';
+import '../../models/client_registration_dto.dart';
+import '../../services/registration_service.dart';
 
+/// Schermata principale per la registrazione di un nuovo cliente.
+/// <p>
+/// <b>Responsabilità:</b>
+/// 1. Gestisce il ciclo di vita dei Controller di testo (Creazione/Distruzione).
+/// 2. Orchestra la validazione ibrida (Client-side + Server-side).
+/// 3. Gestisce lo stato della chiamata asincrona (Loading, Success, Error).
+/// </p>
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -8,308 +18,170 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  // Controllers per i campi di testo
+  final _registrationService = RegistrationService();
+  final _formKey = GlobalKey<FormState>();
+
+  // --- CONTROLLERS ---
+  final _usernameController = TextEditingController();
   final _nameController = TextEditingController();
   final _surnameController = TextEditingController();
   final _companyController = TextEditingController();
   final _vatController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _pecController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  // Stato della checkbox
   bool _acceptedTerms = false;
-  // Stato per il caricamento (futuro)
   bool _isLoading = false;
-  bool _isHoveringLogin = false;
+  Map<String, String?> _serverErrors = {};
 
   @override
   void dispose() {
-    // Pulizia dei controller
+    _usernameController.dispose();
     _nameController.dispose();
     _surnameController.dispose();
     _companyController.dispose();
     _vatController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _addressController.dispose();
+    _pecController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  void _handleRegister() {
-    // TODO: Implementare la logica di registrazione nel prossimo step
+  /// Logica Core di Registrazione
+  Future<void> _handleRegister() async {
+    // 1. Reset degli errori precedenti
+    setState(() => _serverErrors = {});
+
+    // 2. Validazione Locale (Client-Side)
+    if (!_formKey.currentState!.validate()) return;
+
+    // 3. Validazioni Custom
     if (!_acceptedTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Devi accettare i termini e condizioni per proseguire.")),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Devi accettare i termini.")));
       return;
     }
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Le password non coincidono.")));
+      return;
+    }
+
+    // 4. Inizio Chiamata di Rete
     setState(() => _isLoading = true);
-    // Simulazione
-    Future.delayed(const Duration(seconds: 2), () {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Funzionalità di registrazione in sviluppo")));
-    });
+
+    // Creazione del DTO
+    final dto = ClientRegistrationDTO(
+      username: _usernameController.text.trim(),
+      firstName: _nameController.text.trim(),
+      lastName: _surnameController.text.trim(),
+      companyName: _companyController.text.trim(),
+      vatNumber: _vatController.text.trim(),
+      email: _emailController.text.trim(),
+      phoneNumber: _phoneController.text.trim(),
+      address: _addressController.text.trim(),
+      pec: _pecController.text.trim(),
+      password: _passwordController.text,
+    );
+
+    // Chiamata al Service
+    // Ritorna null se successo, oppure una Map<String, dynamic> se ci sono errori.
+    final errors = await _registrationService.registerClient(dto);
+
+    // Fine Chiamata
+    setState(() => _isLoading = false);
+
+    if (mounted) {
+      if (errors == null) {
+        // SUCCESSO: Mostra popup e naviga al login
+        _showSuccessDialog();
+      } else {
+        // ERRORE BACKEND: Mapping degli errori
+        print("ERRORI RICEVUTI DAL SERVICE: $errors");
+        setState(() {
+          // Convertiamo gli errori in stringhe per sicurezza e aggiorniamo lo stato.
+          // Questo causerà il rebuild del widget 'RegistrationForm', che mostrerà
+          // il testo rosso sotto i campi specifici (es. sotto la VAT o la Email).
+          _serverErrors = errors.map((key, value) => MapEntry(key, value.toString()));
+        });
+        if (_serverErrors.containsKey('global')) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_serverErrors['global']!), backgroundColor: Colors.red));
+        }
+      }
+    }
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Registrazione Inviata"),
+        content: const Text("Account creato con successo!"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false),
+            child: const Text("Torna al Login"),
+          )
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Sfondo generale della pagina (Grigio chiaro/bluastro come da login)
     return Scaffold(
       backgroundColor: const Color(0xFFF3F5F9),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Container per limitare la larghezza
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 550), // Leggermente più largo del login per i doppi campi
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+            child: Form(
+              key: _formKey,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 600),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Tasto Indietro
+                    TextButton.icon(
+                      onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false),
+                      icon: const Icon(Icons.arrow_back, size: 20, color: Colors.black87),
+                      label: const Text("Torna alla Home", style: TextStyle(color: Colors.black87)),
+                    ),
+                    const SizedBox(height: 20),
 
-                      TextButton.icon(
-                        onPressed: () {
-                          // MODIFICA: Invece di Navigator.pop(context), usiamo questo:
-                          // Rimuove tutte le rotte precedenti e va alla rotta base '/' (Landing Page)
-                          Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
-                        },
-                        icon: const Icon(Icons.arrow_back, size: 20, color: Colors.black87),
-                        label: const Text(
-                          "Torna alla Home",
-                          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w500),
-                        ),
-                        style: TextButton.styleFrom(padding: EdgeInsets.zero, alignment: Alignment.centerLeft),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // Card Bianca Centrale
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 48),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
-                            )
-                          ],
-                        ),
-                        child: Column(
-                          children: [
-                            // Logo
-                            Column(
-                              children: [
-                                Icon(Icons.local_shipping_rounded, size: 48, color: const Color(0xFF0D0D1A)),
-                                const SizedBox(height: 4),
-                                const Text(
-                                  "HEAVY\nROUTE",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w900,
-                                      height: 0.9,
-                                      color: Color(0xFF0D0D1A),
-                                      letterSpacing: 1.0),
-                                ),
-                              ],
-                            ),
-
-                            const SizedBox(height: 32),
-
-                            // Titoli
-                            const Text(
-                              "Registrati su HeavyRoute",
-                              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF111827)),
-                            ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              "Crea un account per richiedere consegne speciali e gestire le tue spedizioni",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
-                            ),
-
-                            const SizedBox(height: 32),
-
-                            // --- CAMPI DEL FORM ---
-                            // Riga 1: Nome e Cognome
-                            Row(
-                              children: [
-                                Expanded(child: _buildInputField("Nome *", _nameController, hint: "Mario")),
-                                const SizedBox(width: 20),
-                                Expanded(child: _buildInputField("Cognome *", _surnameController, hint: "Rossi")),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-
-                            // Riga 2: Azienda e Partita IVA
-                            Row(
-                              children: [
-                                Expanded(child: _buildInputField("Azienda / Ragione Sociale *", _companyController, hint: "Nome della tua azienda")),
-                                const SizedBox(width: 20),
-                                Expanded(child: _buildInputField("Partita IVA *", _vatController, hint: "IT12345678901")),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-
-                            // Riga 3: Email e Telefono
-                            Row(
-                              children: [
-                                Expanded(child: _buildInputField("Email *", _emailController, hint: "nome@esempio.it", keyboardType: TextInputType.emailAddress)),
-                                const SizedBox(width: 20),
-                                Expanded(child: _buildInputField("Telefono *", _phoneController, hint: "+39 333 123 4567", keyboardType: TextInputType.phone)),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-
-                            // Riga 4: Password e Conferma
-                            Row(
-                              children: [
-                                Expanded(child: _buildInputField("Password *", _passwordController, hint: "********", isPassword: true)),
-                                const SizedBox(width: 20),
-                                Expanded(child: _buildInputField("Conferma Password *", _confirmPasswordController, hint: "********", isPassword: true)),
-                              ],
-                            ),
-
-                            const SizedBox(height: 24),
-
-                            // Checkbox Termini
-                            Row(
-                              children: [
-                                SizedBox(
-                                  height: 24,
-                                  width: 24,
-                                  child: Checkbox(
-                                    value: _acceptedTerms,
-                                    activeColor: const Color(0xFF0D0D1A),
-                                    onChanged: (v) => setState(() => _acceptedTerms = v!),
-                                    side: const BorderSide(color: Color(0xFFD1D5DB)),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: RichText(
-                                    text: const TextSpan(
-                                      style: TextStyle(color: Color(0xFF6B7280), fontSize: 14),
-                                      children: [
-                                        TextSpan(text: "Accetto i "),
-                                        TextSpan(text: "termini e condizioni", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0D0D1A))),
-                                        TextSpan(text: " e la "),
-                                        TextSpan(text: "privacy policy", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0D0D1A))),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            const SizedBox(height: 32),
-
-                            // Bottone Crea Account
-                            SizedBox(
-                              width: double.infinity,
-                              height: 50,
-                              child: ElevatedButton(
-                                onPressed: _isLoading ? null : _handleRegister,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF0D0D1A), // Dark Navy
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                  elevation: 0,
-                                ),
-                                child: _isLoading
-                                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                    : const Text("Crea Account", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                              ),
-                            ),
-
-                            const SizedBox(height: 24),
-
-                            // Link Accedi con effetto Hover
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Text("Hai già un account? ", style: TextStyle(color: Color(0xFF6B7280))),
-                                MouseRegion(
-                                  onEnter: (_) => setState(() => _isHoveringLogin = true),
-                                  onExit: (_) => setState(() => _isHoveringLogin = false),
-                                  cursor: SystemMouseCursors.click,
-                                  child: GestureDetector(
-                                    onTap: () => Navigator.pop(context), // Torna al login
-                                    child: AnimatedDefaultTextStyle(
-                                      duration: const Duration(milliseconds: 200),
-                                      style: TextStyle(
-                                        color: const Color(0xFF0D0D1A),
-                                        fontWeight: FontWeight.bold,
-                                        // Sottolineatura dinamica
-                                        decoration: _isHoveringLogin ? TextDecoration.underline : TextDecoration.none,
-                                      ),
-                                      child: const Text("Accedi"),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 32),
-
-                      // Footer Contatti
-                      const Center(
-                        child: Text("Hai bisogno di aiuto? Contattaci al +39 02 1234 5678",
-                            style: TextStyle(color: Color(0xFF6B7280), fontSize: 13)),
-                      ),
-                    ],
-                  ),
+                    // --- COMPONENTE FORM SEPARATO ---
+                    RegistrationForm(
+                      usernameCtrl: _usernameController,
+                      nameCtrl: _nameController,
+                      surnameCtrl: _surnameController,
+                      companyCtrl: _companyController,
+                      vatCtrl: _vatController,
+                      emailCtrl: _emailController,
+                      pecCtrl: _pecController,
+                      phoneCtrl: _phoneController,
+                      addressCtrl: _addressController,
+                      passwordCtrl: _passwordController,
+                      confirmPasswordCtrl: _confirmPasswordController,
+                      serverErrors: _serverErrors,
+                      acceptedTerms: _acceptedTerms,
+                      onTermsChanged: (v) => setState(() => _acceptedTerms = v!),
+                      onSubmit: _handleRegister,
+                      isLoading: _isLoading,
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
       ),
-    );
-  }
-
-  // Widget Helper per i campi di input (Label + TextField grigio)
-  Widget _buildInputField(String label, TextEditingController ctrl, {String? hint, bool isPassword = false, TextInputType keyboardType = TextInputType.text}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF374151)),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: ctrl,
-          obscureText: isPassword,
-          keyboardType: keyboardType,
-          style: const TextStyle(fontSize: 15),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
-            filled: true,
-            fillColor: const Color(0xFFF3F4F6), // Grigio chiaro input
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide.none, // Nessun bordo
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          ),
-        ),
-      ],
     );
   }
 }

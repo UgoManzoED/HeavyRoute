@@ -18,10 +18,14 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
 
 /**
- * Implementazione concreta della logica di gestione utenti.
+ * Implementazione della logica di business per la gestione del ciclo di vita degli Utenti.
  * <p>
- * Gestisce la persistenza polimorfica (User vs Customer) e garantisce
- * l'applicazione delle regole di unicità e sicurezza definite nell'ODD.
+ * <b>Responsabilità:</b>
+ * <ul>
+ * <li>Gestione dell'ereditarietà (Polimorfismo): Tratta Customer e Staff Interno in modo differenziato.</li>
+ * <li>Sicurezza: Applica l'hashing delle password e la validazione dei dati sensibili.</li>
+ * <li>Integrità: Garantisce l'unicità di username, email e P.IVA prima della persistenza.</li>
+ * </ul>
  * </p>
  */
 @Service
@@ -34,11 +38,17 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
 
     /**
-     * {@inheritDoc}
+     * Gestisce il processo di auto-registrazione (Onboarding) per nuovi clienti.
      * <p>
-     * Implementa la registrazione "Self-Service" del cliente.
-     * L'utente viene creato con stato {@code active = false} in attesa di validazione.
+     * <b>Flusso di Business:</b>
+     * <ol>
+     * <li>Validazione unicità credenziali (Username/Email).</li>
+     * <li>Validazione unicità fiscale (Partita IVA) per prevenire duplicati aziendali.</li>
+     * <li>Creazione utente con stato <b>DISATTIVO</b> (active = false).</li>
+     * </ol>
      * </p>
+     * <b>Nota Sicurezza:</b> L'utente nasce disattivo per obbligare un processo di validazione manuale (KYC)
+     * da parte di un operatore interno prima di abilitare l'accesso alla piattaforma.
      */
     @Override
     @Transactional
@@ -53,7 +63,7 @@ public class UserServiceImpl implements UserService {
             throw new UserAlreadyExistException("L'indirizzo email risulta già registrato.");
         }
         if (customerRepository.existsByVatNumber(dto.getVatNumber())) {
-            throw new UserAlreadyExistException("La Partita IVA è già presente a sistema.");
+            throw new UserAlreadyExistException("La Partita IVA " + dto.getVatNumber() + " è già presente a sistema.");
         }
 
         // Creazione Entità Customer
@@ -72,22 +82,37 @@ public class UserServiceImpl implements UserService {
         customer.setVatNumber(dto.getVatNumber());
         customer.setAddress(dto.getAddress());
         customer.setPhoneNumber(dto.getPhoneNumber());
+        customer.setPec(dto.getPec());
 
         // Persistenza
         User savedUser = customerRepository.save(customer);
         return userMapper.toDTO(savedUser);
     }
 
+    /**
+     * Recupera un utente per username.
+     * <p>
+     * Usato principalmente da Spring Security durante il Login.
+     * L'annotazione {@code readOnly = true} ottimizza le performance evitando
+     * il "Dirty Checking" di Hibernate (non controlla se l'oggetto è stato modificato).
+     * </p>
+     */
     @Override
-    @Transactional(readOnly = true) // Ottimizza la lettura
+    @Transactional(readOnly = true)
     public Optional<User> findByUsername(String username) {
         return userRepository.findByUsername(username);
     }
 
     /**
-     * {@inheritDoc}
+     * Crea un utente dello staff interno (Back-office).
      * <p>
-     * Implementa il censimento dello staff interno.
+     * <b>Differenza con la Registrazione Clienti:</b>
+     * <ul>
+     * <li>Viene eseguito da un Admin (non è self-service).</li>
+     * <li>L'utente nasce <b>ATTIVO</b> (active = true) perché fidato.</li>
+     * <li>Utilizza una logica <b>Factory</b> basata sullo switch per istanziare
+     * la classe concreta corretta (Driver, Planner, ecc.).</li>
+     * </ul>
      * </p>
      */
     @Override
@@ -127,7 +152,12 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
-     * {@inheritDoc}
+     * Esegue una cancellazione logica (Soft Delete).
+     * <p>
+     * Invece di rimuovere fisicamente il record (che romperebbe l'integrità referenziale
+     * con i viaggi passati), imposta il flag {@code active = false}.
+     * L'utente non potrà più loggarsi, ma lo storico rimane intatto.
+     * </p>
      */
     @Override
     @Transactional
@@ -141,10 +171,15 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
 
         //TODO Invalidazione Sessioni (OCL Post)
-        // Nota: L'implementazione reale dipenderà dal meccanismo di token (JWT Blacklist o SessionRegistry)
-        // tokenStore.invalidateAllSessions(id);
     }
 
+    /**
+     * Aggiorna i dati di un utente interno.
+     * <p>
+     * Gestisce la logica condizionale per la password: la aggiorna (e la cifra)
+     * solo se è stata effettivamente inviata nel DTO.
+     * </p>
+     */
     @Override
     @Transactional
     public UserDTO updateInternalUser(Long id, InternalUserUpdateDTO dto) {
@@ -163,6 +198,13 @@ public class UserServiceImpl implements UserService {
         return userMapper.toDTO(userRepository.save(user));
     }
 
+    /**
+     * Aggiorna i dati specifici di un Cliente.
+     * <p>
+     * Recupera l'entità dal repository specifico {@code CustomerRepository} per avere accesso
+     * ai campi fiscali (P.IVA, Ragione Sociale) che non esistono nell'utente generico.
+     * </p>
+     */
     @Override
     @Transactional
     public UserDTO updateCustomer(Long id, CustomerUpdateDTO dto) {
