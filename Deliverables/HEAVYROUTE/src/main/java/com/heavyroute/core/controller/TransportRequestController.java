@@ -5,6 +5,9 @@ import com.heavyroute.core.dto.RequestDetailDTO;
 import com.heavyroute.core.service.TransportRequestService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -51,8 +54,10 @@ public class TransportRequestController {
      * @return {@link ResponseEntity} contenente il {@link RequestDetailDTO} della richiesta creata e stato HTTP 200 OK.
      */
     @PostMapping
+    @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<RequestDetailDTO> createRequest(@Valid @RequestBody RequestCreationDTO dto) {
-        return ResponseEntity.ok(requestService.createRequest(dto));
+        String username = getCurrentUsername();
+        return ResponseEntity.ok(requestService.createRequest(dto, username));
     }
 
     /**
@@ -64,8 +69,21 @@ public class TransportRequestController {
      *
      * @return {@link ResponseEntity} contenente la lista di {@link RequestDetailDTO} e stato HTTP 200 OK.
      */
-    @GetMapping
+    @GetMapping("/my-requests")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<List<RequestDetailDTO>> getMyRequest() {
+        String username = getCurrentUsername();
+        return ResponseEntity.ok(requestService.getRequestsByClientUsername(username));
+    }
+
+    @GetMapping
+    @PreAuthorize("hasRole('LOGISTIC_PLANNER')")
+    public ResponseEntity<List<RequestDetailDTO>> getAllRequests() {
         return ResponseEntity.ok(requestService.getAllRequests());
+    }
+
+    private String getCurrentUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication.getName();
     }
 }

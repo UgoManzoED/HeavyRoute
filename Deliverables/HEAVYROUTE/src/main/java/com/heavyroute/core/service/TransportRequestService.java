@@ -16,6 +16,8 @@ import java.util.List;
  */
 public interface TransportRequestService {
 
+    List<RequestDetailDTO> getRequestsByClientUsername(String username);
+
     /**
      * Crea una nuova richiesta di trasporto nel sistema.
      * <p>
@@ -28,7 +30,7 @@ public interface TransportRequestService {
      * @return {@link RequestDetailDTO} La richiesta appena creata, completa di ID generato e stato corrente.
      * @throws com.heavyroute.common.exception.BusinessRuleException se la data di ritiro non è valida o i dati sono inconsistenti.
      */
-    RequestDetailDTO createRequest(RequestCreationDTO dto);
+    RequestDetailDTO createRequest(RequestCreationDTO dto, String username);
 
     /**
      * Recupera l'elenco completo delle richieste di trasporto presenti nel sistema.

@@ -54,8 +54,12 @@ public class TransportRequestServiceImpl implements TransportRequestService {
      */
     @Override
     @Transactional
-    public RequestDetailDTO createRequest(RequestCreationDTO dto) {
+    public RequestDetailDTO createRequest(RequestCreationDTO dto, String username) {
+        User client = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Utente non trovato: " + username));
+
         TransportRequest request = new TransportRequest();
+        request.setClient(client);
 
         // Allineamento con i campi 'origin' e 'destination' del RequestCreationDTO
         request.setOriginAddress(dto.getOriginAddress());
@@ -70,11 +74,6 @@ public class TransportRequestServiceImpl implements TransportRequestService {
         load.setWidth(dto.getWidth());
         load.setLength(dto.getLength());
         request.setLoad(load);
-
-        User client = userRepository.findById(dto.getClientId())
-                .orElseThrow(() -> new ResourceNotFoundException("Cliente non trovato con ID: " + dto.getClientId()));
-
-        request.setUserClient(client);
 
         TransportRequest saved = repository.save(request);
         return mapToDetailDTO(saved);
@@ -92,6 +91,19 @@ public class TransportRequestServiceImpl implements TransportRequestService {
     @Override
     public List<RequestDetailDTO> getAllRequests() {
         return repository.findAll().stream()
+                .map(this::mapToDetailDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RequestDetailDTO> getRequestsByClientUsername(String username) {
+        User client = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Utente non trovato: " + username));
+
+        // Assicurati che nel Repository ci sia: List<TransportRequest> findByClient(User client);
+        // Oppure: List<TransportRequest> findByClientId(Long id);
+        return repository.findAllByClientId(client.getId()).stream()
                 .map(this::mapToDetailDTO)
                 .collect(Collectors.toList());
     }
@@ -123,10 +135,9 @@ public class TransportRequestServiceImpl implements TransportRequestService {
         }
 
         // Popolamento Dati Cliente ---
-        if (entity.getUserClient() != null) {
-            dto.setClientId(entity.getUserClient().getId());
-            // Concateniamo nome e cognome per facilitare la visualizzazione al PL
-            dto.setClientFullName(entity.getUserClient().getFirstName() + " " + entity.getUserClient().getLastName());
+        if (entity.getClient() != null) {
+            dto.setClientId(entity.getClient().getId());
+            dto.setClientFullName(entity.getClient().getFirstName() + " " + entity.getClient().getLastName());
         }
 
         return dto;

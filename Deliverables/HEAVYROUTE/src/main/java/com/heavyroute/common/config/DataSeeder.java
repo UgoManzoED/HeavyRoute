@@ -98,11 +98,11 @@ public class DataSeeder implements CommandLineRunner {
         customer.setVatNumber("12345678901");
         customer.setPec("pec@azienda.com");
         customer.setAddress("Via Roma 1");
-        customerRepository.save(customer);
+        Customer savedCustomer = customerRepository.save(customer);
 
         // 5. Crea Richiesta Pendente
         TransportRequest req = new TransportRequest();
-        req.setUserClient(customer);
+        req.setClient(savedCustomer);
         req.setOriginAddress("Porto di Napoli");
         req.setDestinationAddress("Interporto Bologna");
         req.setPickupDate(LocalDate.now().plusDays(5));

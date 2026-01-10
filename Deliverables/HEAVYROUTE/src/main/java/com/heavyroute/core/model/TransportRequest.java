@@ -26,8 +26,8 @@ public class TransportRequest extends BaseEntity {
      * La relazione è Many-to-One: un utente può inviare molteplici richieste di trasporto.
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_client_id", nullable = false)
-    private User userClient;
+    @JoinColumn(name = "client_id", nullable = false)
+    private User client;
 
     /**
      * L'indirizzo completo del punto di partenza dove dovrà avvenire il ritiro del carico[cite: 4112, 7048].

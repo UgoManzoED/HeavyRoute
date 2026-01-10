@@ -89,9 +89,9 @@ public class TripMapper {
         dto.setStatus(entity.getRequestStatus());
 
         // Mapping dei dati del Cliente (User)
-        if (entity.getUserClient() != null) {
-            dto.setClientId(entity.getUserClient().getId());
-            dto.setClientFullName(entity.getUserClient().getFirstName() + " " + entity.getUserClient().getLastName());
+        if (entity.getClient() != null) {
+            dto.setClientId(entity.getClient().getId());
+            dto.setClientFullName(entity.getClient().getFirstName() + " " + entity.getClient().getLastName());
         }
 
         // Logica di estrazione dati dal Value Object 'Load'

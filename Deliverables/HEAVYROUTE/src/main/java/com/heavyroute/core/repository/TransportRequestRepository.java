@@ -41,4 +41,6 @@ public interface TransportRequestRepository extends JpaRepository<TransportReque
      * Restituisce una lista vuota se non viene trovata alcuna corrispondenza.
      */
     List<TransportRequest> findByRequestStatus(RequestStatus status);
+
+    List<TransportRequest> findAllByClientId(Long clientId);
 }
