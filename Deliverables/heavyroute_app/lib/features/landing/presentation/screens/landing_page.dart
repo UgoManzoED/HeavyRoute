@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
+// Verifica che questo percorso sia corretto nel tuo progetto
+import '../../../../common/heavy_route_app_bar.dart';
 
 class LandingPage extends StatelessWidget {
   const LandingPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // LayoutBuilder ci permette di rendere la pagina responsive (Mobile vs Desktop)
     return Scaffold(
       backgroundColor: Colors.white,
+      // 1. La cornice universale va qui.
+      // isDashboard: false attiva il tasto "Area Personale"
+      appBar: const HeavyRouteAppBar(
+        subtitle: "Soluzioni per la Logistica",
+        isDashboard: false,
+      ),
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isMobile = constraints.maxWidth < 800;
@@ -16,7 +23,7 @@ class LandingPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildHeader(context),
+                // 2. _buildHeader è stato rimosso da qui perché ora è nell'appBar dello Scaffold
                 _buildHeroSection(context, isMobile),
                 _buildFeaturesSection(context, isMobile),
                 _buildInfoSection(context, isMobile),
@@ -29,66 +36,17 @@ class LandingPage extends StatelessWidget {
     );
   }
 
-  // --- 1. HEADER (Logo + Tasto Login) ---
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // Logo Brand
-          Row(
-            children: [
-              Icon(Icons.local_shipping_rounded, color: Theme.of(context).colorScheme.secondary, size: 32),
-              const SizedBox(width: 8),
-              Text(
-                "HEAVY\nROUTE",
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  color: Theme.of(context).primaryColor,
-                  height: 0.9,
-                  letterSpacing: 1.0,
-                ),
-              ),
-            ],
-          ),
-          // Login Button
-          OutlinedButton(
-            onPressed: () {
-              // Naviga alla schermata di Login che abbiamo creato
-              Navigator.pushNamed(context, '/login');
-            },
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-              side: BorderSide(color: Theme.of(context).primaryColor),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: Text(
-              "Area Riservata",
-              style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // --- 2. HERO SECTION (Titolo + Camion) ---
   Widget _buildHeroSection(BuildContext context, bool isMobile) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24),
-      color: const Color(0xFFF8FAFC), // Sfondo grigio chiarissimo
+      color: const Color(0xFFF8FAFC),
       child: Column(
         children: [
-          // Icona Grande (al posto dell'immagine del camion giallo)
           Icon(
             Icons.local_shipping_outlined,
             size: isMobile ? 100 : 150,
-            color: Theme.of(context).primaryColor
+            color: Theme.of(context).primaryColor,
           ),
           const SizedBox(height: 20),
           Text(
@@ -102,7 +60,6 @@ class LandingPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 30),
-          // Slogan
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 700),
             child: const Text(
@@ -112,11 +69,9 @@ class LandingPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 40),
-          // CTA Button
           ElevatedButton(
             onPressed: () {
-               // Porta al login per fare una richiesta
-               Navigator.pushNamed(context, '/login');
+              Navigator.pushNamed(context, '/login');
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).primaryColor,
@@ -133,7 +88,7 @@ class LandingPage extends StatelessWidget {
     );
   }
 
-  // --- 3. FEATURES (Le 3 card) ---
+  // --- 3. FEATURES ---
   Widget _buildFeaturesSection(BuildContext context, bool isMobile) {
     final cards = [
       _buildFeatureCard(context, Icons.inventory_2_outlined, "Carichi Pesanti", "Gestiamo spedizioni di qualsiasi peso e dimensione con attrezzature specializzate."),
@@ -146,10 +101,10 @@ class LandingPage extends StatelessWidget {
       child: isMobile
           ? Column(children: cards.map((c) => Padding(padding: const EdgeInsets.only(bottom: 24), child: c)).toList())
           : Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: cards.map((c) => Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: c))).toList(),
-            ),
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: cards.map((c) => Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: c))).toList(),
+      ),
     );
   }
 
@@ -168,8 +123,8 @@ class LandingPage extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF0F9FF),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF0F9FF),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: Theme.of(context).primaryColor, size: 32),
@@ -183,14 +138,14 @@ class LandingPage extends StatelessWidget {
     );
   }
 
-  // --- 4. INFO SECTION (Testo + Immagine) ---
+  // --- 4. INFO SECTION ---
   Widget _buildInfoSection(BuildContext context, bool isMobile) {
     Widget textContent = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "La Tua Soluzione per Consegne Speciali",
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor)
+            "La Tua Soluzione per Consegne Speciali",
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor)
         ),
         const SizedBox(height: 24),
         const Text(
@@ -205,7 +160,6 @@ class LandingPage extends StatelessWidget {
       ],
     );
 
-    // Placeholder visivo per la parte destra (slider/frecce)
     Widget visualContent = Container(
       height: 300,
       decoration: BoxDecoration(
@@ -213,8 +167,8 @@ class LandingPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
-      child: Center(
-        child: Icon(Icons.image_outlined, size: 64, color: Colors.grey[300]),
+      child: const Center(
+        child: Icon(Icons.image_outlined, size: 64, color: Colors.grey),
       ),
     );
 
@@ -223,12 +177,12 @@ class LandingPage extends StatelessWidget {
       child: isMobile
           ? Column(children: [textContent, const SizedBox(height: 40), visualContent])
           : Row(
-              children: [
-                Expanded(flex: 5, child: textContent),
-                const SizedBox(width: 60),
-                Expanded(flex: 4, child: visualContent),
-              ],
-            ),
+        children: [
+          Expanded(flex: 5, child: textContent),
+          const SizedBox(width: 60),
+          Expanded(flex: 4, child: visualContent),
+        ],
+      ),
     );
   }
 
@@ -237,7 +191,7 @@ class LandingPage extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          const Icon(Icons.check_circle, size: 20, color: Color(0xFF10B981)), // Verde smeraldo
+          const Icon(Icons.check_circle, size: 20, color: Color(0xFF10B981)),
           const SizedBox(width: 12),
           Expanded(child: Text(text, style: const TextStyle(color: Color(0xFF374151), fontSize: 16))),
         ],
@@ -245,10 +199,10 @@ class LandingPage extends StatelessWidget {
     );
   }
 
-  // --- 5. FOOTER (Scuro) ---
+  // --- 5. FOOTER ---
   Widget _buildFooter(BuildContext context, bool isMobile) {
     return Container(
-      color: const Color(0xFF0F172A), // Dark Navy Background (coerente con le foto)
+      color: const Color(0xFF0F172A),
       padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 32),
       child: Column(
         children: [
@@ -257,7 +211,6 @@ class LandingPage extends StatelessWidget {
             runSpacing: 40,
             alignment: WrapAlignment.spaceBetween,
             children: [
-              // Logo e Descrizione
               SizedBox(
                 width: isMobile ? double.infinity : 300,
                 child: Column(
@@ -265,26 +218,24 @@ class LandingPage extends StatelessWidget {
                   children: [
                     const Row(
                       children: [
-                         Icon(Icons.local_shipping, color: Colors.white, size: 28),
-                         SizedBox(width: 10),
-                         Text("HeavyRoute", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                        Icon(Icons.local_shipping, color: Colors.white, size: 28),
+                        SizedBox(width: 10),
+                        Text("HeavyRoute", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
                       ],
                     ),
                     const SizedBox(height: 20),
                     const Text(
-                      "Il tuo partner affidabile per consegne pesanti e spedizioni speciali in tutta Italia.",
-                      style: TextStyle(color: Color(0xFF94A3B8), height: 1.5)
+                        "Il tuo partner affidabile per consegne pesanti e spedizioni speciali in tutta Italia.",
+                        style: TextStyle(color: Color(0xFF94A3B8), height: 1.5)
                     ),
                   ],
                 ),
               ),
-              // Contatti
               _buildFooterColumn("Contatti", [
                 "+39 02 1234 5678",
                 "info@heavyroute.it",
                 "Via Logistica 123, Milano"
               ], icons: [Icons.phone, Icons.email, Icons.location_on]),
-               // Orari
               _buildFooterColumn("Orari di Servizio", [
                 "Lun - Ven: 8:00 - 19:00",
                 "Sabato: 8:00 - 13:00",
@@ -295,9 +246,9 @@ class LandingPage extends StatelessWidget {
           const SizedBox(height: 60),
           const Divider(color: Color(0xFF1E293B)),
           const SizedBox(height: 20),
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: [
               Text("© 2025 HeavyRoute. Tutti i diritti riservati.", style: TextStyle(color: Color(0xFF64748B), fontSize: 12)),
               Text("Privacy Policy   Termini", style: TextStyle(color: Color(0xFF64748B), fontSize: 12)),
             ],
