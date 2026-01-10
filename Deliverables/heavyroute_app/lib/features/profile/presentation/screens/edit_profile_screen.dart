@@ -9,12 +9,14 @@ class EditProfileScreen extends StatefulWidget {
   final UserDTO user;
   final UserService userService;
   final String? role;
+  final bool isInternal;
 
   const EditProfileScreen({
     super.key,
     required this.user,
     required this.userService,
     required this.role,
+    required this.isInternal,
   });
 
   @override
@@ -27,7 +29,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    // La lunghezza del controller deve corrispondere esattamente al numero di widget nella TabBar
+    _tabController = TabController(
+        length: widget.isInternal ? 2 : 3,
+        vsync: this
+    );
   }
 
   @override
@@ -51,10 +57,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
             child: TabBarView(
               controller: _tabController,
               children: [
-                // MODIFICA: Passo l'utente ai tab
                 PersonalDataTab(user: widget.user),
-                CompanyDataTab(user: widget.user),
-                const SecurityTab(), // La sicurezza spesso non ha bisogno dei dati utente vecchi, ma solo del form password
+                // Se è interno, questo widget non viene proprio creato
+                if (!widget.isInternal) CompanyDataTab(user: widget.user),
+                const SecurityTab(),
               ],
             ),
           ),
@@ -63,8 +69,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
     );
   }
 
-  // ... (Il resto del codice _buildCustomAppBar, _buildProfileHeader, ecc. rimane identico al tuo file originale) ...
-  // Incolla qui i metodi helper che mi hai mandato nel messaggio precedente
+  // --- METODI HELPER UI ---
 
   PreferredSizeWidget _buildCustomAppBar() {
     return AppBar(
@@ -74,8 +79,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
       leading: TextButton.icon(
         onPressed: () => Navigator.pop(context),
         icon: const Icon(Icons.arrow_back, color: Colors.black87, size: 20),
-        label: const Text("Torna alla Dashboard", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w500)),
-        style: TextButton.styleFrom(alignment: Alignment.centerLeft, padding: const EdgeInsets.only(left: 20)),
+        label: const Text("Torna alla Dashboard",
+            style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w500)),
+        style: TextButton.styleFrom(
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.only(left: 20)),
       ),
       actions: [
         Padding(
@@ -161,10 +169,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
           labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           indicatorSize: TabBarIndicatorSize.tab,
           dividerColor: Colors.transparent,
-          tabs: const [
-            _MyTabItem(icon: Icons.person_outline, label: "Personali"),
-            _MyTabItem(icon: Icons.business, label: "Aziendali"),
-            _MyTabItem(icon: Icons.lock_outline, label: "Sicurezza"),
+          // RIMOSSO 'const' qui perché la lista ora è dinamica
+          tabs: [
+            const _MyTabItem(icon: Icons.person_outline, label: "Personali"),
+            // IL TOCCO MAGICO: Aggiunge il tab Aziendali solo se NON è interno
+            if (!widget.isInternal)
+              const _MyTabItem(icon: Icons.business, label: "Aziendali"),
+            const _MyTabItem(icon: Icons.lock_outline, label: "Sicurezza"),
           ],
         ),
       ),

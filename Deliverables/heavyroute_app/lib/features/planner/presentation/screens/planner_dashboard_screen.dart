@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../../common/heavy_route_app_bar.dart';
+import '../../../auth/services/user_service.dart';
+import '../../../auth/models/user_dto.dart';
+import '../../../requests/presentation/widgets/user_data_popup.dart';
+
+// Import dei Tab esistenti
 import '../widget/transport_requests_tab.dart';
 import '../widget/registration_requests_tab.dart';
 import '../widget/assignments_tab.dart';
@@ -14,6 +19,9 @@ class PlannerDashboardScreen extends StatefulWidget {
 }
 
 class _PlannerDashboardScreenState extends State<PlannerDashboardScreen> {
+  // 1. Inizializza il servizio utente
+  final UserService _userService = UserService();
+
   int _selectedIndex = 0;
 
   final List<Widget> _tabs = [
@@ -24,18 +32,52 @@ class _PlannerDashboardScreenState extends State<PlannerDashboardScreen> {
     const AlertsTab(),
   ];
 
-  // NOTA: Ho rimosso _handleLogout() e _authService perché ora sono nel widget condiviso!
+  // 2. LOGICA APERTURA PROFILO (Specifica per Pianificatore)
+  Future<void> _openProfilePopup() async {
+    // Spinner
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      // Recupera dati
+      final UserDTO? user = await _userService.getCurrentUser();
+
+      if (mounted) Navigator.pop(context); // Chiudi spinner
+
+      if (user != null && mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: UserDataPopup(
+                user: user,
+                userService: _userService,
+                role: "Pianificatore", // <--- Ruolo Fissato
+                showDownload: false,        // <--- Niente tasto doc (Interno)
+              ),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) Navigator.pop(context);
+      print("Errore profilo pianificatore: $e");
+    }
+  }
 
   Widget _buildMockWarning() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      // SPOSTA TUTTO QUI DENTRO
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7ED), // Il colore deve stare dentro BoxDecoration
-        border: Border(
-          bottom: BorderSide(color: Colors.orange.shade200),
-        ),
+        color: const Color(0xFFFFF7ED),
+        border: Border(bottom: BorderSide(color: Colors.orange.shade200)),
       ),
       child: Row(
         children: [
@@ -62,9 +104,11 @@ class _PlannerDashboardScreenState extends State<PlannerDashboardScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
 
-      appBar: const HeavyRouteAppBar(
+      // 3. APPBAR COLLEGATA
+      appBar: HeavyRouteAppBar(
         subtitle: "Dashboard Pianificatore",
-        isDashboard: true, // <--- Questo attiva Logout e Profilo
+        isDashboard: true,
+        onProfileTap: _openProfilePopup, // <--- Collegamento fondamentale
       ),
 
       body: Column(
@@ -84,9 +128,7 @@ class _PlannerDashboardScreenState extends State<PlannerDashboardScreen> {
     );
   }
 
-  // ... (Mantieni _buildCustomNavBar e _buildNavButton identici a prima)
   Widget _buildCustomNavBar() {
-    // ... codice identico a prima ...
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24),
       padding: const EdgeInsets.all(4),
@@ -97,11 +139,11 @@ class _PlannerDashboardScreenState extends State<PlannerDashboardScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _buildNavButton(0, "Richieste di Trasporto", Icons.inventory_2_outlined),
+          _buildNavButton(0, "Richieste", Icons.inventory_2_outlined),
           _buildNavButton(1, "Registrazioni", Icons.person_add_outlined, badgeCount: 3),
-          _buildNavButton(2, "Flotta e Risorse", Icons.local_shipping_outlined),
+          _buildNavButton(2, "Flotta", Icons.local_shipping_outlined),
           _buildNavButton(3, "Assegnazioni", Icons.near_me_outlined),
-          _buildNavButton(4, "Segnalazioni", Icons.notifications_outlined, badgeCount: 3),
+          _buildNavButton(4, "Avvisi", Icons.notifications_outlined, badgeCount: 3),
         ],
       ),
     );
@@ -121,33 +163,34 @@ class _PlannerDashboardScreenState extends State<PlannerDashboardScreen> {
                 ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))]
                 : [],
           ),
-          child: Row(
+          child: Column( // Usare Column su schermi piccoli o Row su grandi se c'è spazio
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 18, color: isSelected ? Colors.black : Colors.grey[700]),
-              const SizedBox(width: 8),
+              Stack(
+                children: [
+                  Icon(icon, size: 20, color: isSelected ? Colors.black : Colors.grey[700]),
+                  if (badgeCount > 0)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                        constraints: const BoxConstraints(minWidth: 6, minHeight: 6),
+                      ),
+                    )
+                ],
+              ),
+              const SizedBox(height: 4), // Spazio tra icona e testo
               Text(
                 label,
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   color: isSelected ? Colors.black : Colors.grey[700],
-                  fontSize: 13,
+                  fontSize: 11, // Testo un po' più piccolo per farci stare tutto
                 ),
               ),
-              if (badgeCount > 0) ...[
-                const SizedBox(width: 6),
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    badgeCount.toString(),
-                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                  ),
-                )
-              ]
             ],
           ),
         ),
