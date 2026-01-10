@@ -1,19 +1,11 @@
 import 'package:flutter/material.dart';
+import '../../../../common/heavy_route_app_bar.dart';
 import '../widget/transport_requests_tab.dart';
 import '../widget/registration_requests_tab.dart';
 import '../widget/assignments_tab.dart';
 import '../widget/fleet_tab.dart';
 import '../widget/alerts_tab.dart';
-import '../../../../core/storage/token_storage.dart';
-import '../../../auth/presentation/screens/login_screen.dart';
 
-/**
- * La Dashboard principale per il ruolo "LOGISTIC_PLANNER".
- * <p>
- * Questa schermata funge da container per le varie funzionalità operative.
- * Utilizza un pattern a "Tabs" per cambiare contenuto senza ricaricare l'intera pagina.
- * </p>
- */
 class PlannerDashboardScreen extends StatefulWidget {
   const PlannerDashboardScreen({super.key});
 
@@ -24,72 +16,63 @@ class PlannerDashboardScreen extends StatefulWidget {
 class _PlannerDashboardScreenState extends State<PlannerDashboardScreen> {
   int _selectedIndex = 0;
 
-  // Lista delle viste (Lazy Loading parziale).
   final List<Widget> _tabs = [
     const TransportRequestsTab(),
     const RegistrationRequestsTab(),
-    const FleetTab(), // Placeholder
+    const FleetTab(),
     const AssignmentsTab(),
-    const AlertsTab(), // Placeholder
+    const AlertsTab(),
   ];
+
+  // NOTA: Ho rimosso _handleLogout() e _authService perché ora sono nel widget condiviso!
+
+  Widget _buildMockWarning() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      // SPOSTA TUTTO QUI DENTRO
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7ED), // Il colore deve stare dentro BoxDecoration
+        border: Border(
+          bottom: BorderSide(color: Colors.orange.shade200),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber_rounded, color: Colors.orange.shade800, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: TextStyle(color: Colors.orange.shade900, fontSize: 13),
+                children: const [
+                  TextSpan(text: "MODALITÀ DEMO: ", style: TextStyle(fontWeight: FontWeight.bold)),
+                  TextSpan(text: "I dati visualizzati sono mockup statici."),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
 
-      // HEADER: Branding e Profilo Utente
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: Row(
-          children: [
-            // Logo Simulato o Icona
-            Icon(Icons.local_shipping_rounded, color: Color(0xFF0D0D1A)),
-            const SizedBox(width: 8),
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("HeavyRoute", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
-                Text("Dashboard Pianificatore", style: TextStyle(color: Colors.grey, fontSize: 12)),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          // Bottone Profilo / Logout
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: CircleAvatar(
-              backgroundColor: const Color(0xFF0D0D1A),
-              child: IconButton(
-                icon: const Icon(Icons.logout, color: Colors.white, size: 20), // Icona Logout
-                tooltip: "Esci",
-                onPressed: () async {
-                  // 1. Cancella Token e Ruolo
-                  await TokenStorage.deleteAll();
-
-                  // 2. Torna al Login
-                  if (context.mounted) {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (_) => const LoginScreen()),
-                          (route) => false,
-                    );
-                  }
-                },
-              ),
-            ),
-          )
-        ],
+      appBar: const HeavyRouteAppBar(
+        subtitle: "Dashboard Pianificatore",
+        isDashboard: true, // <--- Questo attiva Logout e Profilo
       ),
+
       body: Column(
         children: [
+          _buildMockWarning(),
           const SizedBox(height: 20),
-          // BARRA DI NAVIGAZIONE PERSONALIZZATA
           _buildCustomNavBar(),
           const SizedBox(height: 20),
-          // CONTENUTO DINAMICO
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -101,16 +84,14 @@ class _PlannerDashboardScreenState extends State<PlannerDashboardScreen> {
     );
   }
 
-  /**
-   * Costruisce la barra di navigazione a segmenti.
-   * Design ispirato alle dashboard web moderne (pill-shaped).
-   */
+  // ... (Mantieni _buildCustomNavBar e _buildNavButton identici a prima)
   Widget _buildCustomNavBar() {
+    // ... codice identico a prima ...
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24),
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFFE5E7EB), // Grigio sfondo barra
+        color: const Color(0xFFE5E7EB),
         borderRadius: BorderRadius.circular(50),
       ),
       child: Row(
@@ -126,22 +107,14 @@ class _PlannerDashboardScreenState extends State<PlannerDashboardScreen> {
     );
   }
 
-  /**
-   * Costruisce un singolo bottone della navbar.
-   * Gestisce lo stato "Selezionato" vs "Non Selezionato" cambiando colore e stile.
-   */
   Widget _buildNavButton(int index, String label, IconData icon, {int badgeCount = 0}) {
     bool isSelected = _selectedIndex == index;
-
-    // Expanded assicura che ogni bottone abbia la stessa larghezza
     return Expanded(
       child: GestureDetector(
-        // Al click, aggiorniamo l'indice e forziamo il redraw della UI con setState
         onTap: () => setState(() => _selectedIndex = index),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            // Feedback visivo: Il tab attivo diventa Bianco con ombra, gli altri trasparenti
             color: isSelected ? Colors.white : Colors.transparent,
             borderRadius: BorderRadius.circular(40),
             boxShadow: isSelected
@@ -153,26 +126,20 @@ class _PlannerDashboardScreenState extends State<PlannerDashboardScreen> {
             children: [
               Icon(icon, size: 18, color: isSelected ? Colors.black : Colors.grey[700]),
               const SizedBox(width: 8),
-
-              Flexible(
-                  child: Text(
-                    label,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      color: isSelected ? Colors.black : Colors.grey[700],
-                      fontSize: 13,
-                    ),
-                  ),
+              Text(
+                label,
+                style: TextStyle(
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected ? Colors.black : Colors.grey[700],
+                  fontSize: 13,
+                ),
               ),
-
-              // LOGICA DEL BADGE (Pallino Rosso)
               if (badgeCount > 0) ...[
                 const SizedBox(width: 6),
                 Container(
                   padding: const EdgeInsets.all(4),
                   decoration: const BoxDecoration(
-                    color: Colors.red, // Badge rosso
+                    color: Colors.red,
                     shape: BoxShape.circle,
                   ),
                   child: Text(
