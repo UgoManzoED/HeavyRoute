@@ -16,31 +16,61 @@ import java.util.List;
  */
 public interface TransportRequestService {
 
+    /**
+     * Recupera lo storico delle richieste filtrate per uno specifico cliente.
+     * <p>
+     * <b>Obiettivo di Business:</b> Implementa la vista "I Miei Ordini".
+     * Permette al cliente loggato di monitorare lo stato delle proprie spedizioni
+     * senza accedere ai dati riservati di altri clienti (Data Isolation).
+     * </p>
+     * <p>
+     * <b>Nota di Sicurezza:</b> Il parametro {@code username} deve essere estratto
+     * dal contesto di sicurezza (JWT) nel Controller per garantire che l'utente
+     * stia richiedendo legittimamente i propri dati.
+     * </p>
+     *
+     * @param username L'identificativo univoco del cliente (dal SecurityContext).
+     * @return Una lista di DTO contenente i dettagli delle richieste sottomesse da questo utente.
+     */
     List<RequestDetailDTO> getRequestsByClientUsername(String username);
 
     /**
      * Crea una nuova richiesta di trasporto nel sistema.
      * <p>
      * Questa operazione implementa il requisito <b>FR8 (Inserimento Richiesta di Trasporto)</b>.
-     * Il servizio si occupa di mappare il DTO nell'entità di persistenza, impostare lo stato
-     * iniziale a {@code PENDING} e persistere i dati tramite il repository.
+     * </p>
+     * <p>
+     * <b>Logica Transazionale:</b>
+     * <ul>
+     * <li>Recupera l'entità {@code User} (Cliente) associata allo username.</li>
+     * <li>Mappa il DTO di input nell'entità {@code TransportRequest}.</li>
+     * <li>Imposta lo stato iniziale a {@code PENDING} (Pattern State Machine).</li>
+     * <li>Persiste i dati garantendo l'integrità referenziale.</li>
+     * </ul>
      * </p>
      *
-     * @param dto Oggetto contenente i dati di input validati (origine, destinazione, data e specifiche del carico).
-     * @return {@link RequestDetailDTO} La richiesta appena creata, completa di ID generato e stato corrente.
-     * @throws com.heavyroute.common.exception.BusinessRuleException se la data di ritiro non è valida o i dati sono inconsistenti.
+     * @param dto Oggetto contenente i dati di input validati (origine, destinazione, carico).
+     * @param username L'autore della richiesta (necessario per settare la relazione 'owner').
+     * @return {@link RequestDetailDTO} La richiesta appena creata, completa di ID e Timestamp.
+     * @throws com.heavyroute.common.exception.BusinessRuleException se la data è nel passato.
+     * @throws com.heavyroute.common.exception.ResourceNotFoundException se l'utente non esiste.
      */
     RequestDetailDTO createRequest(RequestCreationDTO dto, String username);
 
     /**
      * Recupera l'elenco completo delle richieste di trasporto presenti nel sistema.
      * <p>
-     * Supporta le funzionalità di monitoraggio per il <b>Committente</b> (visualizzazione proprie richieste)
-     * e per il <b>Pianificatore Logistico</b> (dashboard globale per la valutazione).
+     * <b>Target Audience:</b> Funzionalità riservata al ruolo <b>PLANNER</b>.
+     * Serve per alimentare la Dashboard Globale dove il pianificatore decide quali
+     * richieste approvare e trasformare in Viaggi.
+     * </p>
+     * <p>
+     * <b>Performance Warning:</b> In un sistema di produzione con migliaia di record,
+     * questo metodo dovrebbe supportare la <b>Paginazione</b> (Pageable) per evitare
+     * di caricare l'intera tabella in memoria.
      * </p>
      *
-     * @return Una lista di {@link RequestDetailDTO} rappresentante tutte le richieste registrate.
-     * Restituisce una lista vuota se non sono presenti record.
+     * @return Una lista di {@link RequestDetailDTO} rappresentante tutte le richieste.
      */
     List<RequestDetailDTO> getAllRequests();
 }

@@ -61,7 +61,6 @@ public class TransportRequestServiceImpl implements TransportRequestService {
         TransportRequest request = new TransportRequest();
         request.setClient(client);
 
-        // Allineamento con i campi 'origin' e 'destination' del RequestCreationDTO
         request.setOriginAddress(dto.getOriginAddress());
         request.setDestinationAddress(dto.getDestinationAddress());
 
@@ -95,14 +94,32 @@ public class TransportRequestServiceImpl implements TransportRequestService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Recupera lo storico delle richieste filtrate per uno specifico cliente.
+     * <p>
+     * Supporta la funzionalità di dashboard personale (es. "I Miei Ordini"), garantendo
+     * la segregazione dei dati (Data Isolation):
+     * <ol>
+     * <li>Risolve l'identità dell'utente tramite lo username fornito.</li>
+     * <li>Interroga il database filtrando le richieste associate esclusivamente all'ID del cliente.</li>
+     * <li>Mappa le entità risultanti in DTO per la visualizzazione frontend.</li>
+     * </ol>
+     * </p>
+     * <p>
+     * <b>Nota:</b> L'annotazione {@code @Transactional(readOnly = true)} è utilizzata per
+     * ottimizzare le performance, segnalando al driver del DB che non verranno effettuate modifiche.
+     * </p>
+     *
+     * @param username Lo username univoco del cliente (tipicamente estratto dal SecurityContext).
+     * @return Lista di {@link RequestDetailDTO} appartenenti all'utente specificato.
+     * @throws ResourceNotFoundException se lo username non corrisponde a nessun utente registrato.
+     */
     @Override
     @Transactional(readOnly = true)
     public List<RequestDetailDTO> getRequestsByClientUsername(String username) {
         User client = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Utente non trovato: " + username));
 
-        // Assicurati che nel Repository ci sia: List<TransportRequest> findByClient(User client);
-        // Oppure: List<TransportRequest> findByClientId(Long id);
         return repository.findAllByClientId(client.getId()).stream()
                 .map(this::mapToDetailDTO)
                 .collect(Collectors.toList());
