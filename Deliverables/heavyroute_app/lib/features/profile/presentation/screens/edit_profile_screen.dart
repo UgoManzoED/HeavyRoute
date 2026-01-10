@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import '../../../auth/models/user_dto.dart';
-// Importa i tre tab che abbiamo appena creato (o assicurati che siano visibili)
 import '../../../auth/services/user_service.dart';
 import '../widget/personal_data_tab.dart';
 import '../widget/company_data_tab.dart';
 import '../widget/security_tab.dart';
 
 class EditProfileScreen extends StatefulWidget {
-  final UserDTO user; // Passiamo l'utente per mostrare avatar e nome nell'header
+  final UserDTO user;
   final UserService userService;
+  final String? role;
 
   const EditProfileScreen({
     super.key,
     required this.user,
     required this.userService,
+    required this.role,
   });
 
   @override
@@ -26,7 +27,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
   @override
   void initState() {
     super.initState();
-    // Inizializza il controller per 3 schede
     _tabController = TabController(length: 3, vsync: this);
   }
 
@@ -38,31 +38,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
 
   @override
   Widget build(BuildContext context) {
-    // Usiamo Scaffold bianco per coprire tutto lo schermo
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA), // Grigio chiarissimo di sfondo
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: _buildCustomAppBar(),
       body: Column(
         children: [
-          // 1. HEADER PROFILO (Avatar, Nome, Ruolo)
           _buildProfileHeader(),
-
           const SizedBox(height: 24),
-
-          // 2. TAB BAR (Menu di navigazione a pillola)
           _buildCustomTabBar(),
-
           const SizedBox(height: 24),
-
-          // 3. CONTENUTO DELLE SCHEDE (Dinamico)
           Expanded(
             child: TabBarView(
               controller: _tabController,
-              children: const [
-                // Qui inseriamo i moduli che riempiremo dopo
-                PersonalDataTab(),
-                CompanyDataTab(),
-                SecurityTab(),
+              children: [
+                // MODIFICA: Passo l'utente ai tab
+                PersonalDataTab(user: widget.user),
+                CompanyDataTab(user: widget.user),
+                const SecurityTab(), // La sicurezza spesso non ha bisogno dei dati utente vecchi, ma solo del form password
               ],
             ),
           ),
@@ -71,13 +63,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
     );
   }
 
-  // --- WIDGETS UI ---
+  // ... (Il resto del codice _buildCustomAppBar, _buildProfileHeader, ecc. rimane identico al tuo file originale) ...
+  // Incolla qui i metodi helper che mi hai mandato nel messaggio precedente
 
   PreferredSizeWidget _buildCustomAppBar() {
     return AppBar(
       backgroundColor: const Color(0xFFF8F9FA),
       elevation: 0,
-      leadingWidth: 200, // Spazio per il testo "Torna alla dashboard"
+      leadingWidth: 200,
       leading: TextButton.icon(
         onPressed: () => Navigator.pop(context),
         icon: const Icon(Icons.arrow_back, color: Colors.black87, size: 20),
@@ -85,7 +78,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
         style: TextButton.styleFrom(alignment: Alignment.centerLeft, padding: const EdgeInsets.only(left: 20)),
       ),
       actions: [
-        // Logo piccolo a destra (placeholder)
         Padding(
           padding: const EdgeInsets.only(right: 20),
           child: Icon(Icons.local_shipping, color: Colors.blue[900], size: 28),
@@ -100,25 +92,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Avatar
           Container(
             width: 80,
             height: 80,
             decoration: const BoxDecoration(
-              color: Color(0xFF0D0D1A), // Dark Navy
+              color: Color(0xFF0D0D1A),
               shape: BoxShape.circle,
             ),
             child: Center(
               child: Text(
-                // Iniziali (es. Mario Rossi -> MR)
                 "${widget.user.firstName?[0] ?? ''}${widget.user.lastName?[0] ?? ''}".toUpperCase(),
                 style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
               ),
             ),
           ),
           const SizedBox(width: 24),
-
-          // Info Testuali
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -132,7 +120,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
                 style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               ),
               const SizedBox(height: 8),
-              // Badge Ruolo
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
@@ -140,7 +127,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  "Committente", // Questo potresti prenderlo dinamicamente
+                  widget.role ?? "Utente",
                   style: TextStyle(color: Colors.blue[800], fontWeight: FontWeight.w600, fontSize: 12),
                 ),
               )
@@ -157,12 +144,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
         height: 50,
         margin: const EdgeInsets.symmetric(horizontal: 40),
         decoration: BoxDecoration(
-          color: Colors.grey[200], // Sfondo grigio della barra
+          color: Colors.grey[200],
           borderRadius: BorderRadius.circular(25.0),
         ),
         child: TabBar(
           controller: _tabController,
-          // Stile dell'indicatore (la pillola bianca che si muove)
           indicator: BoxDecoration(
             borderRadius: BorderRadius.circular(25.0),
             color: Colors.white,
@@ -170,11 +156,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
               BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))
             ],
           ),
-          labelColor: Colors.black87, // Testo selezionato
-          unselectedLabelColor: Colors.grey[600], // Testo non selezionato
+          labelColor: Colors.black87,
+          unselectedLabelColor: Colors.grey[600],
           labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           indicatorSize: TabBarIndicatorSize.tab,
-          dividerColor: Colors.transparent, // Rimuove la linea sotto classica
+          dividerColor: Colors.transparent,
           tabs: const [
             _MyTabItem(icon: Icons.person_outline, label: "Personali"),
             _MyTabItem(icon: Icons.business, label: "Aziendali"),
@@ -186,7 +172,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
   }
 }
 
-// Widget helper per creare i singoli tab con icona e testo
 class _MyTabItem extends StatelessWidget {
   final IconData icon;
   final String label;

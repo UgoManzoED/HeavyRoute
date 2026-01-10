@@ -10,6 +10,7 @@ class UserDTO {
   final String? phone;
   final String? company;
   final String? address;
+  final String? vat;
 
   UserDTO({
     this.id,
@@ -20,6 +21,7 @@ class UserDTO {
     this.phone,
     this.company,
     this.address,
+    this.vat,
   });
 
   /// Crea un UserDTO da un oggetto JSON.
@@ -33,6 +35,7 @@ class UserDTO {
       phone: json['phone']?.toString(),
       company: json['company']?.toString(),
       address: json['address']?.toString(),
+      vat: json['vat']?.toString(),
     );
   }
 
@@ -47,6 +50,7 @@ class UserDTO {
       if (phone != null) 'phone': phone,
       if (company != null) 'company': company,
       if (address != null) 'address': address,
+      if (vat != null) 'vat' : vat,
     };
   }
 
@@ -60,6 +64,7 @@ class UserDTO {
     String? phone,
     String? company,
     String? address,
+    String? vat,
   }) {
     return UserDTO(
       id: id ?? this.id,
@@ -70,6 +75,7 @@ class UserDTO {
       phone: phone ?? this.phone,
       company: company ?? this.company,
       address: address ?? this.address,
+      vat: vat ?? this.vat,
     );
   }
 }
