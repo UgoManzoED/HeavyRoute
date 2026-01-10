@@ -282,6 +282,7 @@ class _NewOrderPopupState extends State<NewOrderPopup> {
   final _weightCtrl = TextEditingController();
   final _dateCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
+  final _heightCtrl = TextEditingController();
 
   void _handleConfirm() async {
     if (_formKey.currentState!.validate()) {
@@ -292,7 +293,7 @@ class _NewOrderPopupState extends State<NewOrderPopup> {
         weight: double.tryParse(_weightCtrl.text) ?? 0.0,
         length: double.tryParse(_lenCtrl.text) ?? 0.0,
         width: double.tryParse(_widCtrl.text) ?? 0.0,
-        height: 0.0,
+        height: double.tryParse(_heightCtrl.text) ?? 0.0,
       );
 
       final success = await _requestService.createRequest(dto);
@@ -344,6 +345,13 @@ class _NewOrderPopupState extends State<NewOrderPopup> {
                   Expanded(child: _buildInput('Lunghezza (m) *', 'Es. 5.5', _lenCtrl, isNum: true)),
                   const SizedBox(width: 20),
                   Expanded(child: _buildInput('Larghezza (m) *', 'Es. 2.5', _widCtrl, isNum: true)),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              Row(
+                children: [
+                  Expanded(child: _buildInput('Altezza (m) *', 'Es. 3.0', _heightCtrl, isNum: true)),
                 ],
               ),
               const SizedBox(height: 20),

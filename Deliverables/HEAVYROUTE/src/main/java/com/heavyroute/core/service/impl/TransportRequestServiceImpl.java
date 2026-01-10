@@ -54,10 +54,13 @@ public class TransportRequestServiceImpl implements TransportRequestService {
      */
     @Override
     @Transactional
-    public RequestDetailDTO createRequest(RequestCreationDTO dto) {
-        TransportRequest request = new TransportRequest();
+    public RequestDetailDTO createRequest(RequestCreationDTO dto, String username) {
+        User client = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Utente non trovato: " + username));
 
-        // Allineamento con i campi 'origin' e 'destination' del RequestCreationDTO
+        TransportRequest request = new TransportRequest();
+        request.setClient(client);
+
         request.setOriginAddress(dto.getOriginAddress());
         request.setDestinationAddress(dto.getDestinationAddress());
 
@@ -70,11 +73,6 @@ public class TransportRequestServiceImpl implements TransportRequestService {
         load.setWidth(dto.getWidth());
         load.setLength(dto.getLength());
         request.setLoad(load);
-
-        User client = userRepository.findById(dto.getClientId())
-                .orElseThrow(() -> new ResourceNotFoundException("Cliente non trovato con ID: " + dto.getClientId()));
-
-        request.setUserClient(client);
 
         TransportRequest saved = repository.save(request);
         return mapToDetailDTO(saved);
@@ -92,6 +90,37 @@ public class TransportRequestServiceImpl implements TransportRequestService {
     @Override
     public List<RequestDetailDTO> getAllRequests() {
         return repository.findAll().stream()
+                .map(this::mapToDetailDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Recupera lo storico delle richieste filtrate per uno specifico cliente.
+     * <p>
+     * Supporta la funzionalità di dashboard personale (es. "I Miei Ordini"), garantendo
+     * la segregazione dei dati (Data Isolation):
+     * <ol>
+     * <li>Risolve l'identità dell'utente tramite lo username fornito.</li>
+     * <li>Interroga il database filtrando le richieste associate esclusivamente all'ID del cliente.</li>
+     * <li>Mappa le entità risultanti in DTO per la visualizzazione frontend.</li>
+     * </ol>
+     * </p>
+     * <p>
+     * <b>Nota:</b> L'annotazione {@code @Transactional(readOnly = true)} è utilizzata per
+     * ottimizzare le performance, segnalando al driver del DB che non verranno effettuate modifiche.
+     * </p>
+     *
+     * @param username Lo username univoco del cliente (tipicamente estratto dal SecurityContext).
+     * @return Lista di {@link RequestDetailDTO} appartenenti all'utente specificato.
+     * @throws ResourceNotFoundException se lo username non corrisponde a nessun utente registrato.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<RequestDetailDTO> getRequestsByClientUsername(String username) {
+        User client = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Utente non trovato: " + username));
+
+        return repository.findAllByClientId(client.getId()).stream()
                 .map(this::mapToDetailDTO)
                 .collect(Collectors.toList());
     }
@@ -123,10 +152,9 @@ public class TransportRequestServiceImpl implements TransportRequestService {
         }
 
         // Popolamento Dati Cliente ---
-        if (entity.getUserClient() != null) {
-            dto.setClientId(entity.getUserClient().getId());
-            // Concateniamo nome e cognome per facilitare la visualizzazione al PL
-            dto.setClientFullName(entity.getUserClient().getFirstName() + " " + entity.getUserClient().getLastName());
+        if (entity.getClient() != null) {
+            dto.setClientId(entity.getClient().getId());
+            dto.setClientFullName(entity.getClient().getFirstName() + " " + entity.getClient().getLastName());
         }
 
         return dto;

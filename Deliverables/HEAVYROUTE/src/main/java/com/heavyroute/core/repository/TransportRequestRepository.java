@@ -41,4 +41,24 @@ public interface TransportRequestRepository extends JpaRepository<TransportReque
      * Restituisce una lista vuota se non viene trovata alcuna corrispondenza.
      */
     List<TransportRequest> findByRequestStatus(RequestStatus status);
+
+    /**
+     * Recupera l'intero storico delle richieste associate a uno specifico cliente.
+     * <p>
+     * <b>Obiettivo di Business:</b> Supporta la funzionalità di dashboard personale (es. "I Miei Ordini").
+     * È il metodo fondamentale per garantire la <b>Data Isolation</b> (Multi-tenancy logica):
+     * permette di filtrare i dati in modo che ogni Committente veda esclusivamente le proprie spedizioni,
+     * impedendo l'accesso non autorizzato ai dati di altri clienti (prevenzione IDOR).
+     * </p>
+     * <p>
+     * <b>Nota sulle Performance:</b> Dato che un cliente fidelizzato potrebbe avere migliaia di richieste
+     * nello storico, in un ambiente di produzione ad alto traffico si consiglia di evolvere
+     * questo metodo supportando la paginazione (es. {@code Page<TransportRequest> ... Pageable pageable}).
+     * </p>
+     *
+     * @param clientId L'ID univoco (Primary Key) dell'utente con ruolo {@code CUSTOMER}.
+     * @return Una lista di richieste. Restituisce una lista vuota (e mai null) se il cliente
+     * non ha ancora effettuato ordini.
+     */
+    List<TransportRequest> findAllByClientId(Long clientId);
 }

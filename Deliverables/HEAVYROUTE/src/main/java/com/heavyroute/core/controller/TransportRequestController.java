@@ -5,6 +5,9 @@ import com.heavyroute.core.dto.RequestDetailDTO;
 import com.heavyroute.core.service.TransportRequestService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -51,8 +54,10 @@ public class TransportRequestController {
      * @return {@link ResponseEntity} contenente il {@link RequestDetailDTO} della richiesta creata e stato HTTP 200 OK.
      */
     @PostMapping
+    @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<RequestDetailDTO> createRequest(@Valid @RequestBody RequestCreationDTO dto) {
-        return ResponseEntity.ok(requestService.createRequest(dto));
+        String username = getCurrentUsername();
+        return ResponseEntity.ok(requestService.createRequest(dto, username));
     }
 
     /**
@@ -64,8 +69,46 @@ public class TransportRequestController {
      *
      * @return {@link ResponseEntity} contenente la lista di {@link RequestDetailDTO} e stato HTTP 200 OK.
      */
-    @GetMapping
+    @GetMapping("/my-requests")
+    @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<List<RequestDetailDTO>> getMyRequest() {
+        String username = getCurrentUsername();
+        return ResponseEntity.ok(requestService.getRequestsByClientUsername(username));
+    }
+
+    /**
+     * Endpoint amministrativo per la visualizzazione globale delle richieste.
+     * <p>
+     * <b>Access Control:</b> Riservato esclusivamente al ruolo <b>LOGISTIC_PLANNER</b>.
+     * <br>
+     * Permette al pianificatore di avere una visione d'insieme su tutti gli ordini inseriti
+     * dai vari clienti, step fondamentale per l'aggregazione dei carichi e la
+     * creazione dei Viaggi (Trips).
+     * </p>
+     *
+     * @return Lista completa di {@link RequestDetailDTO} presenti nel sistema.
+     */
+    @GetMapping
+    @PreAuthorize("hasRole('LOGISTIC_PLANNER')")
+    public ResponseEntity<List<RequestDetailDTO>> getAllRequests() {
         return ResponseEntity.ok(requestService.getAllRequests());
+    }
+
+    /**
+     * Metodo di utilità per recuperare l'identità dell'utente corrente.
+     * <p>
+     * Accede al {@link SecurityContextHolder} (Thread-Local) dove il {@code JwtAuthenticationFilter}
+     * ha precedentemente salvato i dettagli dell'utente dopo aver validato il Token.
+     * </p>
+     * <p>
+     * <b>Utilizzo:</b> Fondamentale per implementare la logica di sicurezza (es. "chi sta chiamando questo metodo?")
+     * senza dover passare esplicitamente lo username come parametro del metodo.
+     * </p>
+     *
+     * @return Lo username (Subject del JWT) dell'utente autenticato.
+     */
+    private String getCurrentUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication.getName();
     }
 }
