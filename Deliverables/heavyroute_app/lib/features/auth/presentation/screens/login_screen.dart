@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:heavyroute_app/features/gestore/screens/account_manager_screen.dart';
 import '../../services/auth_service.dart';
 import 'package:heavyroute_app/core/storage/token_storage.dart';
 import 'package:heavyroute_app/features/requests/presentation/screens/customer_dashboard_screen.dart';
@@ -59,6 +60,13 @@ class _LoginScreenState extends State<LoginScreen> {
               context,
               MaterialPageRoute(builder: (_) => const CustomerDashboardScreen())
           );
+        } else if(role == 'ACCOUNT_MANAGER' || role == 'ROLE_ACCOUNT_MANAGER'){
+          //3. REINDIRIZZAMENTO PER IL COMMITTENTE 
+          Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const AccountManagerScreen())
+          );
+
         } else {
           // 3. FALLBACK DI SICUREZZA (Se il ruolo non è riconosciuto)
           ScaffoldMessenger.of(context).showSnackBar(

@@ -1,15 +1,25 @@
 import 'package:flutter/material.dart';
 import '../../models/request_detail_dto.dart';
+import 'request_action_popup.dart';
 
 /**
- * Widget grafico per mostrare una singola richiesta nella lista.
- * Mostra lo stato colorato (PENDING/APPROVED) e le informazioni principali della richiesta.
+ * Widget grafico per mostrare una singola richiesta nella lista della Dashboard.
+ * <p>
+ * Visualizza lo stato della spedizione, i dettagli del percorso, il peso e
+ * fornisce l'accesso alle azioni di modifica o annullamento.
+ * </p>
  * @author Roman
  * @version 1.0
  */
 class RequestCard extends StatelessWidget {
+  /** I dati di dettaglio della richiesta da visualizzare. */
   final RequestDetailDTO request;
 
+  /**
+   * Costruttore della classe {@link RequestCard}.
+   * @param key Chiave univoca del widget.
+   * @param request L'oggetto DTO contenente i dati della richiesta.
+   */
   const RequestCard({
     super.key,
     required this.request,
@@ -81,10 +91,13 @@ class RequestCard extends StatelessWidget {
             request.pickupDate,
           ),
           const SizedBox(height: 20),
+
+          // PULSANTE AZIONE
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              onPressed: () {},
+              // MODIFICA: Invocazione del metodo per aprire il popup
+              onPressed: () => _openRequestActionDialog(context, request),
               icon: const Icon(Icons.edit_note, size: 20, color: Colors.black87),
               label: const Text(
                 'Richiedi Modifica o Annullamento',
@@ -104,7 +117,10 @@ class RequestCard extends StatelessWidget {
     );
   }
 
-  /// Costruisce il badge dello stato con colore appropriato.
+  /**
+   * Costruisce il badge dello stato con colore appropriato.
+   * @return Un Widget Container formattato come chip.
+   */
   Widget _buildStatusBadge() {
     final statusColor = _getStatusColor(request.status);
     final statusText = _getStatusText(request.status);
@@ -126,7 +142,12 @@ class RequestCard extends StatelessWidget {
     );
   }
 
-  /// Costruisce una riga di informazione con icona e testo.
+  /**
+   * Costruisce una riga di informazione con icona e testo.
+   * @param icon L'icona da visualizzare.
+   * @param text Il testo descrittivo.
+   * @return Un Widget Row contenente icona e testo.
+   */
   Widget _buildInfoRow(IconData icon, String text) {
     return Row(
       children: [
@@ -146,7 +167,11 @@ class RequestCard extends StatelessWidget {
     );
   }
 
-  /// Restituisce il colore associato allo stato della richiesta.
+  /**
+   * Determina il colore primario in base allo stato della richiesta.
+   * @param status Lo stato corrente della richiesta.
+   * @return Un oggetto {@link Color}.
+   */
   Color _getStatusColor(RequestStatus? status) {
     switch (status) {
       case RequestStatus.pending:
@@ -164,7 +189,27 @@ class RequestCard extends StatelessWidget {
     }
   }
 
-  /// Restituisce il testo associato allo stato della richiesta.
+  /**
+   * Apre il dialog per richiedere modifiche o annullamenti di un ordine.
+   * <p>
+   * Utilizza {@link showDialog} per visualizzare il widget {@link RequestActionPopup}.
+   * </p>
+   * @param context Il contesto di navigazione corrente.
+   * @param request L'ordine selezionato dall'utente.
+   */
+  void _openRequestActionDialog(BuildContext context, RequestDetailDTO request) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => RequestActionPopup(request: request),
+    );
+  }
+
+  /**
+   * Traduce l'enum dello stato in una stringa leggibile dall'utente.
+   * @param status Lo stato della richiesta.
+   * @return Una stringa localizzata.
+   */
   String _getStatusText(RequestStatus? status) {
     switch (status) {
       case RequestStatus.pending:
