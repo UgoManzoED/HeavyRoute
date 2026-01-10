@@ -1,46 +1,25 @@
 import 'package:flutter/material.dart';
+import '../../../../common/heavy_route_app_bar.dart';
+
 import '../../models/request_detail_dto.dart';
 import '../../services/request_service.dart';
 import '../../../auth/services/user_service.dart';
+import '../../../auth/models/user_dto.dart';
 import '../widgets/add_order_header.dart';
-import '../widgets/user_data_popup.dart';
+import '../widgets/user_data_popup.dart'; // Fondamentale per il popup
 import '../widgets/new_order_popup.dart';
 import '../widgets/request_card.dart';
 
-/**
- * Schermata principale della Dashboard dedicata al Committente.
- * <p>
- * Agisce come controller di alto livello per la visualizzazione delle richieste,
- * il profilo utente e l'inserimento di nuovi ordini.
- * </p>
- * * @author Roman
- */
 class CustomerDashboardScreen extends StatefulWidget {
-  /**
-   * Costruttore della classe {@link CustomerDashboardScreen}.
-   * * @param key Chiave univoca del widget.
-   */
   const CustomerDashboardScreen({super.key});
 
   @override
   State<CustomerDashboardScreen> createState() => _DashboardScreenState();
 }
 
-/**
- * Stato della dashboard che gestisce la logica di business e l'interfaccia.
- * <p>
- * Si occupa di orchestrare i servizi {@link RequestService} e {@link UserService}
- * per popolare i widget della UI.
- * </p>
- */
 class _DashboardScreenState extends State<CustomerDashboardScreen> {
-  /** Servizio per il recupero e la gestione delle richieste/ordini. */
   final RequestService _requestService = RequestService();
-
-  /** Servizio per la gestione del profilo e della sessione utente. */
   final UserService _userService = UserService();
-
-  /** Future che contiene la lista dei dettagli delle richieste caricate. */
   late Future<List<RequestDetailDTO>> _requestsFuture;
 
   @override
@@ -49,60 +28,12 @@ class _DashboardScreenState extends State<CustomerDashboardScreen> {
     _refreshRequests();
   }
 
-  /**
-   * Gestisce il processo di logout dell'utente.
-   * <p>
-   * Mostra un dialog di conferma. Se l'utente conferma, invoca il metodo logout
-   * di {@link UserService}, invalida il token e resetta la navigazione verso il login.
-   * </p>
-   */
-  void _handleLogout() async {
-    final bool? confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Sei sicuro di voler uscire e invalidare la sessione?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annulla'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Esci', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      await _userService.logout();
-
-      if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-      }
-    }
-  }
-
-  /**
-   * Innesca il caricamento asincrono delle richieste dal server.
-   * <p>
-   * Aggiorna lo stato {@link _requestsFuture} per attivare il {@link FutureBuilder}.
-   * </p>
-   */
   void _refreshRequests() {
     setState(() {
       _requestsFuture = _requestService.getMyRequests();
     });
   }
 
-  /**
-   * Mostra il dialog per la creazione di un nuovo ordine.
-   * <p>
-   * In caso di chiusura con esito positivo, viene invocato {@link #_refreshRequests()}
-   * per aggiornare la lista a schermo.
-   * </p>
-   */
   void _openNewOrderDialog() {
     showDialog<bool>(
       context: context,
@@ -112,55 +43,62 @@ class _DashboardScreenState extends State<CustomerDashboardScreen> {
     });
   }
 
-  /**
-   * Apre il popup per visualizzare e modificare i dati anagrafici dell'utente.
-   * <p>
-   * Fornisce al widget {@link UserDataPopup} l'istanza di {@link UserService}
-   * necessaria per il recupero del profilo corrente.
-   */
-  void _openUserDataDialog() {
+  // --- LOGICA MODIFICATA: APRE IL POPUP DATI UTENTE ---
+  Future<void> _openProfilePopup() async {
+    // 1. Mostra lo spinner di caricamento
     showDialog(
       context: context,
-      barrierDismissible: true,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.white,
-          surfaceTintColor: Colors.transparent,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(16)),
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: UserDataPopup(userService: _userService),
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      // 2. Recupera i dati aggiornati dell'utente
+      // Nota: Uso getUserProfile() come definito nel fix del UserService
+      final UserDTO? user = await _userService.getCurrentUser();
+
+      // Chiudi il caricamento
+      if (mounted) Navigator.pop(context);
+
+      if (user != null && mounted) {
+        // 3. Mostra il Dialog con UserDataPopup (Stile immagine Dati-utente.jpg)
+        showDialog(
+          context: context,
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent, // Sfondo trasparente per gestire i bordi nel child
+            insetPadding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600), // Limita larghezza come da design
+              child: UserDataPopup(
+                user: user,
+                userService: _userService,
+                role: "COMMITTENTE"
+              ),
+            ),
           ),
         );
-      },
-    );
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Impossibile recuperare i dati utente")),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) Navigator.pop(context); // Chiudi caricamento in caso di errore
+      print("Errore apertura profilo: $e");
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(
-        title: const Text('Dashboard Committente'),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF374151)),
-          tooltip: 'Logout',
-          onPressed: _handleLogout,
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: IconButton(
-              icon: const Icon(Icons.person_outline, color: Color(0xFF374151)),
-              tooltip: 'Dati Utente',
-              onPressed: _openUserDataDialog,
-            ),
-          ),
-        ],
+      appBar: HeavyRouteAppBar(
+        subtitle: 'Dashboard Committente',
+        isDashboard: true,
+        // COLLEGATO AL NUOVO METODO DEL POPUP
+        onProfileTap: _openProfilePopup,
       ),
       body: RefreshIndicator(
         onRefresh: () async => _refreshRequests(),
@@ -178,14 +116,6 @@ class _DashboardScreenState extends State<CustomerDashboardScreen> {
     );
   }
 
-  /**
-   * Costruisce la sezione relativa alla lista degli ordini esistenti.
-   * <p>
-   * Utilizza un {@link FutureBuilder} per gestire i diversi stati della
-   * richiesta di rete (attesa, errore, dati pronti).
-   * </p>
-   * * @return Un Widget contenente la lista degli ordini o un indicatore di caricamento.
-   */
   Widget _buildOrdersSection() {
     return FutureBuilder<List<RequestDetailDTO>>(
       future: _requestsFuture,
@@ -193,11 +123,9 @@ class _DashboardScreenState extends State<CustomerDashboardScreen> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const Center(child: Text("Nessun ordine trovato."));
         }
-
         return ListView.separated(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
