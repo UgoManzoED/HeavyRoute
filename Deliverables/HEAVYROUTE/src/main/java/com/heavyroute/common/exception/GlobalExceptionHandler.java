@@ -1,12 +1,17 @@
 package com.heavyroute.common.exception;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
+import org.springframework.http.*;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.net.URI;
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Gestore centralizzato delle eccezioni per l'applicazione.
@@ -19,7 +24,42 @@ import java.time.Instant;
  */
 
 @RestControllerAdvice
-public class GlobalExceptionHandler {
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+
+    /**
+     * Gestisce i fallimenti della validazione dei DTO (@Valid).
+     * <p>
+     * Questo metodo viene invocato automaticamente da Spring quando i dati in ingresso al Controller
+     * non rispettano le annotazioni di validazione (es. @NotNull, @Size).
+     * </p>
+     *
+     * @return Risposta 400 Bad Request arricchita con la lista dettagliata degli errori per campo.
+     */
+    @Override
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(
+            MethodArgumentNotValidException ex,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+
+        // 1. Creazione dello scheletro della risposta standard (RFC 7807)
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Dati di input non validi");
+        problem.setTitle("Errore di Validazione");
+        problem.setType(URI.create("https://heavyroute.com/errors/validation"));
+        problem.setProperty("timestamp", Instant.now());
+
+        // 2. Estrazione e Mappatura degli Errori
+        Map<String, String> errors = new HashMap<>();
+        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
+            // Mappa: nomeCampo -> messaggioErrore
+            errors.put(error.getField(), error.getDefaultMessage());
+        }
+
+        // 3. Arricchimento del JSON finale
+        problem.setProperty("errors", errors);
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem);
+    }
 
     /**
      * Gestisce i casi di risorse inesistenti.
@@ -112,6 +152,27 @@ public class GlobalExceptionHandler {
         problem.setTitle("Credenziali non valide");
         problem.setType(URI.create("https://heavyroute.com/errors/unauthorized"));
         problem.setProperty("timestamp", Instant.now());
+        return problem;
+    }
+
+    /**
+     * Gestisce gli errori di vincolo del Database (SQL Constraints).
+     * <p>
+     * Esempi tipici: Chiavi duplicate (Unique Index) o violazioni di chiavi esterne.
+     * Trasforma un errore tecnico (500) in un errore semantico (409 Conflict).
+     * </p>
+     *
+     * @param ex L'eccezione lanciata da Hibernate/JDBC.
+     * @return Un oggetto {@link ProblemDetail} conforme allo standard RFC 7807.
+     */
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ProblemDetail handleDatabaseConstraint(org.springframework.dao.DataIntegrityViolationException ex) {
+        String msg = "Dato duplicato nel sistema.";
+        if (ex.getMessage().contains("vat_number")) msg = "La Partita IVA è già presente.";
+        if (ex.getMessage().contains("pec")) msg = "La PEC è già presente.";
+
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, msg);
+        problem.setTitle("Conflitto Dati");
         return problem;
     }
 }
