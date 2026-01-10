@@ -5,6 +5,7 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/landing/presentation/screens/landing_page.dart';
 import 'features/requests/presentation/screens/customer_dashboard_screen.dart';
+import 'features/coordinator/screens/coordinator_dashboard_screen.dart';
 
 void main() {
   runApp(const HeavyRouteApp());
@@ -23,6 +24,7 @@ class HeavyRouteApp extends StatelessWidget {
       routes: {
       '/': (context) => const LandingPage(),
       '/login': (context) => const LoginScreen(),
+      '/traffic_dashboard': (context) => const CoordinatorDashboardScreen(),
       }
     );
   }

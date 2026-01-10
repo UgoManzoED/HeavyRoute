@@ -5,6 +5,7 @@ import 'package:heavyroute_app/core/storage/token_storage.dart';
 import 'package:heavyroute_app/features/requests/presentation/screens/customer_dashboard_screen.dart';
 import 'package:heavyroute_app/features/auth/presentation/screens/register_screen.dart';
 import 'package:heavyroute_app/features/planner/presentation/screens/planner_dashboard_screen.dart';
+import 'package:heavyroute_app/features/coordinator/screens/coordinator_dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -49,28 +50,32 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (mounted) {
         if (role == 'LOGISTIC_PLANNER' || role == 'ROLE_LOGISTIC_PLANNER') {
-          // 1. REINDIRIZZAMENTO CORRETTO PER IL PLANNER
           Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (_) => const PlannerDashboardScreen())
           );
         } else if (role == 'CUSTOMER' || role == 'ROLE_CUSTOMER') {
-          // 2. REINDIRIZZAMENTO PER IL COMMITTENTE
           Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (_) => const CustomerDashboardScreen())
           );
-        } else if(role == 'ACCOUNT_MANAGER' || role == 'ROLE_ACCOUNT_MANAGER'){
-          //3. REINDIRIZZAMENTO PER IL COMMITTENTE 
+        } else if (role == 'ACCOUNT_MANAGER' || role == 'ROLE_ACCOUNT_MANAGER') {
           Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (_) => const AccountManagerScreen())
           );
-
-        } else {
-          // 3. FALLBACK DI SICUREZZA (Se il ruolo non è riconosciuto)
+        }
+        // --- AGGIUNTO DA QUI ---
+        else if (role == 'TRAFFIC_COORDINATOR' || role == 'ROLE_TRAFFIC_COORDINATOR') {
+          Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const CoordinatorDashboardScreen())
+          );
+        }
+        // --- A QUI ---
+        else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Ruolo non riconosciuto. Contattare l'amministratore.")),
+            SnackBar(content: Text("Ruolo non riconosciuto ($role). Contattare l'amministratore.")),
           );
         }
       }
