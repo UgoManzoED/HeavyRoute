@@ -4,11 +4,13 @@ import '../../../features/auth/services/auth_service.dart';
 class HeavyRouteAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String subtitle;
   final bool isDashboard; // true: mostra Logout e Icona Profilo, false: mostra "Area Personale"
+  final VoidCallback? onProfileTap;
 
   const HeavyRouteAppBar({
     super.key,
     required this.subtitle,
     this.isDashboard = true, // Di default la usiamo per le dashboard
+    this.onProfileTap,
   });
 
   @override
@@ -63,28 +65,34 @@ class HeavyRouteAppBar extends StatelessWidget implements PreferredSizeWidget {
         ],
       ),
       actions: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: isDashboard
-          // 2. DESTRA DASHBOARD: Icona Profilo
-              ? CircleAvatar(
-            backgroundColor: const Color(0xFF0D0D1A),
-            child: IconButton(
-              icon: const Icon(Icons.person, color: Colors.white, size: 20),
-              onPressed: () {}, // Qui andrà la logica profilo
+        if (isDashboard)
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onProfileTap, // Ora il tocco è collegato direttamente qui
+                customBorder: const CircleBorder(), // Rende l'area di click circolare
+                child: const CircleAvatar(
+                  backgroundColor: Color(0xFF0D0D1A),
+                  radius: 18,
+                  child: Icon(Icons.person, color: Colors.white, size: 20),
+                ),
+              ),
             ),
           )
-          // 3. DESTRA LANDING: Tasto Area Personale
-              : TextButton(
-            onPressed: () => Navigator.pushNamed(context, '/login'),
-            style: TextButton.styleFrom(
-              backgroundColor: const Color(0xFF0D0D1A),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        else
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: TextButton(
+              onPressed: () => Navigator.pushNamed(context, '/login'),
+              style: TextButton.styleFrom(
+                backgroundColor: const Color(0xFF0D0D1A),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text("Area Personale", style: TextStyle(color: Colors.white, fontSize: 13)),
             ),
-            child: const Text("Area Personale", style: TextStyle(color: Colors.white, fontSize: 13)),
           ),
-        )
       ],
     );
   }
