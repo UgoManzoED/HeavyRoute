@@ -21,7 +21,7 @@ class HeavyRouteApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       initialRoute: '/',
       routes: {
-      '/': (context) => const AccountManagerScreen(),
+      '/': (context) => const LandingPage(),
       '/login': (context) => const LoginScreen(),
       }
     );
