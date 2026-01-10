@@ -72,7 +72,8 @@ class _DashboardScreenState extends State<CustomerDashboardScreen> {
               child: UserDataPopup(
                 user: user,
                 userService: _userService,
-                role: "COMMITTENTE"
+                role: "COMMITTENTE",
+                showDownload: true,
               ),
             ),
           ),
