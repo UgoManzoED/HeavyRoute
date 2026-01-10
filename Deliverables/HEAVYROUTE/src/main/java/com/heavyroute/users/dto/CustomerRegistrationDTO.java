@@ -76,6 +76,14 @@ public class CustomerRegistrationDTO {
     private String address;
 
     /**
+     * Canale sicuro per comunicazioni con valore legale equiparato alla
+     * raccomandata A/R, garanzia di integrità del contenuto e opponibilità a terzi.
+     */
+    @NotBlank(message = "La PEC è obbligatoria")
+    @Email(message = "Formato PEC non valido")
+    private String pec;
+
+    /**
      * Recapito telefonico di riferimento per comunicazioni urgenti relative ai trasporti.
      * <p>
      * Accetta formati internazionali con il segno '+'.
