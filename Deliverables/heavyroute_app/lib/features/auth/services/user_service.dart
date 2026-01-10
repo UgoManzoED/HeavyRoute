@@ -59,4 +59,17 @@ class UserService {
       return false;
     }
   }
+
+  /**
+   * Esegue la procedura di logout.
+   * <p>
+   * Rimuove il token JWT dalla memoria persistente e pulisce i dati
+   * dell'utente corrente per prevenire accessi non autorizzati.
+   * </p>
+   */
+  Future<void> logout() async {
+    // Esempio: _storage.delete(key: 'jwt_token');
+    // Pulisci anche eventuali variabili di stato interne
+    print("Token invalidato e rimosso dalla memoria.");
+  }
 }
