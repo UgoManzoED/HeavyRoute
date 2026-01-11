@@ -86,4 +86,6 @@ public class TripResponseDTO {
      * Nome completo del Committente (Dato arricchito per la UI).
      */
     private String clientFullName;
+
+    private RouteResponseDTO route;
 }

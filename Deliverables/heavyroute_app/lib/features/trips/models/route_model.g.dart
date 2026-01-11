@@ -10,7 +10,7 @@ RouteModel _$RouteModelFromJson(Map<String, dynamic> json) => RouteModel(
   id: (json['id'] as num).toInt(),
   description: json['description'] as String? ?? 'Percorso Standard',
   distanceKm: (json['routeDistance'] as num).toDouble(),
-  durationHours: (json['routeDuration'] as num).toDouble(),
+  durationHours: _minutesToHours(json['routeDuration'] as num),
   tollCost: (json['tollCost'] as num?)?.toDouble() ?? 0.0,
   isHazmatSuitable: json['isHazmatSuitable'] as bool? ?? true,
   polyline: json['polyline'] as String? ?? '',

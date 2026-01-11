@@ -10,6 +10,8 @@ public enum RequestStatus {
     /** La richiesta è stata declinata (spesso richiede una motivazione). */
     REJECTED,
 
+    PLANNED,
+
     /** La richiesta è stata annullata dall'utente prima dell'approvazione. */
     CANCELLED,
 
