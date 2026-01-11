@@ -4,11 +4,10 @@ import com.heavyroute.common.exception.BusinessRuleException;
 import com.heavyroute.common.exception.ResourceNotFoundException;
 import com.heavyroute.common.exception.UserAlreadyExistException;
 import com.heavyroute.users.dto.*;
-import com.heavyroute.users.enums.UserRole;
 import com.heavyroute.users.model.*;
 import com.heavyroute.users.repository.CustomerRepository;
 import com.heavyroute.users.repository.UserRepository;
-import com.heavyroute.users.dto.UserMapper;
+import com.heavyroute.users.mapper.UserMapper;
 import com.heavyroute.users.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -52,7 +51,7 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional
-    public UserDTO registerNewClient(CustomerRegistrationDTO dto) {
+    public UserResponseDTO registerNewClient(CustomerRegistrationDTO dto) {
         // OCL Pre-condition check: Unicità Username
         if (userRepository.existsByUsername(dto.getUsername())) {
             throw new UserAlreadyExistException("Lo username '" + dto.getUsername() + "' è già utilizzato.");
@@ -117,7 +116,7 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional
-    public UserDTO createInternalUser(InternalUserCreateDTO dto) {
+    public UserResponseDTO createInternalUser(InternalUserCreateDTO dto) {
         // OCL Pre-condition: Unicità Email/Username
         if (userRepository.existsByEmail(dto.getEmail())) {
             throw new UserAlreadyExistException("Email aziendale già assegnata.");
@@ -182,7 +181,7 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional
-    public UserDTO updateInternalUser(Long id, InternalUserUpdateDTO dto) {
+    public UserResponseDTO updateInternalUser(Long id, InternalUserUpdateDTO dto) {
         // 1. Recupero l'entità (deve esistere)
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Utente interno non trovato"));
@@ -207,7 +206,7 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional
-    public UserDTO updateCustomer(Long id, CustomerUpdateDTO dto) {
+    public UserResponseDTO updateCustomer(Long id, CustomerUpdateDTO dto) {
         // 1. Recupero l'entità specifica Customer
         Customer customer = customerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Cliente non trovato"));

@@ -1,6 +1,6 @@
 package com.heavyroute.core.service;
 
-import com.heavyroute.core.dto.ProposedRouteDTO;
+import com.heavyroute.core.dto.RouteResponseDTO;
 import java.util.List;
 
 /**
@@ -12,7 +12,7 @@ public interface RouteService {
      * Recupera tutti i percorsi che necessitano di validazione da parte del Traffic Coordinator.
      * Solitamente sono quelli con stato PENDING.
      */
-    List<ProposedRouteDTO> getProposedRoutes();
+    List<RouteResponseDTO> getProposedRoutes();
 
     /**
      * Aggiorna lo stato di un percorso (Approva o Rifiuta).

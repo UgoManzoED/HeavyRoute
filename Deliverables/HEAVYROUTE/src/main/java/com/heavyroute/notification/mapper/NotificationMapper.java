@@ -1,5 +1,6 @@
-package com.heavyroute.notification.dto;
+package com.heavyroute.notification.mapper;
 
+import com.heavyroute.notification.dto.NotificationDTO;
 import com.heavyroute.notification.model.Notification;
 import org.springframework.stereotype.Component;
 

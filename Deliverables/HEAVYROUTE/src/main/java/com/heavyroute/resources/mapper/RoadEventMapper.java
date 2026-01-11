@@ -1,7 +1,7 @@
-package com.heavyroute.resources.service;
+package com.heavyroute.resources.mapper;
 
 import com.heavyroute.common.model.GeoLocation;
-import com.heavyroute.resources.dto.RoadEventCreateDTO;
+import com.heavyroute.resources.dto.RoadEventCreationDTO;
 import com.heavyroute.resources.dto.RoadEventResponseDTO;
 import com.heavyroute.resources.model.RoadEvent;
 import org.springframework.stereotype.Component;
@@ -22,7 +22,7 @@ public class RoadEventMapper {
      * * @param dto Dati di input della segnalazione.
      * @return L'entità configurata per la persistenza.
      */
-    public RoadEvent toEntity(RoadEventCreateDTO dto) {
+    public RoadEvent toEntity(RoadEventCreationDTO dto) {
         if (dto == null) return null;
 
         return RoadEvent.builder()

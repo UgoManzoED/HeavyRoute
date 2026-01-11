@@ -14,9 +14,18 @@ import java.time.LocalDate;
  * * @author Heavy Route Team
  */
 @Data
-public class RequestDetailDTO {
+public class TransportRequestResponseDTO {
 
+    /**
+     * ID univoco del cliente (Committente) che ha inserito la richiesta.
+     * Utile per navigare al profilo del cliente o per operazioni di filtro.
+     */
     private Long clientId;
+
+    /**
+     * Nome completo o Ragione Sociale del cliente.
+     * Campo denormalizzato per visualizzare il mittente nelle liste senza query aggiuntive.
+     */
     private String clientFullName;
 
     /**
@@ -44,25 +53,34 @@ public class RequestDetailDTO {
      * Stato attuale della richiesta nel flusso di lavoro (es. PENDING, APPROVED, REJECTED).
      * Essenziale per il feedback all'utente sullo stato di avanzamento della pratica.
      */
-    private RequestStatus status;
+    private RequestStatus requestStatus;
 
     /**
-     * Peso del carico espresso in chilogrammi.
+     * Raggruppamento dei dettagli fisici del carico (Dimensioni e Peso).
      */
-    private Double weight;
+    private LoadDetailsDTO load;
 
-    /**
-     * Altezza del carico in metri, comprensiva dell'eventuale ingombro del pianale.
-     */
-    private Double height;
-
-    /**
-     * Lunghezza complessiva del carico espressa in metri.
-     */
-    private Double length;
-
-    /**
-     * Larghezza complessiva del carico espressa in metri.
-     */
-    private Double width;
+    @Data
+    public static class LoadDetailsDTO {
+        /**
+         * Descrizione sintetica della natura della merce (es. "Travi in cemento").
+         */
+        private String type;
+        /**
+         * Peso totale del carico in chilogrammi (kg).
+         */
+        private Double weightKg;
+        /**
+         * Altezza massima del carico in metri (m).
+         */
+        private Double height;
+        /**
+         * Lunghezza totale del carico in metri (m).
+         */
+        private Double length;
+        /**
+         * Larghezza massima del carico in metri (m).
+         */
+        private Double width;
+    }
 }

@@ -1,8 +1,10 @@
 package com.heavyroute.resources.service;
 
-import com.heavyroute.resources.dto.RoadEventCreateDTO;
+import com.heavyroute.resources.dto.RoadEventCreationDTO;
 import com.heavyroute.resources.dto.RoadEventResponseDTO;
-import com.heavyroute.resources.dto.VehicleDTO;
+import com.heavyroute.resources.dto.VehicleCreationDTO;
+import com.heavyroute.resources.dto.VehicleResponseDTO;
+
 import java.util.List;
 
 /**
@@ -16,15 +18,15 @@ public interface ResourceService {
     /**
      * Registra un nuovo veicolo nel sistema.
      * @param dto Dati tecnici del veicolo.
-     * @return {@link VehicleDTO} Il veicolo creato.
+     * @return {@link VehicleCreationDTO} Il veicolo creato.
      */
-    VehicleDTO createVehicle(VehicleDTO dto);
+    VehicleResponseDTO createVehicle(VehicleCreationDTO dto);
 
     /**
      * Recupera l'elenco di tutti i veicoli della flotta.
-     * @return Lista di {@link VehicleDTO}.
+     * @return Lista di {@link VehicleCreationDTO}.
      */
-    List<VehicleDTO> getAllVehicles();
+    List<VehicleResponseDTO> getAllVehicles();
 
     /**
      * Ricerca i mezzi attualmente disponibili e compatibili con le specifiche di un carico.
@@ -36,16 +38,16 @@ public interface ResourceService {
      * @param height Altezza del carico (m).
      * @param width Larghezza del carico (m).
      * @param length Lunghezza del carico (m).
-     * @return Lista di {@link VehicleDTO} filtrata.
+     * @return Lista di {@link VehicleResponseDTO} filtrata.
      */
-    List<VehicleDTO> getAvailableCompatibleVehicles(Double weight, Double height, Double width, Double length);
+    List<VehicleResponseDTO> getAvailableCompatibleVehicles(Double weight, Double height, Double width, Double length);
 
     /**
      * Inserisce una nuova segnalazione stradale.
      * @param dto Dati dell'evento.
      * @return {@link RoadEventResponseDTO} L'evento creato.
      */
-    RoadEventResponseDTO createRoadEvent(RoadEventCreateDTO dto);
+    RoadEventResponseDTO createRoadEvent(RoadEventCreationDTO dto);
 
     /**
      * Recupera tutti gli eventi stradali attualmente attivi.

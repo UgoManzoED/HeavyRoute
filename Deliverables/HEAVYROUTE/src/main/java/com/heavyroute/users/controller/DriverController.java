@@ -1,6 +1,6 @@
 package com.heavyroute.users.controller;
 
-import com.heavyroute.users.dto.UserDTO;
+import com.heavyroute.users.dto.UserResponseDTO;
 import com.heavyroute.users.service.DriverService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -24,7 +24,7 @@ public class DriverController {
      */
     @GetMapping("/available")
     @PreAuthorize("hasRole('LOGISTIC_PLANNER')")
-    public ResponseEntity<List<UserDTO>> getAvailableDrivers() {
+    public ResponseEntity<List<UserResponseDTO>> getAvailableDrivers() {
         return ResponseEntity.ok(driverService.findAvailableDrivers());
     }
 }

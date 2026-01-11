@@ -2,8 +2,8 @@ package com.heavyroute.core.service.impl;
 
 import com.heavyroute.common.exception.BusinessRuleException;
 import com.heavyroute.common.exception.ResourceNotFoundException;
-import com.heavyroute.core.dto.PlanningDTO;
-import com.heavyroute.core.dto.TripDTO;
+import com.heavyroute.core.dto.TripAssignmentDTO;
+import com.heavyroute.core.dto.TripResponseDTO;
 import com.heavyroute.core.enums.RequestStatus;
 import com.heavyroute.core.enums.TripStatus;
 import com.heavyroute.core.model.Route;
@@ -11,7 +11,7 @@ import com.heavyroute.core.model.TransportRequest;
 import com.heavyroute.core.model.Trip;
 import com.heavyroute.core.repository.TransportRequestRepository;
 import com.heavyroute.core.repository.TripRepository;
-import com.heavyroute.core.dto.TripMapper;
+import com.heavyroute.core.mapper.TripMapper;
 import com.heavyroute.core.service.TripService;
 import com.heavyroute.notification.enums.NotificationType;
 import com.heavyroute.notification.service.NotificationService;
@@ -59,7 +59,7 @@ public class TripServiceImpl implements TripService {
      */
     @Override
     @Transactional
-    public TripDTO approveRequest(Long requestId) {
+    public TripResponseDTO approveRequest(Long requestId) {
         // 1. Recupera la richiesta dal DB
         TransportRequest request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Richiesta non trovata con ID: " + requestId));
@@ -92,7 +92,7 @@ public class TripServiceImpl implements TripService {
      */
     @Override
     @Transactional
-    public void planTrip(Long tripId, PlanningDTO dto) {
+    public void planTrip(Long tripId, TripAssignmentDTO dto) {
         // Recupera il viaggio
         Trip trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new ResourceNotFoundException("Viaggio non trovato con ID: " + tripId));
@@ -106,8 +106,8 @@ public class TripServiceImpl implements TripService {
         Driver driver = driverRepository.findById(dto.getDriverId())
                 .orElseThrow(() -> new ResourceNotFoundException("Autista non trovato con ID: " + dto.getDriverId()));
 
-        if (driver.getStatus() != DriverStatus.FREE) {
-            throw new BusinessRuleException("L'autista selezionato non è disponibile (Stato: " + driver.getStatus() + ")");
+        if (driver.getDriverStatus() != DriverStatus.FREE) {
+            throw new BusinessRuleException("L'autista selezionato non è disponibile (Stato: " + driver.getDriverStatus() + ")");
         }
 
         // Recupera il Veicolo reale
@@ -134,7 +134,7 @@ public class TripServiceImpl implements TripService {
         tripRepository.save(trip);
 
         // Cambia lo stato delle risorse
-        driver.setStatus(DriverStatus.ASSIGNED);
+        driver.setDriverStatus(DriverStatus.ASSIGNED);
         vehicle.setStatus(VehicleStatus.IN_USE);
         trip.setStatus(TripStatus.CONFIRMED);
 
@@ -194,7 +194,7 @@ public class TripServiceImpl implements TripService {
      */
     @Override
     @Transactional(readOnly = true)
-    public TripDTO getTripById(Long id) {
+    public TripResponseDTO getTripById(Long id) {
         Trip trip = tripRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Viaggio non trovato con ID: " + id));
         return tripMapper.toDTO(trip);
@@ -209,7 +209,7 @@ public class TripServiceImpl implements TripService {
      */
     @Override
     @Transactional(readOnly = true)
-    public List<TripDTO> getTripsByStatus(TripStatus status) {
+    public List<TripResponseDTO> getTripsByStatus(TripStatus status) {
         // 1. Recupero entità dal DB tramite il metodo aggiunto nel Repository
         List<Trip> trips = tripRepository.findByStatus(status);
 

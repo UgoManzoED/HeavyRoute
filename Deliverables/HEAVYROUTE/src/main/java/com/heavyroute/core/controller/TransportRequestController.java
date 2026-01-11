@@ -1,7 +1,7 @@
 package com.heavyroute.core.controller;
 
 import com.heavyroute.core.dto.RequestCreationDTO;
-import com.heavyroute.core.dto.RequestDetailDTO;
+import com.heavyroute.core.dto.TransportRequestResponseDTO;
 import com.heavyroute.core.service.TransportRequestService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -51,11 +51,11 @@ public class TransportRequestController {
      * </p>
      *
      * @param dto Oggetto contenente i dati della richiesta (origine, destinazione, specifiche carico).
-     * @return {@link ResponseEntity} contenente il {@link RequestDetailDTO} della richiesta creata e stato HTTP 200 OK.
+     * @return {@link ResponseEntity} contenente il {@link TransportRequestResponseDTO} della richiesta creata e stato HTTP 200 OK.
      */
     @PostMapping
     @PreAuthorize("hasRole('CUSTOMER')")
-    public ResponseEntity<RequestDetailDTO> createRequest(@Valid @RequestBody RequestCreationDTO dto) {
+    public ResponseEntity<TransportRequestResponseDTO> createRequest(@Valid @RequestBody RequestCreationDTO dto) {
         String username = getCurrentUsername();
         return ResponseEntity.ok(requestService.createRequest(dto, username));
     }
@@ -67,11 +67,11 @@ public class TransportRequestController {
      * e per la valutazione della fattibilità lato Pianificatore Logistico (<b>FR14</b>).
      * </p>
      *
-     * @return {@link ResponseEntity} contenente la lista di {@link RequestDetailDTO} e stato HTTP 200 OK.
+     * @return {@link ResponseEntity} contenente la lista di {@link TransportRequestResponseDTO} e stato HTTP 200 OK.
      */
     @GetMapping("/my-requests")
     @PreAuthorize("hasRole('CUSTOMER')")
-    public ResponseEntity<List<RequestDetailDTO>> getMyRequest() {
+    public ResponseEntity<List<TransportRequestResponseDTO>> getMyRequest() {
         String username = getCurrentUsername();
         return ResponseEntity.ok(requestService.getRequestsByClientUsername(username));
     }
@@ -86,11 +86,11 @@ public class TransportRequestController {
      * creazione dei Viaggi (Trips).
      * </p>
      *
-     * @return Lista completa di {@link RequestDetailDTO} presenti nel sistema.
+     * @return Lista completa di {@link TransportRequestResponseDTO} presenti nel sistema.
      */
     @GetMapping
     @PreAuthorize("hasRole('LOGISTIC_PLANNER')")
-    public ResponseEntity<List<RequestDetailDTO>> getAllRequests() {
+    public ResponseEntity<List<TransportRequestResponseDTO>> getAllRequests() {
         return ResponseEntity.ok(requestService.getAllRequests());
     }
 

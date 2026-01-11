@@ -2,6 +2,7 @@ package com.heavyroute.core.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,7 +18,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class PlanningDTO {
+public class TripAssignmentDTO {
 
     /**
      * L'ID univoco del viaggio da pianificare.
@@ -29,6 +30,7 @@ public class PlanningDTO {
      * </p>
      */
     @NotNull(message = "L'ID del viaggio è obbligatorio")
+    @Positive
     private Long tripId;
 
     /**
@@ -36,6 +38,7 @@ public class PlanningDTO {
      * Deve corrispondere a un autista esistente e attivo nel sistema.
      */
     @NotNull(message = "L'ID dell'autista è obbligatorio")
+    @Positive
     private Long driverId;
 
     /**

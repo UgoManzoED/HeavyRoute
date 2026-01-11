@@ -1,7 +1,7 @@
 package com.heavyroute.core.service.impl;
 
 import com.heavyroute.users.model.User;
-import com.heavyroute.core.dto.ProposedRouteDTO;
+import com.heavyroute.core.dto.RouteResponseDTO;
 import com.heavyroute.core.enums.TripStatus;
 import com.heavyroute.core.model.Route;
 import com.heavyroute.core.model.TransportRequest;
@@ -27,7 +27,7 @@ public class RouteServiceImpl implements RouteService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ProposedRouteDTO> getProposedRoutes() {
+    public List<RouteResponseDTO> getProposedRoutes() {
         // 1. Recupera solo i percorsi collegati a viaggi in attesa di validazione
         List<Route> routes = routeRepository.findAllByTripStatus(TripStatus.WAITING_VALIDATION);
 
@@ -65,58 +65,50 @@ public class RouteServiceImpl implements RouteService {
     /**
      * Mappa l'entità complessa (Route -> Trip -> Request) nel DTO piatto per il frontend.
      */
-    private ProposedRouteDTO mapToDTO(Route route) {
+    private RouteResponseDTO mapToDTO(Route route) {
         Trip trip = route.getTrip();
 
-        // Valori di default per evitare NullPointerException
+        // Valori di default
         String tripCode = "N/D";
         String origin = "Indirizzo non disponibile";
         String destination = "Indirizzo non disponibile";
         String loadType = "Standard";
-        String plannerName = "Ufficio Logistico"; // Default se non tracciamo il planner specifico
-        String status = TripStatus.IN_PLANNING.name();
+        String plannerName = "Ufficio Logistico";
+        TripStatus status = TripStatus.IN_PLANNING;
 
         if (trip != null) {
             tripCode = trip.getTripCode();
-            status = trip.getStatus().name();
+            status = trip.getStatus();
 
-            // Navigazione verso la TransportRequest per i dettagli logistici
+            // Navigazione verso la TransportRequest
             TransportRequest request = trip.getRequest();
 
             if (request != null) {
-                if (request.getOriginAddress() != null) {
-                    origin = request.getOriginAddress();
-                }
-                if (request.getDestinationAddress() != null) {
-                    destination = request.getDestinationAddress();
-                }
+                if (request.getOriginAddress() != null) origin = request.getOriginAddress();
+                if (request.getDestinationAddress() != null) destination = request.getDestinationAddress();
 
-                // Recupero info dal Cliente (se presente) o Planner (se aggiunto in futuro)
                 if (request.getClient() != null) {
                     User client = request.getClient();
-                    // Usiamo il cliente come riferimento se manca il campo 'planner' nel Trip
                     plannerName = "Cliente: " + client.getFirstName() + " " + client.getLastName();
                 }
 
-                // Recupero info dal LoadDetails (Embedded)
-                // Nota: Assumo che LoadDetails abbia un metodo toString() o getter specifici
                 if (request.getLoad() != null) {
-                    // Qui dovresti usare i getter reali di LoadDetails (es. getLoadType(), getDescription())
-                    // Per ora uso un placeholder generico basato sul fatto che l'oggetto esiste
-                    loadType = "Carico Eccezionale";
+                    if (request.getLoad().getType() != null) {
+                        loadType = request.getLoad().getType();
+                    }
                 }
             }
         }
 
-        return ProposedRouteDTO.builder()
+        return RouteResponseDTO.builder()
                 .id(route.getId())
-                .orderId(tripCode) // Usiamo il TripCode come identificativo ordine per il TC
+                .tripCode(tripCode)
                 .plannerName(plannerName)
                 .origin(origin)
                 .destination(destination)
                 .routeDescription("Percorso ID: " + route.getId())
                 .loadType(loadType)
-                .status(status)
+                .status(status) // Passa Enum
                 .distance(route.getRouteDistance())
                 .duration(route.getRouteDuration())
                 .build();

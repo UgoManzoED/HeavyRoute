@@ -3,8 +3,8 @@ package com.heavyroute.resources.service.impl;
 import com.heavyroute.common.exception.BusinessRuleException;
 import com.heavyroute.resources.dto.*;
 import com.heavyroute.resources.enums.VehicleStatus;
-import com.heavyroute.resources.service.RoadEventMapper;
-import com.heavyroute.resources.service.VehicleMapper;
+import com.heavyroute.resources.mapper.RoadEventMapper;
+import com.heavyroute.resources.mapper.VehicleMapper;
 import com.heavyroute.resources.model.RoadEvent;
 import com.heavyroute.resources.model.Vehicle;
 import com.heavyroute.resources.repository.RoadEventRepository;
@@ -18,13 +18,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Implementazione del servizio per la gestione delle risorse (Veicoli ed Eventi Stradali).
- * <p>
- * Questa classe orchestra l'interazione tra i repository e i mapper, applicando le
- * regole di business definite nell'ODD, come il controllo di unicità della targa
- * e la verifica della compatibilità dei mezzi.
- * </p>
- * * @author Heavy Route Team
+ * Implementazione del servizio per la gestione delle risorse.
  */
 @Service
 @RequiredArgsConstructor
@@ -44,14 +38,16 @@ public class ResourceServiceImpl implements ResourceService {
      */
     @Override
     @Transactional
-    public VehicleDTO createVehicle(VehicleDTO dto) {
+    public VehicleResponseDTO createVehicle(VehicleCreationDTO dto) {
         if (vehicleRepository.existsByLicensePlate(dto.getLicensePlate())) {
             throw new BusinessRuleException("Esiste già un veicolo con targa: " + dto.getLicensePlate());
         }
 
         Vehicle vehicle = vehicleMapper.toEntity(dto);
         Vehicle saved = vehicleRepository.save(vehicle);
-        return vehicleMapper.toDTO(saved);
+
+        // USARE toResponseDTO PER AVERE L'ID
+        return vehicleMapper.toResponseDTO(saved);
     }
 
     /**
@@ -59,24 +55,18 @@ public class ResourceServiceImpl implements ResourceService {
      */
     @Override
     @Transactional(readOnly = true)
-    public List<VehicleDTO> getAllVehicles() {
+    public List<VehicleResponseDTO> getAllVehicles() {
         return vehicleRepository.findAll().stream()
-                .map(vehicleMapper::toDTO)
+                .map(vehicleMapper::toResponseDTO)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * {@inheritDoc}
-     * <p>
-     * Ricerca i mezzi che soddisfano i criteri tecnici e hanno stato {@code AVAILABLE}.
-     * </p>
-     */
-
+    @Override
     @Transactional(readOnly = true)
-    public List<VehicleDTO> getAvailableCompatibleVehicles(Double weight, Double height, Double width, Double length) {
+    public List<VehicleResponseDTO> getAvailableCompatibleVehicles(Double weight, Double height, Double width, Double length) {
         return vehicleRepository.findCompatibleVehicles(weight, height, width, length, VehicleStatus.AVAILABLE)
                 .stream()
-                .map(vehicleMapper::toDTO)
+                .map(vehicleMapper::toResponseDTO)
                 .collect(Collectors.toList());
     }
 
@@ -88,19 +78,12 @@ public class ResourceServiceImpl implements ResourceService {
      */
     @Override
     @Transactional
-    public RoadEventResponseDTO createRoadEvent(RoadEventCreateDTO dto) {
+    public RoadEventResponseDTO createRoadEvent(RoadEventCreationDTO dto) {
         RoadEvent event = eventMapper.toEntity(dto);
         RoadEvent saved = eventRepository.save(event);
         return eventMapper.toResponseDTO(saved);
     }
 
-    /**
-     * {@inheritDoc}
-     * <p>
-     * Recupera solo le segnalazioni attive basandosi sulla finestra temporale
-     * {@code validFrom} - {@code validTo}.
-     * </p>
-     */
     @Override
     @Transactional(readOnly = true)
     public List<RoadEventResponseDTO> getActiveEvents() {

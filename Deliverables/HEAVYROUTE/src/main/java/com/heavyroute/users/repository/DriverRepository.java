@@ -27,19 +27,19 @@ public interface DriverRepository extends JpaRepository<Driver, Long> {
      * @param status Lo stato operativo da ricercare (es. FREE, ON_THE_ROAD).
      * @return Una lista di autisti che corrispondono allo stato richiesto.
      */
-    List<Driver> findAllByStatus(DriverStatus status);
+    List<Driver> findAllByDriverStatus(DriverStatus status);
 
     /**
      * Recupera rapidamente tutti gli autisti attualmente disponibili per un incarico.
      * <p>
-     * Questo metodo è un wrapper di comodo (helper) che invoca {@link #findAllByStatus(DriverStatus)}
+     * Questo metodo è un wrapper di comodo (helper) che invoca {@link #findAllByDriverStatus(DriverStatus)}
      * con il parametro {@code DriverStatus.FREE}.
      * </p>
      *
      * @return Lista degli autisti liberi.
      */
     default List<Driver> findAvailableDrivers() {
-        return findAllByStatus(DriverStatus.FREE);
+        return findAllByDriverStatus(DriverStatus.FREE);
     }
 
     /**
@@ -51,7 +51,7 @@ public interface DriverRepository extends JpaRepository<Driver, Long> {
      * @return Lista degli autisti in viaggio (ON_THE_ROAD).
      */
     default List<Driver> findDriversOnTheRoad() {
-        return findAllByStatus(DriverStatus.ON_THE_ROAD);
+        return findAllByDriverStatus(DriverStatus.ON_THE_ROAD);
     }
 
     /**
@@ -67,7 +67,7 @@ public interface DriverRepository extends JpaRepository<Driver, Long> {
      * @param maxLon Longitudine massima (confine est).
      * @return Una lista di {@link Driver} che sono {@code FREE} e si trovano nell'area.
      */
-    @Query("SELECT d FROM Driver d WHERE d.status = com.heavyroute.users.enums.DriverStatus.FREE " +
+    @Query("SELECT d FROM Driver d WHERE d.driverStatus = com.heavyroute.users.enums.DriverStatus.FREE " +
             "AND d.geoLocation.latitude BETWEEN :minLat AND :maxLat " +
             "AND d.geoLocation.longitude BETWEEN :minLon AND :maxLon")
     List<Driver> findAvailableDriversInArea(

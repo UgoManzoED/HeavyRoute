@@ -21,7 +21,7 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class RoadEventCreateDTO {
+public class RoadEventCreationDTO {
 
     /**
      * Tipologia dell'evento stradale (es. OBSTACLE,  ACCIDENT, CONSTRUCTION).
@@ -68,7 +68,7 @@ public class RoadEventCreateDTO {
      * Per lavori programmati (es. cantieri), indica quando la strada verrà effettivamente chiusa.
      * </p>
      */
-    @NotBlank(message = "la data di inizio validitá non deve essere nulla")
+    @NotNull(message = "la data di inizio validitá non deve essere nulla")
     private LocalDateTime validFrom;
 
     /**

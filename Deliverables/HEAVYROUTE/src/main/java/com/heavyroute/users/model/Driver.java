@@ -32,18 +32,18 @@ public class Driver extends InternalUser {
     private GeoLocation geoLocation;
 
     @Column(nullable = false)
-    private DriverStatus status;
+    private DriverStatus driverStatus;
 
     @OneToOne
     @JoinColumn(name = "id_vehicle")
     private Vehicle vehicle;
 
     public boolean isFree() {
-        return this.status.equals(DriverStatus.FREE);
+        return this.driverStatus.equals(DriverStatus.FREE);
     }
 
     public boolean isOnTheRoad() {
-        return this.status.equals(DriverStatus.ON_THE_ROAD);
+        return this.driverStatus.equals(DriverStatus.ON_THE_ROAD);
     }
 
     @Override

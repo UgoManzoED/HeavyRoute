@@ -1,11 +1,11 @@
 package com.heavyroute.users.service.impl;
 
-import com.heavyroute.users.dto.UserDTO;
+import com.heavyroute.users.dto.UserResponseDTO;
 import com.heavyroute.users.enums.DriverStatus;
 import com.heavyroute.users.model.Driver;
 import com.heavyroute.users.repository.DriverRepository;
 import com.heavyroute.users.service.DriverService;
-import com.heavyroute.users.dto.UserMapper;
+import com.heavyroute.users.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,7 +33,7 @@ public class DriverServiceImpl implements DriverService {
      * Recupera la lista di tutti gli autisti attualmente disponibili per l'assegnazione.
      * <p>
      * Un autista è considerato disponibile quando il suo stato operativo è {@link DriverStatus#FREE}.
-     * Il metodo utilizza la Stream API per convertire le entità {@link Driver} in {@link UserDTO},
+     * Il metodo utilizza la Stream API per convertire le entità {@link Driver} in {@link UserResponseDTO},
      * esponendo solo le informazioni anagrafiche necessarie per popolare i componenti UI (dropdown).
      * </p>
      * <p>
@@ -41,15 +41,15 @@ public class DriverServiceImpl implements DriverService {
      * la query su database evitando l'esecuzione del dirty checking di Hibernate.
      * </p>
      *
-     * @return Una lista di {@link UserDTO} rappresentante gli autisti liberi.
+     * @return Una lista di {@link UserResponseDTO} rappresentante gli autisti liberi.
      * Restituisce una lista vuota se non sono presenti autisti con stato FREE.
      */
 
     @Override
     @Transactional(readOnly = true)
-    public List<UserDTO> findAvailableDrivers() {
+    public List<UserResponseDTO> findAvailableDrivers() {
         // Recupera le entità dal repository filtrando per stato operativo
-        List<Driver> freeDrivers = driverRepository.findAllByStatus(DriverStatus.FREE);
+        List<Driver> freeDrivers = driverRepository.findAllByDriverStatus(DriverStatus.FREE);
 
         // Converte la collezione di entità in una lista di DTO tramite mapping polimorfico
         return freeDrivers.stream()

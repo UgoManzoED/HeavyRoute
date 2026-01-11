@@ -1,6 +1,6 @@
 package com.heavyroute.core.controller;
 
-import com.heavyroute.core.dto.ProposedRouteDTO;
+import com.heavyroute.core.dto.RouteResponseDTO;
 import com.heavyroute.core.service.RouteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +16,7 @@ public class RouteController {
     private final RouteService routeService;
 
     @GetMapping
-    public ResponseEntity<List<ProposedRouteDTO>> getProposedRoutes() {
+    public ResponseEntity<List<RouteResponseDTO>> getProposedRoutes() {
         return ResponseEntity.ok(routeService.getProposedRoutes());
     }
 

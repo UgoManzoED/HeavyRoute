@@ -1,8 +1,8 @@
 package com.heavyroute.core.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.heavyroute.core.dto.PlanningDTO;
-import com.heavyroute.core.dto.TripDTO;
+import com.heavyroute.core.dto.TripAssignmentDTO;
+import com.heavyroute.core.dto.TripResponseDTO;
 import com.heavyroute.core.service.TripService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +45,7 @@ class TripManagementControllerTest {
     void approveTrip_ShouldReturn200_WhenValid() throws Exception {
         // ARRANGE
         Long requestId = 1L;
-        TripDTO mockTrip = new TripDTO();
+        TripResponseDTO mockTrip = new TripResponseDTO();
         mockTrip.setId(100L);
         mockTrip.setStatus("IN_PLANNING");
 
@@ -63,7 +63,7 @@ class TripManagementControllerTest {
     void planTrip_ShouldReturn400_WhenInputInvalid() throws Exception {
         Long tripId = 100L;
         // DTO Invalido: manca driverId e targa vuota
-        PlanningDTO invalidDto = new PlanningDTO();
+        TripAssignmentDTO invalidDto = new TripAssignmentDTO();
         invalidDto.setTripId(tripId);
         invalidDto.setVehiclePlate("");
 
@@ -78,7 +78,7 @@ class TripManagementControllerTest {
     @Test
     void planTrip_ShouldReturn200_WhenValid() throws Exception {
         Long tripId = 100L;
-        PlanningDTO dto = new PlanningDTO(tripId, 200L, "AB123CD");
+        TripAssignmentDTO dto = new TripAssignmentDTO(tripId, 200L, "AB123CD");
 
         mockMvc.perform(put("/api/trips/{id}/plan", tripId)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -86,6 +86,6 @@ class TripManagementControllerTest {
                 .andExpect(status().isOk());
 
         // Verifica che il controller chiami il service
-        verify(tripService).planTrip(eq(tripId), any(PlanningDTO.class));
+        verify(tripService).planTrip(eq(tripId), any(TripAssignmentDTO.class));
     }
 }

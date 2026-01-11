@@ -1,5 +1,7 @@
-package com.heavyroute.core.dto;
+package com.heavyroute.core.mapper;
 
+import com.heavyroute.core.dto.TransportRequestResponseDTO;
+import com.heavyroute.core.dto.TripResponseDTO;
 import com.heavyroute.core.model.TransportRequest;
 import com.heavyroute.core.model.Trip;
 import org.springframework.stereotype.Component;
@@ -16,7 +18,7 @@ import org.springframework.stereotype.Component;
 public class TripMapper {
 
     /**
-     * Converte un'entità {@link Trip} nel suo corrispondente {@link TripDTO}.
+     * Converte un'entità {@link Trip} nel suo corrispondente {@link TripResponseDTO}.
      * <p>
      * Questo metodo gestisce anche la mappatura delle relazioni: se il viaggio
      * ha una richiesta associata, delega la conversione al metodo specifico,
@@ -26,16 +28,16 @@ public class TripMapper {
      * @param trip L'entità sorgente (può essere null, il chiamante dovrebbe gestire il caso).
      * @return Il DTO popolato, pronto per essere restituito dal Controller.
      */
-    public TripDTO toDTO(Trip trip) {
+    public TripResponseDTO toDTO(Trip trip) {
         // Best Practice in un mapper manuale, è buona norma controllare se trip è null
         if (trip == null) return null;
 
-        TripDTO dto = new TripDTO();
+        TripResponseDTO dto = new TripResponseDTO();
         dto.setId(trip.getId());
         dto.setTripCode(trip.getTripCode());
 
         // Conversione Enum in String per stabilità dell'API
-        dto.setStatus(trip.getStatus().name());
+        dto.setStatus(trip.getStatus());
 
         if (trip.getDriver() != null) {
             // Estraiamo l'ID e nome dall'oggetto Driver
@@ -53,10 +55,10 @@ public class TripMapper {
 
         // 3. Mappatura Richiesta
         if (trip.getRequest() != null) {
-            RequestDetailDTO requestDTO = toRequestDTO(trip.getRequest());
+            TransportRequestResponseDTO requestDTO = toRequestDTO(trip.getRequest());
             dto.setRequest(requestDTO);
 
-            // Portiamo i dati del cliente anche al primo livello del TripDTO
+            // Portiamo i dati del cliente anche al primo livello del TripResponseDTO
             dto.setClientId(requestDTO.getClientId());
             dto.setClientFullName(requestDTO.getClientFullName());
         }
@@ -70,21 +72,21 @@ public class TripMapper {
      * <b>Strategia di Flattening (Appiattimento):</b>
      * L'entità {@code TransportRequest} contiene un oggetto annidato {@code Load} (Embeddable).
      * Questo mapper "estrae" i campi interni di {@code Load} (peso, altezza, ecc.) e li porta
-     * al primo livello del {@code RequestDetailDTO} per semplificare la vita al Frontend.
+     * al primo livello del {@code TransportRequestResponseDTO} per semplificare la vita al Frontend.
      * </p>
      *
      * @param entity L'entità della richiesta.
      * @return Il DTO con i dati di carico "appiattiti".
      */
-    public RequestDetailDTO toRequestDTO(TransportRequest entity) {
+    public TransportRequestResponseDTO toRequestDTO(TransportRequest entity) {
         if (entity == null) return null;
 
-        RequestDetailDTO dto = new RequestDetailDTO();
+        TransportRequestResponseDTO dto = new TransportRequestResponseDTO();
         dto.setId(entity.getId());
         dto.setOriginAddress(entity.getOriginAddress());
         dto.setDestinationAddress(entity.getDestinationAddress());
         dto.setPickupDate(entity.getPickupDate());
-        dto.setStatus(entity.getRequestStatus());
+        dto.setRequestStatus(entity.getRequestStatus());
 
         // Mapping dei dati del Cliente (User)
         if (entity.getClient() != null) {
@@ -94,11 +96,18 @@ public class TripMapper {
 
         // Logica di estrazione dati dal Value Object 'Load'
         if (entity.getLoad() != null) {
-            dto.setWeight(entity.getLoad().getWeightKg());
-            dto.setHeight(entity.getLoad().getHeight());
-            dto.setWidth(entity.getLoad().getWidth());
-            dto.setLength(entity.getLoad().getLength());
+            TransportRequestResponseDTO.LoadDetailsDTO loadDto = new TransportRequestResponseDTO.LoadDetailsDTO();
+
+            loadDto.setType(entity.getLoad().getType());
+            loadDto.setWeightKg(entity.getLoad().getWeightKg());
+            loadDto.setHeight(entity.getLoad().getHeight());
+            loadDto.setLength(entity.getLoad().getLength());
+            loadDto.setWidth(entity.getLoad().getWidth());
+
+            // Setta l'oggetto annidato nel DTO padre
+            dto.setLoad(loadDto);
         }
+
         return dto;
     }
 }
