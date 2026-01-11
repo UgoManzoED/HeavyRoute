@@ -12,16 +12,19 @@ import com.heavyroute.users.enums.UserRole;
 import com.heavyroute.users.model.*;
 import com.heavyroute.users.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 
 @Component
 @RequiredArgsConstructor
-@Profile("!test")
+@Profile("!test") // Questo seeder NON parte durante i test automatici
+@Slf4j
 public class DataSeeder implements CommandLineRunner {
 
     private final UserRepository userRepository;
@@ -31,163 +34,159 @@ public class DataSeeder implements CommandLineRunner {
     private final TransportRequestRepository requestRepository;
     private final PasswordEncoder passwordEncoder;
 
+    // Costante per la password di sviluppo (uguale per tutti)
+    private static final String DEV_PASSWORD = "password";
+
     @Override
-    public void run(String... args) throws Exception {
+    @Transactional
+    public void run(String... args) {
+        // Controllo idempotenza: se ci sono utenti, non faccio nulla
         if (userRepository.count() > 0) {
+            log.info("Database già popolato. Seeding saltato.");
             return;
         }
 
-        System.out.println("SEEDING DATABASE...");
+        log.info("nizio popolamento Database con dati di test...");
+
+        // Pre-calcolo la password hashata
+        String encodedPwd = passwordEncoder.encode(DEV_PASSWORD);
 
         // --- 1. PERSONALE INTERNO ---
-
-        // Pianificatore Logistico
-        createInternalUser("planner", "Luigi", "Verdi", "planner@heavyroute.com", UserRole.LOGISTIC_PLANNER);
-
-        // Traffic Coordinator
-        createInternalUser("coordinator", "Anna", "Rossi", "tc@heavyroute.com", UserRole.TRAFFIC_COORDINATOR);
-
-        // Gestore Account
-        createInternalUser("gaccount", "Marco", "Bianchi", "gaccount@heavyroute.com", UserRole.ACCOUNT_MANAGER);
+        createPlanner("planner", "Luigi", "Verdi", "PLN-001", encodedPwd);
+        createCoordinator("coordinator", "Anna", "Rossi", "TC-001", encodedPwd);
+        createAccountManager("gaccount", "Marco", "Bianchi", "AM-001", encodedPwd);
 
         // --- 2. FLOTTA VEICOLI ---
-
-        // Veicolo Standard (Disponibile)
         createVehicle("VE-001-AB", "Iveco Stralis 480", 25000.0, 13.6, 2.55, 4.0, VehicleStatus.AVAILABLE);
-
-        // Veicolo Eccezionale (Disponibile)
-        createVehicle("XC-999-ZZ", "Volvo FH16 750", 60000.0, 18.0, 3.0, 4.5, VehicleStatus.AVAILABLE);
-
-        // Veicolo in Manutenzione (Non disponibile)
+        createVehicle("XC-999-ZZ", "Volvo FH16 750", 60000.0, 18.0, 3.0, 4.5, VehicleStatus.AVAILABLE); // Mezzo eccezionale
         createVehicle("MN-555-XX", "Scania R500", 30000.0, 13.6, 2.55, 4.0, VehicleStatus.MAINTENANCE);
 
         // --- 3. AUTISTI ---
-
-        Driver d1 = createDriver("driver1", "Giovanni", "Esposito", "d1@hr.com", "PAT-CE-123456", DriverStatus.FREE);
-        Driver d2 = createDriver("driver2", "Luca", "Moretti", "d2@hr.com", "PAT-CE-987654", DriverStatus.FREE);
-        Driver d3 = createDriver("driver3", "Matteo", "Ricci", "d3@hr.com", "PAT-CE-112233", DriverStatus.ON_THE_ROAD); // Già occupato
+        createDriver("driver1", "Giovanni", "Esposito", "d1@hr.com", "PAT-CE-123456", "DRV-101", DriverStatus.FREE, encodedPwd);
+        createDriver("driver2", "Luca", "Moretti", "d2@hr.com", "PAT-CE-987654", "DRV-102", DriverStatus.FREE, encodedPwd);
+        // Questo autista è in viaggio
+        createDriver("driver3", "Matteo", "Ricci", "d3@hr.com", "PAT-CE-112233", "DRV-103", DriverStatus.ON_THE_ROAD, encodedPwd);
 
         // --- 4. COMMITTENTI ---
+        Customer hitachi = createCustomer("hitachi", "Giulia", "Manfredi", "logistica@hitachirail.com",
+                "Hitachi Rail STS", "00468920689", "Via Argine 425, Napoli", encodedPwd);
 
-        // Committente 1: Hitachi Rail
-        Customer hitachi = createCustomer(
-                "hitachi", "Giulia", "Manfredi", "logistica@hitachirail.com",
-                "Hitachi Rail STS", "00468920689", "Via Argine 425, Napoli"
-        );
-
-        // Committente 2: Ansaldo Energia (per testare multi-utenza)
-        Customer ansaldo = createCustomer(
-                "ansaldo", "Roberto", "Ferry", "transport@ansaldo.com",
-                "Ansaldo Energia", "00725620150", "Via Lorenzi 8, Genova"
-        );
+        Customer ansaldo = createCustomer("ansaldo", "Roberto", "Ferry", "transport@ansaldo.com",
+                "Ansaldo Energia", "00725620150", "Via Lorenzi 8, Genova", encodedPwd);
 
         // --- 5. RICHIESTE DI TRASPORTO ---
+        // Richiesta 1: PENDING (Hitachi)
+        createRequest(hitachi, "Stabilimento Hitachi, Napoli", "Deposito Trenitalia, Firenze",
+                LocalDate.now().plusDays(10), RequestStatus.PENDING,
+                35000.0, 24.0, 2.8, 3.8, "Carrozza Metro");
 
-        // Req 1: Carrozza Ferroviaria (Hitachi) - PENDING
-        createRequest(hitachi,
-                "Stabilimento Hitachi, Napoli",
-                "Deposito Trenitalia, Firenze Osmannoro",
-                LocalDate.now().plusDays(10),
-                RequestStatus.PENDING,
-                "Carrozza Treno Metro linea 1", 35000.0, 24.0, 2.8, 3.8
-        );
+        // Richiesta 2: PENDING (Ansaldo - Eccezionale per peso e larghezza)
+        createRequest(ansaldo, "Porto di Genova", "Centrale Turbigo (MI)",
+                LocalDate.now().plusDays(20), RequestStatus.PENDING,
+                280000.0, 12.0, 4.5, 4.2, "Turbina GT36");
 
-        // Req 2: Turbina a Gas (Ansaldo) - PENDING
-        createRequest(ansaldo,
-                "Porto di Genova",
-                "Centrale Elettrica Turbigo (MI)",
-                LocalDate.now().plusDays(20),
-                RequestStatus.PENDING,
-                "Turbina GT36", 280000.0, 12.0, 4.5, 4.2
-        );
+        // Richiesta 3: APPROVED (Hitachi)
+        createRequest(hitachi, "Interporto Bologna", "Hitachi Pistoia",
+                LocalDate.now().plusDays(3), RequestStatus.APPROVED,
+                5000.0, 6.0, 2.4, 2.5, "Casse Ricambi");
 
-        // Req 3: Ricambi (Hitachi) - APPROVED
-        createRequest(hitachi,
-                "Interporto Bologna",
-                "Hitachi Pistoia",
-                LocalDate.now().plusDays(3),
-                RequestStatus.APPROVED,
-                "Casse Ricambi", 5000.0, 6.0, 2.4, 2.5
-        );
-
-        System.out.println("DATABASE POPOLATO CON SUCCESSO!");
+        log.info("DATABASE POPOLATO CON SUCCESSO, Password utenti: '{}'", DEV_PASSWORD);
     }
 
-    // --- HELPER METHODS ---
+    // ================= HELPER METHODS =================
 
-    private void createInternalUser(String username, String name, String surname, String email, UserRole role) {
-        User user;
-        if (role == UserRole.LOGISTIC_PLANNER) user = new LogisticPlanner();
-        else if (role == UserRole.TRAFFIC_COORDINATOR) user = new TrafficCoordinator();
-        else user = new AccountManager(); // Default fallback
-
-        user.setUsername(username);
-        user.setPassword(passwordEncoder.encode("password"));
-        user.setEmail(email);
-        user.setFirstName(name);
-        user.setLastName(surname);
-        user.setPhoneNumber("+393331234567");
-        user.setActive(true);
+    private void createPlanner(String username, String name, String surname, String serial, String pwd) {
+        LogisticPlanner user = LogisticPlanner.builder()
+                .username(username).password(pwd).email(username + "@heavyroute.com")
+                .firstName(name).lastName(surname).phoneNumber("+393330000001")
+                .active(true)
+                .serialNumber(serial)
+                .hireDate(LocalDate.now().minusYears(5)) // Assunto 5 anni fa
+                .build();
         userRepository.save(user);
     }
 
-    private void createVehicle(String plate, String model, Double capacity, Double len, Double wid, Double hei, VehicleStatus status) {
-        Vehicle v = new Vehicle();
-        v.setLicensePlate(plate);
-        v.setModel(model);
-        v.setMaxLoadCapacity(capacity);
-        v.setMaxLength(len);
-        v.setMaxWidth(wid);
-        v.setMaxHeight(hei);
-        v.setStatus(status);
-        vehicleRepository.save(v);
+    private void createCoordinator(String username, String name, String surname, String serial, String pwd) {
+        TrafficCoordinator user = TrafficCoordinator.builder()
+                .username(username).password(pwd).email("tc@heavyroute.com")
+                .firstName(name).lastName(surname).phoneNumber("+393330000002")
+                .active(true)
+                .serialNumber(serial)
+                .hireDate(LocalDate.now().minusYears(3))
+                .build();
+        userRepository.save(user);
     }
 
-    private Driver createDriver(String username, String name, String surname, String email, String license, DriverStatus status) {
-        Driver d = new Driver();
-        d.setUsername(username);
-        d.setPassword(passwordEncoder.encode("password"));
-        d.setEmail(email);
-        d.setFirstName(name);
-        d.setLastName(surname);
-        d.setPhoneNumber("+393339876543");
-        d.setActive(true);
-        d.setLicenseNumber(license);
-        d.setStatus(status);
-        return driverRepository.save(d);
+    private void createAccountManager(String username, String name, String surname, String serial, String pwd) {
+        AccountManager user = AccountManager.builder()
+                .username(username).password(pwd).email("gaccount@heavyroute.com")
+                .firstName(name).lastName(surname).phoneNumber("+393330000003")
+                .active(true)
+                .serialNumber(serial)
+                .hireDate(LocalDate.now().minusYears(2))
+                .build();
+        userRepository.save(user);
     }
 
-    private Customer createCustomer(String username, String name, String surname, String email, String company, String vat, String address) {
-        Customer c = new Customer();
-        c.setUsername(username);
-        c.setPassword(passwordEncoder.encode("password"));
-        c.setEmail(email);
-        c.setFirstName(name);
-        c.setLastName(surname);
-        c.setPhoneNumber("+390810000000");
-        c.setActive(true);
-        c.setCompanyName(company);
-        c.setVatNumber(vat);
-        c.setPec(username + "@pec.it");
-        c.setAddress(address);
+    private void createDriver(String username, String name, String surname, String email,
+                              String license, String serial, DriverStatus status, String pwd) {
+        Driver d = Driver.builder()
+                .username(username).password(pwd).email(email)
+                .firstName(name).lastName(surname).phoneNumber("+393339876543")
+                .active(true)
+                .licenseNumber(license)
+                .serialNumber(serial)
+                .hireDate(LocalDate.now().minusMonths(6)) // Assunto 6 mesi fa
+                .status(status)
+                .build();
+        driverRepository.save(d);
+    }
+
+    private Customer createCustomer(String username, String name, String surname, String email,
+                                    String company, String vat, String address, String pwd) {
+        Customer c = Customer.builder()
+                .username(username).password(pwd).email(email)
+                .firstName(name).lastName(surname).phoneNumber("+390810000000")
+                .active(true)
+                .companyName(company)
+                .vatNumber(vat)
+                .pec(username + "@pec.it")
+                .address(address)
+                .build();
         return customerRepository.save(c);
     }
 
-    private void createRequest(Customer client, String origin, String dest, LocalDate date, RequestStatus status,
-                               String loadDesc, Double weight, Double len, Double wid, Double hei) {
-        TransportRequest req = new TransportRequest();
-        req.setClient(client);
-        req.setOriginAddress(origin);
-        req.setDestinationAddress(dest);
-        req.setPickupDate(date);
-        req.setRequestStatus(status);
+    private void createVehicle(String plate, String model, Double cap, Double len, Double wid, Double hei, VehicleStatus status) {
+        Vehicle v = Vehicle.builder()
+                .licensePlate(plate)
+                .model(model)
+                .maxLoadCapacity(cap)
+                .maxLength(len).maxWidth(wid).maxHeight(hei)
+                .status(status)
+                .build();
+        vehicleRepository.save(v);
+    }
 
+    private void createRequest(Customer client, String origin, String dest, LocalDate date, RequestStatus status,
+                               Double weight, Double len, Double wid, Double hei, String typeDesc) {
+
+        // LoadDetails è una @Embeddable
         LoadDetails load = new LoadDetails();
         load.setWeightKg(weight);
         load.setLength(len);
         load.setWidth(wid);
         load.setHeight(hei);
-        req.setLoad(load);
+        load.setType(typeDesc);
+        load.setQuantity(1); // Default a 1
+
+        TransportRequest req = TransportRequest.builder()
+                .client(client)
+                .originAddress(origin)
+                .destinationAddress(dest)
+                .pickupDate(date)
+                .requestStatus(status)
+                .load(load)
+                .build();
 
         requestRepository.save(req);
     }
