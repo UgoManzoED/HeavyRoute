@@ -47,7 +47,7 @@ class _NewOrderPopupState extends State<NewOrderPopup> {
         final currentUser = await _userService.getCurrentUser();
         if (currentUser == null || currentUser.id == null) return;
 
-        final int userId = int.parse(currentUser.id!);
+        final int userId = int.parse(currentUser.id as String);
 
         final dto = CreateRequestModel(
           origin: _originCtrl.text.trim(),
