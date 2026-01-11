@@ -34,5 +34,6 @@ public class RouteResponseDTO {
     private String routeDescription; // Descrizione umana (es. "A1 Milano-Roma")
     private Double distance;         // Distanza in km
     private Double duration;         // Durata in minuti
+    private String polyline;
 
 }

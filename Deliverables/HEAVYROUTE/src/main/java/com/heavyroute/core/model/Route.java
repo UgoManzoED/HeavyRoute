@@ -22,6 +22,13 @@ import lombok.experimental.SuperBuilder;
 public class Route extends BaseEntity {
 
     /**
+     * Descrizione testuale del percorso.
+     * Utile per la UI.
+     */
+    @Column(name = "description")
+    private String description;
+
+    /**
      * La distanza totale del percorso calcolato, espressa in Chilometri.
      */
     @Column(name = "distance", nullable = false)
