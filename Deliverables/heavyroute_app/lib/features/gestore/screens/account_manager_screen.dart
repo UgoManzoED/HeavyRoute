@@ -1,21 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../../../common/heavy_route_app_bar.dart';
 import '../../auth/services/user_service.dart';
-import '../../auth/models/user_dto.dart';
+import '../../auth/models/user_model.dart';
 import '../../requests/presentation/widgets/user_data_popup.dart';
-
 import '../widgets/internal_user_list_section.dart';
 import '../widgets/create_user_section.dart';
 
-/**
- * Schermata principale per il Gestore Account.
- * <p>
- * Implementa una navigazione a tab personalizzata per switchare tra
- * la visualizzazione della lista utenti e il form di creazione.
- * Integra la logica di profilo per utenti interni.
- * </p>
- * @author Roman
- */
 class AccountManagerScreen extends StatefulWidget {
   const AccountManagerScreen({super.key});
 
@@ -24,15 +14,10 @@ class AccountManagerScreen extends StatefulWidget {
 }
 
 class _AccountManagerScreenState extends State<AccountManagerScreen> {
-  // Servizio per gestire i dati utente
   final UserService _userService = UserService();
-
-  /** Indice della sezione corrente: 0 per Lista, 1 per Creazione */
   int _activeSectionIndex = 0;
 
-  // --- LOGICA PROFILO (Specifica per Gestore Account) ---
   Future<void> _openProfilePopup() async {
-    // 1. Spinner di caricamento
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -40,13 +25,11 @@ class _AccountManagerScreenState extends State<AccountManagerScreen> {
     );
 
     try {
-      // 2. Recupera i dati (simulati o reali)
-      final UserDTO? user = await _userService.getCurrentUser();
+      final user = await _userService.getCurrentUser();
 
-      if (mounted) Navigator.pop(context); // Chiudi spinner
+      if (mounted) Navigator.pop(context);
 
       if (user != null && mounted) {
-        // 3. Mostra Popup
         showDialog(
           context: context,
           builder: (context) => Dialog(
@@ -55,10 +38,10 @@ class _AccountManagerScreenState extends State<AccountManagerScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 600),
               child: UserDataPopup(
-                user: user,
+                user: user, // Passiamo l'oggetto modello direttamente
                 userService: _userService,
-                role: "Gestore Account", // Etichetta specifica per questo ruolo
-                showDownload: false, // FALSE: Nasconde tasto doc e sezione azienda (Utente Interno)
+                role: "Gestore Account",
+                showDownload: false,
               ),
             ),
           ),
@@ -80,15 +63,11 @@ class _AccountManagerScreenState extends State<AccountManagerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
-
-      // --- NUOVA CORNICE (HEADER) ---
       appBar: HeavyRouteAppBar(
         subtitle: 'Dashboard Gestore Account',
         isDashboard: true,
-        onProfileTap: _openProfilePopup, // Collega la logica profilo
+        onProfileTap: _openProfilePopup,
       ),
-      // -----------------------------
-
       body: Column(
         children: [
           _buildCustomTabBar(),
@@ -102,9 +81,6 @@ class _AccountManagerScreenState extends State<AccountManagerScreen> {
     );
   }
 
-  /**
-   * Costruisce la barra dei menu (Tab) superiore.
-   */
   Widget _buildCustomTabBar() {
     return Container(
       color: const Color(0xFFE5E7EB),
@@ -129,7 +105,6 @@ class _AccountManagerScreenState extends State<AccountManagerScreen> {
           decoration: BoxDecoration(
             color: isActive ? Colors.white : Colors.transparent,
             borderRadius: BorderRadius.circular(20),
-            // Aggiungo una leggera ombra al tab attivo per coerenza con il resto
             boxShadow: isActive
                 ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))]
                 : [],
