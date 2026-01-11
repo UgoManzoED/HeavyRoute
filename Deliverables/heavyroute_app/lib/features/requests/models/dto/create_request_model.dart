@@ -4,29 +4,38 @@ part 'create_request_model.g.dart';
 
 @JsonSerializable(createFactory: false)
 class CreateRequestModel {
-  @JsonKey(name: 'originAddress')
-  final String origin;
 
-  @JsonKey(name: 'destinationAddress')
-  final String destination;
+  final String originAddress;
+  final String destinationAddress;
+  final String pickupDate;
 
-  final String pickupDate; // Formato "yyyy-MM-dd"
-
+  @JsonKey(name: 'loadType')
   final String loadType;
+
+  final String description;
+
+  @JsonKey(name: 'weight')
   final double weight;
-  final double height;
-  final double length;
+
+  @JsonKey(name: 'width')
   final double width;
 
+  @JsonKey(name: 'height')
+  final double height;
+
+  @JsonKey(name: 'length')
+  final double length;
+
   CreateRequestModel({
-    required this.origin,
-    required this.destination,
+    required this.originAddress,
+    required this.destinationAddress,
     required this.pickupDate,
     required this.loadType,
+    required this.description,
     required this.weight,
+    required this.width,
     required this.height,
     required this.length,
-    required this.width,
   });
 
   Map<String, dynamic> toJson() => _$CreateRequestModelToJson(this);
