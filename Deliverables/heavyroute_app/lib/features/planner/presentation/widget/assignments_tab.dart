@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
-import '../model/trip_dto.dart';
+import '../../../../common/models/enums.dart';
+import '../../../trips/models/trip_model.dart';
 import '../service/assignment_service.dart';
 
 /**
- * Tab per la gestione e visualizzazione delle assegnazioni attive nel sistema.
- * <p>
- * Consuma il servizio {@link AssignmentService} per recuperare i viaggi
- * che sono già stati pianificati o che sono in fase di transito.
- * </p>
- * @author Roman
+ * Tab per la gestione e visualizzazione delle assegnazioni attive.
  */
 class AssignmentsTab extends StatefulWidget {
   const AssignmentsTab({super.key});
@@ -19,7 +15,8 @@ class AssignmentsTab extends StatefulWidget {
 
 class _AssignmentsTabState extends State<AssignmentsTab> {
   final AssignmentService _assignmentService = AssignmentService();
-  late Future<List<TripDTO>> _assignmentsFuture;
+
+  late Future<List<TripModel>> _assignmentsFuture;
 
   @override
   void initState() {
@@ -33,8 +30,7 @@ class _AssignmentsTabState extends State<AssignmentsTab> {
    */
   void _loadAssignments() {
     setState(() {
-      // Puoi decidere di passare uno stato specifico o gestire più stati
-      _assignmentsFuture = _assignmentService.getTripsByStatus('CONFIRMED');
+      _assignmentsFuture = _assignmentService.getTripsByStatus(TripStatus.CONFIRMED);
     });
   }
 
@@ -54,7 +50,7 @@ class _AssignmentsTabState extends State<AssignmentsTab> {
           _buildHeader(),
           const SizedBox(height: 24),
           Expanded(
-            child: FutureBuilder<List<TripDTO>>(
+            child: FutureBuilder<List<TripModel>>(
               future: _assignmentsFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -98,11 +94,7 @@ class _AssignmentsTabState extends State<AssignmentsTab> {
     );
   }
 
-  /**
-   * Costruisce la tabella dei dati utilizzando i TripDTO reali.
-   * @param trips Lista dei viaggi recuperati.
-   */
-  Widget _buildAssignmentsTable(List<TripDTO> trips) {
+  Widget _buildAssignmentsTable(List<TripModel> trips) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: SingleChildScrollView(
@@ -123,24 +115,21 @@ class _AssignmentsTabState extends State<AssignmentsTab> {
     );
   }
 
-  /**
-   * Crea una riga della tabella per un singolo viaggio.
-   */
-  DataRow _buildDataRow(TripDTO trip) {
+  DataRow _buildDataRow(TripModel trip) {
+    final origin = trip.request.originAddress.split(',').first;
+    final destination = trip.request.destinationAddress.split(',').first;
+
     return DataRow(cells: [
       DataCell(Text(trip.tripCode, style: const TextStyle(fontWeight: FontWeight.bold))),
-      DataCell(Text(trip.clientFullName ?? "N/D")),
-      DataCell(Text("${trip.request.originAddress.split(',').first} → ${trip.request.destinationAddress.split(',').first}")),
+      DataCell(Text(trip.request.customerName ?? "Cliente")),
+      DataCell(Text("$origin → $destination")),
       DataCell(Text(trip.driverName ?? "In attesa")),
       DataCell(Text(trip.vehiclePlate ?? "N/D")),
       DataCell(_buildStatusBadge(trip.status)),
     ]);
   }
 
-  /**
-   * Mostra lo stato visivo dell'assegnazione.
-   */
-  Widget _buildStatusBadge(String status) {
+  Widget _buildStatusBadge(TripStatus status) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -149,7 +138,7 @@ class _AssignmentsTabState extends State<AssignmentsTab> {
         border: Border.all(color: const Color(0xFF0D0D1A).withOpacity(0.1)),
       ),
       child: Text(
-        status,
+        status.name,
         style: const TextStyle(color: Color(0xFF0D0D1A), fontSize: 11, fontWeight: FontWeight.bold),
       ),
     );

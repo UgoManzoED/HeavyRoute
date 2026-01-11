@@ -38,6 +38,13 @@ class TransportRequest {
     required this.load,
   });
 
+  String get customerName {
+    if (client.companyName != null && client.companyName!.isNotEmpty) {
+      return client.companyName!;
+    }
+    return "${client.firstName} ${client.lastName}";
+  }
+
   factory TransportRequest.fromJson(Map<String, dynamic> json) => _$TransportRequestFromJson(json);
   Map<String, dynamic> toJson() => _$TransportRequestToJson(this);
 }
