@@ -3,6 +3,8 @@ import '../../../../features/requests/models/transport_request.dart';
 import '../../../../features/requests/services/request_service.dart';
 import '../../../../features/trips/services/trip_service.dart';
 import 'transport_requests_table.dart';
+// IMPORTA IL DIALOG CHE HAI CREATO PRIMA
+import 'route_planner_dialog.dart';
 
 class TransportRequestsTab extends StatefulWidget {
   const TransportRequestsTab({super.key});
@@ -13,7 +15,8 @@ class TransportRequestsTab extends StatefulWidget {
 
 class _TransportRequestsTabState extends State<TransportRequestsTab> {
   final RequestService _requestService = RequestService();
-  final TripService _tripService = TripService();
+  // TripService potrebbe non servire più qui se la logica è spostata nel Dialog,
+  // ma lo lasciamo se serve per altre cose.
 
   late Future<List<TransportRequest>> _requestsFuture;
 
@@ -29,28 +32,28 @@ class _TransportRequestsTabState extends State<TransportRequestsTab> {
     });
   }
 
-  /// Logica di approvazione: chiama il service e mostra il feedback
-  Future<void> _handleApprove(int id) async {
-    final success = await _tripService.approveRequest(id);
+  /// NUOVA FUNZIONE: Apre il dialog invece di approvare subito
 
-    if (!mounted) return;
-
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Richiesta Approvata con successo."),
-          backgroundColor: Colors.green,
-        ),
-      );
-      _loadData();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Errore durante l'approvazione."),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+  void _openPlanningDialog(TransportRequest request) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // L'utente deve premere Annulla o Invia
+      builder: (context) => RoutePlanningDialog(
+        request: request,
+        onSuccess: () {
+          // Questa funzione viene chiamata quando il dialog ha finito con successo
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Viaggio pianificato e inviato al Traffic Coordinator!"),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          // Ricarichiamo la tabella per mostrare lo stato aggiornato
+          _loadData();
+        },
+      ),
+    );
   }
 
   @override
@@ -81,7 +84,8 @@ class _TransportRequestsTabState extends State<TransportRequestsTab> {
 
                 return TransportRequestsTable(
                   requests: snapshot.data!,
-                  onApproveTap: _handleApprove,
+                  // COLLEGAMENTO: Passiamo la nuova funzione che apre il dialog
+                  onPlanTap: _openPlanningDialog,
                 );
               },
             ),
@@ -91,6 +95,7 @@ class _TransportRequestsTabState extends State<TransportRequestsTab> {
     );
   }
 
+  // ... _buildHeader e _buildEmptyState rimangono uguali ...
   Widget _buildHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
