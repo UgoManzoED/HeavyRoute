@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:heavyroute_app/features/gestore/screens/account_manager_screen.dart';
 import 'package:heavyroute_app/features/requests/presentation/screens/create_request_screen.dart';
 import 'core/theme/app_theme.dart';
@@ -10,6 +11,7 @@ import 'package:intl/date_symbol_data_local.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: "chiavi.env");
   await initializeDateFormatting('it_IT', null);
   runApp(const HeavyRouteApp());
 }
