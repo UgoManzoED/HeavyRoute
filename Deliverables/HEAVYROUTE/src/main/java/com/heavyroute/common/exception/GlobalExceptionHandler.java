@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.net.URI;
 import java.time.Instant;
@@ -165,14 +166,40 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      * @param ex L'eccezione lanciata da Hibernate/JDBC.
      * @return Un oggetto {@link ProblemDetail} conforme allo standard RFC 7807.
      */
-    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
-    public ProblemDetail handleDatabaseConstraint(org.springframework.dao.DataIntegrityViolationException ex) {
-        String msg = "Dato duplicato nel sistema.";
-        if (ex.getMessage().contains("vat_number")) msg = "La Partita IVA è già presente.";
-        if (ex.getMessage().contains("pec")) msg = "La PEC è già presente.";
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ProblemDetail> handleDatabaseConstraint(DataIntegrityViolationException ex) {
+        // Recuperiamo il messaggio originale del driver DB
+        String rootMsg = ex.getMostSpecificCause().getMessage();
 
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, msg);
-        problem.setTitle("Conflitto Dati");
-        return problem;
+        HttpStatus status = HttpStatus.CONFLICT;
+        String userMessage = "Errore di integrità dei dati nel database.";
+        String title = "Conflitto Dati";
+
+        // CASO A: Dato troppo lungo
+        if (rootMsg != null && rootMsg.contains("Data too long")) {
+            status = HttpStatus.BAD_REQUEST;
+            title = "Dati non validi (Lunghezza)";
+            userMessage = "Uno dei campi inseriti supera la lunghezza massima consentita dal database.";
+
+            if (rootMsg.contains("vat_number")) userMessage = "La Partita IVA inserita è troppo lunga.";
+        }
+        // CASO B: Dato duplicato
+        else if (rootMsg != null && rootMsg.contains("Duplicate entry")) {
+            status = HttpStatus.CONFLICT;
+            title = "Dato Duplicato";
+
+            if (rootMsg.contains("vat_number")) userMessage = "La Partita IVA specificata è già presente.";
+            else if (rootMsg.contains("pec")) userMessage = "La PEC specificata è già presente.";
+            else if (rootMsg.contains("username")) userMessage = "Lo username è già in uso.";
+            else if (rootMsg.contains("email")) userMessage = "L'email è già registrata.";
+        }
+
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, userMessage);
+        problem.setTitle(title);
+        problem.setType(URI.create("https://heavyroute.com/errors/database-constraint"));
+        problem.setProperty("timestamp", Instant.now());
+        problem.setProperty("debug_message", rootMsg);
+
+        return ResponseEntity.status(status).body(problem);
     }
 }
