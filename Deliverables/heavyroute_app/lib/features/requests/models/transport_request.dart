@@ -1,6 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
 import '../../../common/models/enums.dart';
-import '../../auth/models/user_model.dart';
 import 'load_details.dart';
 
 part 'transport_request.g.dart';
@@ -9,40 +8,55 @@ part 'transport_request.g.dart';
 class TransportRequest {
   final int id;
 
-  // Date di audit
-  final DateTime createdAt;
+  @JsonKey(defaultValue: 0)
+  final int clientId;
 
-  // L'oggetto cliente
-  final UserModel client;
+  @JsonKey(defaultValue: "Cliente Sconosciuto")
+  final String clientFullName;
 
+  @JsonKey(defaultValue: "Indirizzo non specificato")
   final String originAddress;
+
+  @JsonKey(defaultValue: "Indirizzo non specificato")
   final String destinationAddress;
 
-  // Data del ritiro
+  @JsonKey(fromJson: _parseDateSafe)
   final DateTime pickupDate;
 
-  // Stato della richiesta
+  @JsonKey(fromJson: _parseDateSafeNullable)
+  final DateTime? deliveryDate;
+
+  @JsonKey(unknownEnumValue: RequestStatus.PENDING)
   final RequestStatus requestStatus;
 
-  // Dettagli carico embedded
-  final LoadDetails load;
+  final LoadDetails? load;
 
   TransportRequest({
     required this.id,
-    required this.createdAt,
-    required this.client,
+    required this.clientId,
+    required this.clientFullName,
     required this.originAddress,
     required this.destinationAddress,
     required this.pickupDate,
+    this.deliveryDate,
     required this.requestStatus,
-    required this.load,
+    this.load,
   });
 
-  String get customerName {
-    if (client.companyName != null && client.companyName!.isNotEmpty) {
-      return client.companyName!;
-    }
-    return "${client.firstName} ${client.lastName}";
+  // Getter
+  String get customerName => clientFullName;
+  String get origin => originAddress;
+  String get destination => destinationAddress;
+
+  // --- HELPER PER LE DATE ---
+  static DateTime _parseDateSafe(String? dateStr) {
+    if (dateStr == null) return DateTime.now(); // Fallback
+    return DateTime.parse(dateStr);
+  }
+
+  static DateTime? _parseDateSafeNullable(String? dateStr) {
+    if (dateStr == null) return null;
+    return DateTime.parse(dateStr);
   }
 
   factory TransportRequest.fromJson(Map<String, dynamic> json) => _$TransportRequestFromJson(json);

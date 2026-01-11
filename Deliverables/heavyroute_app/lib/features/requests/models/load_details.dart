@@ -4,22 +4,31 @@ part 'load_details.g.dart';
 
 @JsonSerializable()
 class LoadDetails {
-  final String? type;     // Es. "Turbina", "Scavatrice"
-  final int? quantity;
-  
-  final double? weightKg;
+  @JsonKey(name: 'type', defaultValue: 'Generico')
+  final String loadType;
 
-  final double? height;
-  final double? width;
-  final double? length;
+  @JsonKey(defaultValue: '')
+  final String description;
+
+  @JsonKey(defaultValue: 0.0)
+  final double weightKg;
+
+  @JsonKey(name: 'width', defaultValue: 0.0)
+  final double widthMeters;
+
+  @JsonKey(name: 'height', defaultValue: 0.0)
+  final double heightMeters;
+
+  @JsonKey(name: 'length', defaultValue: 0.0)
+  final double lengthMeters;
 
   LoadDetails({
-    this.type,
-    this.quantity,
-    this.weightKg,
-    this.height,
-    this.width,
-    this.length,
+    required this.loadType,
+    required this.description,
+    required this.weightKg,
+    required this.widthMeters,
+    required this.heightMeters,
+    required this.lengthMeters,
   });
 
   factory LoadDetails.fromJson(Map<String, dynamic> json) => _$LoadDetailsFromJson(json);

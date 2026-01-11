@@ -8,12 +8,13 @@ part of 'create_request_model.dart';
 
 Map<String, dynamic> _$CreateRequestModelToJson(CreateRequestModel instance) =>
     <String, dynamic>{
-      'originAddress': instance.origin,
-      'destinationAddress': instance.destination,
+      'originAddress': instance.originAddress,
+      'destinationAddress': instance.destinationAddress,
       'pickupDate': instance.pickupDate,
       'loadType': instance.loadType,
+      'description': instance.description,
       'weight': instance.weight,
+      'width': instance.width,
       'height': instance.height,
       'length': instance.length,
-      'width': instance.width,
     };

@@ -1,15 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../models/create_request_model.dart';
+import '../../models/dto/create_request_model.dart';
 import '../../services/request_service.dart';
 import '../../../auth/services/user_service.dart';
 
 /**
  * Widget del Form Pop-up per la creazione di un nuovo ordine.
- * <p>
- * Questa classe gestisce l'intero ciclo di vita dell'inserimento:
- * dalla validazione dei campi alla persistenza tramite il backend.
- * </p>
- * @author Roman
  */
 class NewOrderPopup extends StatefulWidget {
   const NewOrderPopup({super.key});
@@ -26,7 +21,7 @@ class _NewOrderPopupState extends State<NewOrderPopup> {
   // Controller per i campi di testo
   final _originCtrl = TextEditingController();
   final _destCtrl = TextEditingController();
-  final _quantCtrl = TextEditingController();
+  final _quantCtrl = TextEditingController(); // Quantità
   final _lenCtrl = TextEditingController();
   final _widCtrl = TextEditingController();
   final _heightCtrl = TextEditingController();
@@ -34,35 +29,53 @@ class _NewOrderPopupState extends State<NewOrderPopup> {
   final _dateCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
 
+  // Variabile per il Dropdown
+  String _selectedLoadType = 'Trasporto Eccezionale';
+
+  @override
+  void dispose() {
+    _originCtrl.dispose();
+    _destCtrl.dispose();
+    _quantCtrl.dispose();
+    _lenCtrl.dispose();
+    _widCtrl.dispose();
+    _heightCtrl.dispose();
+    _weightCtrl.dispose();
+    _dateCtrl.dispose();
+    _noteCtrl.dispose();
+    super.dispose();
+  }
+
   /**
    * Gestisce il salvataggio della richiesta.
-   * <p>
-   * Recupera l'utente loggato, valida il form e invia il DTO al service.
-   * Restituisce 'true' al Navigator se l'operazione ha successo.
-   * </p>
    */
   void _handleConfirm() async {
     if (_formKey.currentState!.validate()) {
       try {
-        final currentUser = await _userService.getCurrentUser();
-        if (currentUser == null || currentUser.id == null) return;
-
-        final int userId = int.parse(currentUser.id as String);
-
         final dto = CreateRequestModel(
-          origin: _originCtrl.text.trim(),
-          destination: _destCtrl.text.trim(),
+          originAddress: _originCtrl.text.trim(),
+          destinationAddress: _destCtrl.text.trim(),
           pickupDate: _dateCtrl.text,
+
+          loadType: _selectedLoadType,
+          description: _noteCtrl.text.isNotEmpty ? _noteCtrl.text : "Standard",
           weight: double.tryParse(_weightCtrl.text) ?? 0.0,
           length: double.tryParse(_lenCtrl.text) ?? 0.0,
           width: double.tryParse(_widCtrl.text) ?? 0.0,
           height: double.tryParse(_heightCtrl.text) ?? 0.0,
-          loadType: 'speciale',
         );
 
         final success = await _requestService.createRequest(dto);
+
         if (success && mounted) {
           Navigator.pop(context, true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Ordine creato con successo!"), backgroundColor: Colors.green),
+          );
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Errore creazione ordine (Verifica i dati)"), backgroundColor: Colors.red),
+          );
         }
       } catch (e) {
         debugPrint("Errore durante la creazione: $e");
@@ -98,7 +111,7 @@ class _NewOrderPopupState extends State<NewOrderPopup> {
                 children: [
                   Expanded(child: _buildDropdown('Tipologia di carico *')),
                   const SizedBox(width: 20),
-                  Expanded(child: _buildInput('Quantità *', 'Es. 1', _quantCtrl, isNum: true)),
+                  Expanded(child: _buildInput('Quantità', 'Es. 1', _quantCtrl, isNum: true)),
                 ],
               ),
               const SizedBox(height: 20),
@@ -135,7 +148,6 @@ class _NewOrderPopupState extends State<NewOrderPopup> {
     );
   }
 
-  /** Costruisce l'intestazione del popup. */
   Widget _buildHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -146,7 +158,6 @@ class _NewOrderPopupState extends State<NewOrderPopup> {
     );
   }
 
-  /** Costruisce i pulsanti di azione. */
   Widget _buildActionButtons() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
@@ -170,7 +181,6 @@ class _NewOrderPopupState extends State<NewOrderPopup> {
     );
   }
 
-  /** Helper per la creazione dei campi di input. */
   Widget _buildInput(String label, String hint, TextEditingController ctrl, {int maxLines = 1, bool isDate = false, bool isNum = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -203,14 +213,21 @@ class _NewOrderPopupState extends State<NewOrderPopup> {
         Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF374151))),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
+          value: _selectedLoadType,
           decoration: InputDecoration(
             filled: true,
             fillColor: const Color(0xFFF3F4F6),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           ),
-          items: const [DropdownMenuItem(value: 'eco', child: Text('Trasporto Eccezionale'))],
-          onChanged: (v) {},
+          items: const [
+            DropdownMenuItem(value: 'Trasporto Eccezionale', child: Text('Trasporto Eccezionale')),
+            DropdownMenuItem(value: 'Carico Standard', child: Text('Carico Standard')),
+            DropdownMenuItem(value: 'Macchinari', child: Text('Macchinari')),
+          ],
+          onChanged: (v) {
+            if (v != null) setState(() => _selectedLoadType = v);
+          },
         ),
       ],
     );

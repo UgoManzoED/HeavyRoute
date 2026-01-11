@@ -7,20 +7,20 @@ part of 'load_details.dart';
 // **************************************************************************
 
 LoadDetails _$LoadDetailsFromJson(Map<String, dynamic> json) => LoadDetails(
-  type: json['type'] as String?,
-  quantity: (json['quantity'] as num?)?.toInt(),
-  weightKg: (json['weightKg'] as num?)?.toDouble(),
-  height: (json['height'] as num?)?.toDouble(),
-  width: (json['width'] as num?)?.toDouble(),
-  length: (json['length'] as num?)?.toDouble(),
+  loadType: json['type'] as String? ?? 'Generico',
+  description: json['description'] as String? ?? '',
+  weightKg: (json['weightKg'] as num?)?.toDouble() ?? 0.0,
+  widthMeters: (json['width'] as num?)?.toDouble() ?? 0.0,
+  heightMeters: (json['height'] as num?)?.toDouble() ?? 0.0,
+  lengthMeters: (json['length'] as num?)?.toDouble() ?? 0.0,
 );
 
 Map<String, dynamic> _$LoadDetailsToJson(LoadDetails instance) =>
     <String, dynamic>{
-      'type': instance.type,
-      'quantity': instance.quantity,
+      'type': instance.loadType,
+      'description': instance.description,
       'weightKg': instance.weightKg,
-      'height': instance.height,
-      'width': instance.width,
-      'length': instance.length,
+      'width': instance.widthMeters,
+      'height': instance.heightMeters,
+      'length': instance.lengthMeters,
     };

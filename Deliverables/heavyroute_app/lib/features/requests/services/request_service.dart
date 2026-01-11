@@ -1,61 +1,72 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import '../../../../core/network/dio_client.dart';
-import '../models/create_request_model.dart'; // O request_create_dto.dart a seconda del file
-import '../models/transport_request.dart'; // <--- IMPORT AGGIORNATO
+import '../models/transport_request.dart';
+import '../models/dto/create_request_model.dart';
 
-/**
- * Service Layer per la gestione delle Richieste di Trasporto.
- * <p>
- * Utilizza il modello di dominio {@link TransportRequest} per la comunicazione
- * con il backend.
- * </p>
- * @author Roman
- */
 class RequestService {
   final Dio _dio = DioClient.instance;
 
-  /**
-   * Recupera la lista delle richieste dell'utente loggato.
-   * @return Lista di {@link TransportRequest}.
-   */
+  // --- LETTURA ---
+
+  /// Recupera le richieste dell'utente loggato.
   Future<List<TransportRequest>> getMyRequests() async {
+    return _fetchRequests('/requests/my-requests');
+  }
+
+  /// Recupera tutte le richieste (Admin/Planner).
+  Future<List<TransportRequest>> getAllRequests() async {
+    return _fetchRequests('/requests');
+  }
+
+  /// Metodo helper privato per evitare codice duplicato
+  Future<List<TransportRequest>> _fetchRequests(String endpoint) async {
     try {
-      final response = await _dio.get('/requests/my-requests');
+      final response = await _dio.get(endpoint);
 
       if (response.statusCode == 200 && response.data != null) {
+
+        if (kDebugMode) {
+          debugPrint("📦 JSON RAW ($endpoint): ${response.data}");
+        }
+
         final List<dynamic> data = response.data;
-        // Utilizza il factory TransportRequest.fromJson
+
+        // Mappatura
         return data.map((json) => TransportRequest.fromJson(json)).toList();
       }
       return [];
     } on DioException catch (e) {
-      _logDioError("getMyRequests", e);
+      _logDioError(endpoint, e);
       return [];
-    } catch (e) {
-      print("Errore generico (getMyRequests): $e");
+    } catch (e, stackTrace) {
+      debugPrint("🛑 ERRORE PARSING ($endpoint): $e");
+      debugPrint("📍 StackTrace: $stackTrace");
       return [];
     }
   }
 
-  /**
-   * Crea una nuova richiesta.
-   * (Nota: Qui si usa ancora il DTO di creazione, diverso dal modello di risposta)
-   */
+  // --- SCRITTURA ---
+
+  /// Crea una nuova richiesta.
   Future<bool> createRequest(CreateRequestModel dto) async {
     try {
+      if (kDebugMode) {
+        debugPrint("📤 Invio Payload: ${dto.toJson()}");
+      }
+
       final response = await _dio.post('/requests', data: dto.toJson());
       return response.statusCode == 200 || response.statusCode == 201;
     } on DioException catch (e) {
       _logDioError("createRequest", e);
       return false;
     } catch (e) {
+      debugPrint("🛑 Errore Generico createRequest: $e");
       return false;
     }
   }
 
-  /**
-   * Elimina una richiesta (solo se PENDING).
-   */
+  /// Elimina una richiesta (solo se PENDING).
   Future<bool> deleteRequest(int requestId) async {
     try {
       final response = await _dio.delete('/requests/$requestId');
@@ -63,14 +74,10 @@ class RequestService {
     } on DioException catch (e) {
       _logDioError("deleteRequest", e);
       return false;
-    } catch (e) {
-      return false;
     }
   }
 
-  /**
-   * Invia richiesta di modifica/annullamento.
-   */
+  /// Invia richiesta di modifica/annullamento.
   Future<bool> sendModificationRequest(int requestId, String type, String note) async {
     try {
       final response = await _dio.post(
@@ -85,33 +92,11 @@ class RequestService {
     } on DioException catch (e) {
       _logDioError("sendModificationRequest", e);
       return false;
-    } catch (e) {
-      return false;
     }
   }
 
-  /**
-   * Recupera tutte le richieste (Admin/Planner).
-   */
-  Future<List<TransportRequest>> getAllRequests() async {
-    try {
-      final response = await _dio.get('/requests');
-      if (response.statusCode == 200 && response.data != null) {
-        final List<dynamic> data = response.data;
-        return data.map((json) => TransportRequest.fromJson(json)).toList();
-      }
-      return [];
-    } on DioException catch (e) {
-      _logDioError("getAllRequests", e);
-      return [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  void _logDioError(String methodName, DioException e) {
-    print("--- ERRORE DIO ($methodName) ---");
-    print("Status: ${e.response?.statusCode}");
-    print("Message: ${e.message}");
+  void _logDioError(String context, DioException e) {
+    debugPrint("🛑 ERRORE HTTP ($context): Status ${e.response?.statusCode}");
+    debugPrint("👉 Body: ${e.response?.data}");
   }
 }
