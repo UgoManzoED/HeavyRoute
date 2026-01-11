@@ -33,6 +33,24 @@ class UserService {
     }
   }
 
+  Future<List<UserModel>> getInternalUsers() async {
+    try {
+      // Assicurati che l'endpoint del backend restituisca la lista filtrata
+      // Se il backend non ha un endpoint specifico, usa '/users' e filtra lato client (meno efficiente ma funziona)
+      final response = await _dio.get('/users/internal');
+
+      if (response.statusCode == 200 && response.data != null) {
+        final List<dynamic> data = response.data;
+        // La magia di json_serializable:
+        return data.map((json) => UserModel.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      print("Errore getInternalUsers: $e");
+      return [];
+    }
+  }
+
   /// Aggiorna i dati dell'utente corrente.
   ///
   /// NOTA: In un'applicazione reale, l'oggetto di update spesso differisce
