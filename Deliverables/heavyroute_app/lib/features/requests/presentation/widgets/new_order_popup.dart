@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../models/request_dto.dart';
+import '../../models/create_request_model.dart';
 import '../../services/request_service.dart';
 import '../../../auth/services/user_service.dart';
 
@@ -49,14 +49,15 @@ class _NewOrderPopupState extends State<NewOrderPopup> {
 
         final int userId = int.parse(currentUser.id!);
 
-        final dto = RequestCreationDTO(
-          originAddress: _originCtrl.text.trim(),
-          destinationAddress: _destCtrl.text.trim(),
+        final dto = CreateRequestModel(
+          origin: _originCtrl.text.trim(),
+          destination: _destCtrl.text.trim(),
           pickupDate: _dateCtrl.text,
           weight: double.tryParse(_weightCtrl.text) ?? 0.0,
           length: double.tryParse(_lenCtrl.text) ?? 0.0,
           width: double.tryParse(_widCtrl.text) ?? 0.0,
           height: double.tryParse(_heightCtrl.text) ?? 0.0,
+          loadType: 'speciale',
         );
 
         final success = await _requestService.createRequest(dto);

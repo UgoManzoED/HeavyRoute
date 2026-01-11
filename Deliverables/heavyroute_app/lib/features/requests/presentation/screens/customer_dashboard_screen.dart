@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../../common/heavy_route_app_bar.dart';
 
-import '../../models/request_detail_dto.dart';
+import '../../models/transport_request.dart';
 import '../../services/request_service.dart';
 import '../../../auth/services/user_service.dart';
-import '../../../auth/models/user_dto.dart';
+import '../../../auth/models/user_model.dart';
 import '../widgets/add_order_header.dart';
 import '../widgets/user_data_popup.dart'; // Fondamentale per il popup
 import '../widgets/new_order_popup.dart';
@@ -20,7 +20,7 @@ class CustomerDashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<CustomerDashboardScreen> {
   final RequestService _requestService = RequestService();
   final UserService _userService = UserService();
-  late Future<List<RequestDetailDTO>> _requestsFuture;
+  late Future<List<TransportRequest>> _requestsFuture;
 
   @override
   void initState() {
@@ -55,7 +55,7 @@ class _DashboardScreenState extends State<CustomerDashboardScreen> {
     try {
       // 2. Recupera i dati aggiornati dell'utente
       // Nota: Uso getUserProfile() come definito nel fix del UserService
-      final UserDTO? user = await _userService.getCurrentUser();
+      final UserModel? user = await _userService.getCurrentUser();
 
       // Chiudi il caricamento
       if (mounted) Navigator.pop(context);
@@ -118,7 +118,7 @@ class _DashboardScreenState extends State<CustomerDashboardScreen> {
   }
 
   Widget _buildOrdersSection() {
-    return FutureBuilder<List<RequestDetailDTO>>(
+    return FutureBuilder<List<TransportRequest>>(
       future: _requestsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {

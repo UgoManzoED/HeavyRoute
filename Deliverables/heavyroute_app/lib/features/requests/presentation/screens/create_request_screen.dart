@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../models/request_dto.dart';
+import '../../models/create_request_model.dart';
 import '../../services/request_service.dart';
 
 /**
@@ -72,14 +72,15 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
    */
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      final request = RequestCreationDTO(
-        originAddress: _originController.text,
-        destinationAddress: _destController.text,
+      final request = CreateRequestModel(
+        origin: _originController.text,
+        destination: _destController.text,
         pickupDate: _dateController.text,
         weight: double.parse(_weightController.text),
         length: double.parse(_lengthController.text),
         width: double.parse(_widthController.text),
         height: double.parse(_heightController.text),
+        loadType: 'special',
       );
 
       try {

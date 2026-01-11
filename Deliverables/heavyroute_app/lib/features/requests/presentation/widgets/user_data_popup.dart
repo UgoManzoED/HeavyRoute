@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../../auth/models/user_dto.dart';
+import '../../../auth/models/user_model.dart';
 import '../../../auth/services/user_service.dart';
 import '../../../profile/presentation/screens/edit_profile_screen.dart'; // Importa la schermata a schede
 
 class UserDataPopup extends StatelessWidget {
-  final UserDTO user;
+  final UserModel user;
   final UserService userService;
   final String role;
   final bool showDownload;
@@ -69,8 +69,8 @@ class UserDataPopup extends StatelessWidget {
           // Campi Dati (Layout di sola lettura)
           _buildInfoRow("Nome Utente", "${user.firstName ?? ''} ${user.lastName ?? ''}".toUpperCase()),
           _buildInfoRow("Email", user.email ?? "-"),
-          _buildInfoRow("Azienda", user.company?? "-"),
-          _buildInfoRow("Telefono", user.phone ?? "-"),
+          _buildInfoRow("Azienda", user.companyName?? "-"),
+          _buildInfoRow("Telefono", user.phoneNumber ?? "-"),
           _buildInfoRow("Indirizzo", user.address ?? "Non specificato"),
           // Usa registrationDate se esiste nel DTO, altrimenti un placeholder
           _buildInfoRow("Data Registrazione", "15 Gennaio 2025"),
