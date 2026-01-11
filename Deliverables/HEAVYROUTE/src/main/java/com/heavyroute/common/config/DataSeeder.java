@@ -180,7 +180,7 @@ public class DataSeeder implements CommandLineRunner {
                 .build();
         vehicleRepository.save(v);
     }
-    
+
     private TransportRequest createRequest(Customer client, String origin, String dest, LocalDate date, RequestStatus status,
                                            Double weight, Double len, Double wid, Double hei, String typeDesc) {
 
