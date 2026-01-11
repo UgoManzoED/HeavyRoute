@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/coordinator_service.dart';
-import '../../trips/models/trip_model.dart'; // <--- Il tuo TripModel
-import '../../../../common/models/enums.dart'; // TripStatus
+import '../../trips/models/trip_model.dart';
+import '../../../../common/models/enums.dart';
 
 class RouteValidationTab extends StatefulWidget {
   const RouteValidationTab({super.key});
@@ -13,7 +13,6 @@ class RouteValidationTab extends StatefulWidget {
 class _RouteValidationTabState extends State<RouteValidationTab> {
   final TrafficCoordinatorService _service = TrafficCoordinatorService();
 
-  // Usiamo la lista del modello reale
   List<TripModel> _trips = [];
   bool _isLoading = true;
 
@@ -25,12 +24,16 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    final data = await _service.getProposedRoutes();
-    if (mounted) {
-      setState(() {
-        _trips = data;
-        _isLoading = false;
-      });
+    try {
+      final data = await _service.getProposedRoutes();
+      if (mounted) {
+        setState(() {
+          _trips = data;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -41,14 +44,15 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(approved ? "Percorso validato!" : "Richiesta modifica inviata"),
+          content: Text(approved ? "Percorso validato con successo!" : "Richiesta respinta."),
           backgroundColor: approved ? Colors.green : Colors.orange,
+          behavior: SnackBarBehavior.floating,
         ),
       );
       _loadData();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Errore operazione"), backgroundColor: Colors.red),
+        const SnackBar(content: Text("Errore durante l'operazione"), backgroundColor: Colors.red),
       );
     }
   }
@@ -59,28 +63,37 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16), // Arrotondamento più moderno
         border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Validazione Percorsi", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          const Text("Esamina e approva i percorsi pianificati per i trasporti eccezionali",
-              style: TextStyle(color: Colors.grey, fontSize: 14)),
+          const Text("Validazione Percorsi", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text("Esamina e approva i percorsi pianificati per i trasporti eccezionali.",
+              style: TextStyle(color: Colors.grey[600], fontSize: 14)),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
           _buildTableHeader(),
-          const Divider(),
+          const Divider(height: 1),
 
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _trips.isEmpty
-                ? const Center(child: Text("Nessun percorso da validare."))
-                : ListView.builder(
+                ? _buildEmptyState()
+                : ListView.separated(
+              padding: const EdgeInsets.symmetric(vertical: 8),
               itemCount: _trips.length,
+              separatorBuilder: (c, i) => const Divider(height: 1),
               itemBuilder: (context, index) => _buildRouteRow(_trips[index]),
             ),
           ),
@@ -89,80 +102,87 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
     );
   }
 
-  Widget _buildTableHeader() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-      child: Row(
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Expanded(flex: 1, child: Text("Codice", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey))),
-          Expanded(flex: 2, child: Text("Origine - Destinazione", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey))),
-          Expanded(flex: 2, child: Text("Dati Tecnici", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey))),
-          Expanded(flex: 1, child: Text("Stato", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey))),
-          Expanded(flex: 2, child: Text("Azioni", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey))),
+          Icon(Icons.check_circle_outline, size: 64, color: Colors.grey[300]),
+          const SizedBox(height: 16),
+          Text("Nessun percorso in attesa di validazione",
+              style: TextStyle(color: Colors.grey[500], fontSize: 16)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTableHeader() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      child: Row(
+        children: const [
+          Expanded(flex: 1, child: Text("VIAGGIO", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey))),
+          Expanded(flex: 3, child: Text("ITINERARIO", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey))),
+          Expanded(flex: 2, child: Text("DATI TECNICI", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey))),
+          Expanded(flex: 2, child: Text("STATO", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey))),
+          Expanded(flex: 2, child: Text("AZIONI", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey), textAlign: TextAlign.end)),
         ],
       ),
     );
   }
 
   Widget _buildRouteRow(TripModel trip) {
-    // Controllo stato usando l'Enum (Type Safe)
     final bool isPending = trip.status == TripStatus.WAITING_VALIDATION;
 
-    // Estrazione dati sicura (RouteModel è nullable)
     final String distance = trip.route != null
-        ? "${trip.route!.routeDistance.toStringAsFixed(1)} km"
-        : "N/D";
+        ? "${trip.route!.distanceKm.toStringAsFixed(1)} km"
+        : "-";
 
     final String duration = trip.route != null
-        ? "${trip.route!.routeDuration.toStringAsFixed(0)} min"
-        : "N/D";
+        ? trip.route!.formattedDuration
+        : "-";
+
+    final String description = trip.route?.description ?? "Standard";
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isPending ? const Color(0xFFFFFBEB) : Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: isPending ? Border.all(color: Colors.orange.shade100) : null,
-      ),
+      color: isPending ? const Color(0xFFFFFBEB) : Colors.transparent, // Highlight giallo se pending
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // 1. Codice Viaggio
+          // 1. Codice
           Expanded(flex: 1, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(trip.tripCode, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-            const SizedBox(height: 4),
-            Text("ID #${trip.id}", style: const TextStyle(color: Colors.grey, fontSize: 11)),
           ])),
 
-          // 2. Origine / Destinazione (Dal TransportRequest annidato)
-          Expanded(flex: 2, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            _buildLocationRow(Icons.my_location, trip.request.originAddress),
+          // 2. Itinerario
+          Expanded(flex: 3, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            // Usiamo i getter sicuri .origin e .destination
+            _buildLocationRow(Icons.circle, trip.request.origin, isStart: true),
             const SizedBox(height: 4),
-            _buildLocationRow(Icons.location_on, trip.request.destinationAddress),
+            _buildLocationRow(Icons.location_on, trip.request.destination, isStart: false),
           ])),
 
-          // 3. Dati Tecnici (Dal RouteModel annidato)
+          // 3. Dati Tecnici
           Expanded(flex: 2, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(distance, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-            Text(duration, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+            Text(description, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+            const SizedBox(height: 4),
+            Text("$distance • $duration", style: const TextStyle(color: Colors.grey, fontSize: 12)),
           ])),
 
           // 4. Stato
-          Expanded(flex: 1, child: _buildStatusChip(trip.status)),
+          Expanded(flex: 2, child: Align(
+            alignment: Alignment.centerLeft,
+            child: _buildStatusChip(trip.status),
+          )),
 
           // 5. Azioni
           Expanded(flex: 2, child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              IconButton(
-                icon: const Icon(Icons.map_outlined, color: Colors.blue),
-                tooltip: "Vedi Mappa",
-                onPressed: () { /* TODO: Apri mappa */ },
-              ),
               if (isPending) ...[
-                const SizedBox(width: 8),
                 _buildActionButton(
-                  "Valida", Colors.black, Colors.white, Icons.check,
+                  "Valida", const Color(0xFF0D0D1A), Colors.white, Icons.check,
                       () => _handleValidation(trip.id, true),
                 ),
                 const SizedBox(width: 8),
@@ -170,6 +190,12 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
                   icon: const Icon(Icons.close, color: Colors.red),
                   tooltip: "Rifiuta",
                   onPressed: () => _handleValidation(trip.id, false),
+                ),
+              ] else ...[
+                IconButton(
+                  icon: const Icon(Icons.map_outlined, color: Colors.blueGrey),
+                  tooltip: "Vedi Mappa",
+                  onPressed: () { },
                 ),
               ]
             ],
@@ -179,34 +205,39 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
     );
   }
 
-  Widget _buildLocationRow(IconData icon, String text) {
+  Widget _buildLocationRow(IconData icon, String text, {bool isStart = false}) {
     return Row(children: [
-      Icon(icon, size: 12, color: Colors.grey),
-      const SizedBox(width: 4),
-      Expanded(child: Text(text, style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis))
+      Icon(icon, size: 10, color: isStart ? Colors.black : Colors.red),
+      const SizedBox(width: 6),
+      Expanded(child: Text(text, style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis, maxLines: 1))
     ]);
   }
 
   Widget _buildStatusChip(TripStatus status) {
-    // Logica colori basata su Enum
-    Color bg = Colors.grey.shade200;
-    Color text = Colors.black;
+    Color bg = Colors.grey.shade100;
+    Color text = Colors.grey.shade700;
+    String label = status.name;
 
     if (status == TripStatus.WAITING_VALIDATION) {
-      bg = Colors.orange.shade100;
-      text = Colors.orange.shade900;
+      bg = Colors.orange.shade50;
+      text = Colors.orange.shade800;
+      label = "DA VALIDARE";
     } else if (status == TripStatus.VALIDATED) {
-      bg = Colors.green.shade100;
-      text = Colors.green.shade900;
+      bg = Colors.green.shade50;
+      text = Colors.green.shade800;
+      label = "VALIDATO";
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(4)),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: bg == Colors.grey.shade100 ? Colors.transparent : text.withOpacity(0.2)),
+      ),
       child: Text(
-        status.name.replaceAll('_', ' '), // Visualizza "WAITING VALIDATION"
+        label,
         style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: text),
-        textAlign: TextAlign.center,
       ),
     );
   }
@@ -219,9 +250,10 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
       style: ElevatedButton.styleFrom(
         backgroundColor: bg,
         foregroundColor: fg,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        minimumSize: Size.zero,
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+        minimumSize: const Size(0, 32),
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
       ),
     );
   }

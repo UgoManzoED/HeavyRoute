@@ -1,6 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import '../../../core/models/geo_location.dart';
+import '../../planner/presentation/service/mapbox_service.dart';
 import '../../../core/network/dio_client.dart';
+import '../models/route_model.dart';
 
 /// Service Layer dedicato alla gestione del ciclo di vita dei Viaggi (Trips).
 /// <p>
@@ -10,6 +13,7 @@ import '../../../core/network/dio_client.dart';
 class TripService {
   // Utilizziamo l'istanza singleton configurata con Interceptor e BaseUrl
   final Dio _dio = DioClient.instance;
+  final MapboxService _mapboxService = MapboxService();
 
   /// Approva una richiesta di trasporto pendente e genera il relativo Viaggio.
   /// <p>
@@ -54,5 +58,52 @@ class TripService {
       debugPrint("🛑 ERRORE GENERICO ($endpoint): $e");
       return false;
     }
+  }
+
+  Future<List<RouteModel>> getRealRouteOptions(String originAddress, String destAddress) async {
+    List<RouteModel> options = [];
+
+    // 1. Otteniamo le coordinate reali
+    debugPrint("🔍 Geocoding: $originAddress -> $destAddress");
+    final GeoLocation? start = await _mapboxService.getCoordinates(originAddress);
+    final GeoLocation? end = await _mapboxService.getCoordinates(destAddress);
+
+    if (start == null || end == null) {
+      debugPrint("❌ Impossibile trovare coordinate per gli indirizzi.");
+      return [];
+    }
+
+    // 2. Chiediamo 2 profili diversi a Mapbox (es. Con Traffico e Normale)
+
+    // Opzione A: Guida con Traffico
+    final routeA = await _mapboxService.calculateRoute(start, end, 'driving-traffic');
+    if (routeA != null) {
+      // Creiamo una copia con descrizione custom
+      options.add(RouteModel(
+          id: 1,
+          description: "Rapido (Traffico Real-time)",
+          distanceKm: routeA.distanceKm,
+          durationHours: routeA.durationHours,
+          tollCost: routeA.tollCost,
+          isHazmatSuitable: true,
+          polyline: routeA.polyline
+      ));
+    }
+
+    // Opzione B: Guida Classica
+    final routeB = await _mapboxService.calculateRoute(start, end, 'driving');
+    if (routeB != null) {
+      options.add(RouteModel(
+          id: 2,
+          description: "Standard (Percorso Breve)",
+          distanceKm: routeB.distanceKm,
+          durationHours: routeB.durationHours,
+          tollCost: routeB.tollCost * 0.9,
+          isHazmatSuitable: true,
+          polyline: routeB.polyline
+      ));
+    }
+
+    return options;
   }
 }
