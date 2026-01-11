@@ -2,7 +2,10 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'route_model.g.dart';
 
-double _minutesToHours(num value) => value.toDouble() / 60.0;
+double _minutesToHours(num? value) {
+  if (value == null) return 0.0;
+  return value.toDouble() / 60.0;
+}
 
 @JsonSerializable()
 class RouteModel {
@@ -13,7 +16,7 @@ class RouteModel {
   final String description;
 
   // Backend: routeDistance | Service: distanceKm
-  @JsonKey(name: 'routeDistance')
+  @JsonKey(name: 'routeDistance', defaultValue: 0.0)
   final double distanceKm;
 
   // Backend: routeDuration | Service: durationHours

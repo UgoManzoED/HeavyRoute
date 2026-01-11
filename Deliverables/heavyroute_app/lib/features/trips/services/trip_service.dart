@@ -1,84 +1,92 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:developer' as developer;
 import '../../../core/models/geo_location.dart';
 import '../../planner/presentation/service/mapbox_service.dart';
 import '../../../core/network/dio_client.dart';
 import '../models/route_model.dart';
+import '../models/trip_model.dart';
 
 /// Service Layer dedicato alla gestione del ciclo di vita dei Viaggi (Trips).
-/// <p>
-/// Gestisce le operazioni che trasformano una semplice richiesta di trasporto
-/// in un ordine di viaggio operativo (es. Approvazione, Pianificazione, Assegnazione).
-/// </p>
 class TripService {
-  // Utilizziamo l'istanza singleton configurata con Interceptor e BaseUrl
   final Dio _dio = DioClient.instance;
   final MapboxService _mapboxService = MapboxService();
 
-  /// Approva una richiesta di trasporto pendente e genera il relativo Viaggio.
+  /// Recupera tutti i viaggi dal backend.
   /// <p>
-  /// <b>Backend Endpoint:</b> POST /api/trips/{requestId}/approve
+  /// <b>Backend Endpoint:</b> GET /api/trips
   /// </p>
-  /// <p>
-  /// Questa operazione è idempotente a livello di business: se la richiesta è già approvata,
-  /// il backend restituirà un errore o ignorerà il comando.
-  /// </p>
-  ///
-  /// @param requestId L'ID univoco della richiesta da approvare.
-  /// @return [true] se il server risponde 200 OK (Viaggio creato), [false] altrimenti.
+  /// Include logica di DEBUG avanzata per individuare errori di parsing JSON.
+  Future<List<TripModel>> getAllTrips() async {
+    const String endpoint = '/api/trips';
+
+    try {
+      debugPrint("🚀 Chiamata GET: $endpoint");
+      final response = await _dio.get(endpoint);
+
+      // --- INIZIO BLOCCO DEBUGGING ---
+      developer.log("📦 JSON RICEVUTO:", name: "TRIP_SERVICE");
+      developer.log(response.data.toString(), name: "JSON_DATA");
+
+      final List<dynamic> rawList = response.data;
+      List<TripModel> parsedTrips = [];
+
+      // Parsiamo un elemento alla volta
+      for (var i = 0; i < rawList.length; i++) {
+        final item = rawList[i];
+        try {
+          parsedTrips.add(TripModel.fromJson(item));
+        } catch (e) {
+          debugPrint("\n🔴 ERRORE DI PARSING all'elemento indice $i!");
+          debugPrint("💀 Dati dell'elemento corrotto: $item");
+          _analyzeParsingError(item);
+          debugPrint("Errore specifico Dart: $e\n");
+        }
+      }
+      // --- FINE BLOCCO DEBUGGING ---
+
+      return parsedTrips;
+
+    } on DioException catch (e) {
+      debugPrint("🛑 ERRORE DIO ($endpoint): ${e.response?.statusCode}");
+      return [];
+    } catch (e) {
+      debugPrint("🛑 ERRORE GENERICO ($endpoint): $e");
+      return [];
+    }
+  }
+
+  /// Approva una richiesta di trasporto.
   Future<bool> approveRequest(int requestId) async {
-    final String endpoint = '/trips/$requestId/approve';
+    final String endpoint = '/api/trips/$requestId/approve';
 
     try {
       debugPrint("🚀 Chiamata POST: $endpoint");
-
       final response = await _dio.post(endpoint);
 
-      debugPrint("✅ Risposta Backend: ${response.statusCode}");
-
-      // 200 OK (Successo con dati)
-      // 201 Created (Nuova risorsa creata)
-      // 204 No Content (Successo ma body vuoto)
-      if (response.statusCode == 200 ||
-          response.statusCode == 201 ||
-          response.statusCode == 204) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         return true;
       }
-
-      return false;
-
-    } on DioException catch (e) {
-      debugPrint("🛑 ERRORE DIO ($endpoint)");
-      debugPrint("Status: ${e.response?.statusCode}");
-      debugPrint("Data: ${e.response?.data}");
-
-      // Se l'errore è 409 (Conflict) o 400
       return false;
     } catch (e) {
-      debugPrint("🛑 ERRORE GENERICO ($endpoint): $e");
+      debugPrint("🛑 ERRORE approveRequest: $e");
       return false;
     }
   }
 
+  /// Calcola opzioni di percorso reali usando Mapbox.
   Future<List<RouteModel>> getRealRouteOptions(String originAddress, String destAddress) async {
     List<RouteModel> options = [];
-
-    // 1. Otteniamo le coordinate reali
     debugPrint("🔍 Geocoding: $originAddress -> $destAddress");
+
     final GeoLocation? start = await _mapboxService.getCoordinates(originAddress);
     final GeoLocation? end = await _mapboxService.getCoordinates(destAddress);
 
-    if (start == null || end == null) {
-      debugPrint("❌ Impossibile trovare coordinate per gli indirizzi.");
-      return [];
-    }
+    if (start == null || end == null) return [];
 
-    // 2. Chiediamo 2 profili diversi a Mapbox (es. Con Traffico e Normale)
-
-    // Opzione A: Guida con Traffico
+    // Opzione A: Traffico
     final routeA = await _mapboxService.calculateRoute(start, end, 'driving-traffic');
     if (routeA != null) {
-      // Creiamo una copia con descrizione custom
       options.add(RouteModel(
           id: 1,
           description: "Rapido (Traffico Real-time)",
@@ -90,7 +98,7 @@ class TripService {
       ));
     }
 
-    // Opzione B: Guida Classica
+    // Opzione B: Standard
     final routeB = await _mapboxService.calculateRoute(start, end, 'driving');
     if (routeB != null) {
       options.add(RouteModel(
@@ -103,7 +111,37 @@ class TripService {
           polyline: routeB.polyline
       ));
     }
-
     return options;
+  }
+
+  /// Funzione Helper per scovare i null
+  void _analyzeParsingError(Map<String, dynamic> json) {
+    debugPrint("🔍 ANALISI CAMPI CRITICI:");
+
+    void check(String field, bool isRequired) {
+      final val = json[field];
+      if (val == null) {
+        debugPrint("   ⚠️ $field è NULL -> ${isRequired ? 'CRITICO (Richiesto)' : 'Ok (Opzionale)'}");
+      } else {
+        debugPrint("   ✅ $field = $val (${val.runtimeType})");
+      }
+    }
+
+    check('id', true);
+    check('driverId', false);
+    check('request', true);
+
+    // Controlla campi annidati se esistono
+    if (json['request'] != null) {
+      final req = json['request'];
+      debugPrint("   Checking Request Load:");
+      if (req['load'] != null) {
+        final load = req['load'];
+        if (load['weightKg'] == null) debugPrint("      ❌ weightKg è NULL!");
+        if (load['type'] == null) debugPrint("      ❌ type è NULL!");
+      } else {
+        debugPrint("      ⚠️ load è NULL");
+      }
+    }
   }
 }

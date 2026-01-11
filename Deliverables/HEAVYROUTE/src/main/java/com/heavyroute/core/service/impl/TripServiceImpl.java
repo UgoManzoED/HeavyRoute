@@ -218,4 +218,16 @@ public class TripServiceImpl implements TripService {
                 .map(tripMapper::toDTO)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TripResponseDTO> getAllTrips() {
+        // Recupera tutti i viaggi dal DB
+        List<Trip> trips = tripRepository.findAll();
+
+        // Li converte in DTO usando il Mapper
+        return trips.stream()
+                .map(tripMapper::toDTO)
+                .toList();
+    }
 }

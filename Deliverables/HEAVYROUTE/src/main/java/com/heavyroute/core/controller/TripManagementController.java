@@ -6,6 +6,7 @@ import com.heavyroute.core.service.TripService;
 import com.heavyroute.core.enums.TripStatus;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,6 +22,7 @@ import java.util.List;
  * fino all'assegnazione delle risorse (Autista e Veicolo).
  * </p>
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/trips")
 @RequiredArgsConstructor
@@ -72,7 +74,7 @@ public class TripManagementController {
             @PathVariable Long tripId,
             @Valid @RequestBody TripAssignmentDTO dto) {
 
-        // Assicuriamo coerenza tra URL e Body (Security best practice)
+        // Assicuriamo coerenza tra URL e Body
         dto.setTripId(tripId);
 
         tripService.planTrip(tripId, dto);
@@ -88,9 +90,21 @@ public class TripManagementController {
      *
      * @return Una lista di {@link TripResponseDTO} filtrata per stato operativo.
      */
-    @GetMapping("/planning")
+    @GetMapping("/api/planning")
     @PreAuthorize("hasRole('LOGISTIC_PLANNER')")
     public ResponseEntity<List<TripResponseDTO>> getTripsToPlan() {
         return ResponseEntity.ok(tripService.getTripsByStatus(TripStatus.IN_PLANNING));
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('LOGISTIC_PLANNER', 'TRAFFIC_COORDINATOR')")
+    public ResponseEntity<List<TripResponseDTO>> getAllTrips() {
+        log.info("📡 GET /api/trips invocato da utente autenticato");
+        return ResponseEntity.ok(tripService.getAllTrips());
+    }
+
+    @GetMapping("/ping")
+    public String ping() {
+        return "Pong! Il controller funziona all'indirizzo /trips";
     }
 }

@@ -8,7 +8,7 @@ part of 'trip_model.dart';
 
 TripModel _$TripModelFromJson(Map<String, dynamic> json) => TripModel(
   id: (json['id'] as num).toInt(),
-  tripCode: json['tripCode'] as String,
+  tripCode: json['tripCode'] as String? ?? 'N/D',
   status: $enumDecode(
     _$TripStatusEnumMap,
     json['status'],
@@ -18,12 +18,10 @@ TripModel _$TripModelFromJson(Map<String, dynamic> json) => TripModel(
   route: json['route'] == null
       ? null
       : RouteModel.fromJson(json['route'] as Map<String, dynamic>),
-  driver: json['driver'] == null
-      ? null
-      : UserModel.fromJson(json['driver'] as Map<String, dynamic>),
-  vehicle: json['vehicle'] == null
-      ? null
-      : VehicleModel.fromJson(json['vehicle'] as Map<String, dynamic>),
+  driverId: (json['driverId'] as num?)?.toInt(),
+  driverName: json['driverName'] as String?,
+  vehiclePlate: json['vehiclePlate'] as String?,
+  vehicleModel: json['vehicleModel'] as String?,
 );
 
 Map<String, dynamic> _$TripModelToJson(TripModel instance) => <String, dynamic>{
@@ -32,8 +30,10 @@ Map<String, dynamic> _$TripModelToJson(TripModel instance) => <String, dynamic>{
   'status': _$TripStatusEnumMap[instance.status]!,
   'request': instance.request,
   'route': instance.route,
-  'driver': instance.driver,
-  'vehicle': instance.vehicle,
+  'driverId': instance.driverId,
+  'driverName': instance.driverName,
+  'vehiclePlate': instance.vehiclePlate,
+  'vehicleModel': instance.vehicleModel,
 };
 
 const _$TripStatusEnumMap = {

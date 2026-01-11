@@ -22,6 +22,9 @@ class LoadDetails {
   @JsonKey(name: 'length', defaultValue: 0.0)
   final double lengthMeters;
 
+  @JsonKey(defaultValue: 1)
+  final int quantity;
+
   LoadDetails({
     required this.loadType,
     required this.description,
@@ -29,6 +32,7 @@ class LoadDetails {
     required this.widthMeters,
     required this.heightMeters,
     required this.lengthMeters,
+    required this.quantity,
   });
 
   factory LoadDetails.fromJson(Map<String, dynamic> json) => _$LoadDetailsFromJson(json);

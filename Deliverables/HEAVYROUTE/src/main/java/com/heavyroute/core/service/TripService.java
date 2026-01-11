@@ -72,4 +72,6 @@ public interface TripService {
      * @param tripId L'ID del viaggio per cui calcolare il percorso.
      */
     void calculateRoute(Long tripId);
+
+    List<TripResponseDTO> getAllTrips();
 }
