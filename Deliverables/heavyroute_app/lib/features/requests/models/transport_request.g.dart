@@ -6,26 +6,39 @@ part of 'transport_request.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-TransportRequest _$TransportRequestFromJson(Map<String, dynamic> json) =>
-    TransportRequest(
-      id: (json['id'] as num).toInt(),
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      client: UserModel.fromJson(json['client'] as Map<String, dynamic>),
-      originAddress: json['originAddress'] as String,
-      destinationAddress: json['destinationAddress'] as String,
-      pickupDate: DateTime.parse(json['pickupDate'] as String),
-      requestStatus: $enumDecode(_$RequestStatusEnumMap, json['requestStatus']),
-      load: LoadDetails.fromJson(json['load'] as Map<String, dynamic>),
-    );
+TransportRequest _$TransportRequestFromJson(
+  Map<String, dynamic> json,
+) => TransportRequest(
+  id: (json['id'] as num).toInt(),
+  clientId: (json['clientId'] as num?)?.toInt() ?? 0,
+  clientFullName: json['clientFullName'] as String? ?? 'Cliente Sconosciuto',
+  originAddress:
+      json['originAddress'] as String? ?? 'Indirizzo non specificato',
+  destinationAddress:
+      json['destinationAddress'] as String? ?? 'Indirizzo non specificato',
+  pickupDate: TransportRequest._parseDateSafe(json['pickupDate'] as String?),
+  deliveryDate: TransportRequest._parseDateSafeNullable(
+    json['deliveryDate'] as String?,
+  ),
+  requestStatus: $enumDecode(
+    _$RequestStatusEnumMap,
+    json['requestStatus'],
+    unknownValue: RequestStatus.PENDING,
+  ),
+  load: json['load'] == null
+      ? null
+      : LoadDetails.fromJson(json['load'] as Map<String, dynamic>),
+);
 
 Map<String, dynamic> _$TransportRequestToJson(TransportRequest instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'createdAt': instance.createdAt.toIso8601String(),
-      'client': instance.client,
+      'clientId': instance.clientId,
+      'clientFullName': instance.clientFullName,
       'originAddress': instance.originAddress,
       'destinationAddress': instance.destinationAddress,
       'pickupDate': instance.pickupDate.toIso8601String(),
+      'deliveryDate': instance.deliveryDate?.toIso8601String(),
       'requestStatus': _$RequestStatusEnumMap[instance.requestStatus]!,
       'load': instance.load,
     };
