@@ -77,6 +77,34 @@ class UserService {
     }
   }
 
+  /// Modifica un utente specifico (per Account Manager)
+  Future<bool> updateInternalUser(int id, UserModel userData) async {
+    try {
+      final response = await _dio.put(
+        '/users/$id', // Chiama l'endpoint creato sopra
+        data: userData.toJson(),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Errore updateInternalUser: $e");
+      return false;
+    }
+  }
+
+  /// Crea un nuovo utente interno
+  Future<bool> createInternalUser(UserModel userData) async {
+    try {
+      final response = await _dio.post(
+        '/users/internal',
+        data: userData.toJson(),
+      );
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (e) {
+      print("Errore createInternalUser: $e");
+      return false;
+    }
+  }
+
   /// Esegue il logout.
   ///
   /// Pulisce il TokenStorage (JWT e Ruolo) per forzare il login al prossimo avvio.

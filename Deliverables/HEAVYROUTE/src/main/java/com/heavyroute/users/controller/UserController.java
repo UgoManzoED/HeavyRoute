@@ -70,6 +70,27 @@ public class UserController {
         return ResponseEntity.ok(userService.createInternalUser(dto));
     }
 
+    /**
+     * Endpoint per ottenere la lista di tutti gli utenti interni.
+     * Richiesto dalla Dashboard dell'Account Manager.
+     */
+    @GetMapping("/internal")
+    @PreAuthorize("hasRole('ACCOUNT_MANAGER')")
+    public ResponseEntity<List<UserResponseDTO>> getInternalUsers() {
+        List<User> internalUsers = userService.findAllInternalUsers();
 
+        return ResponseEntity.ok(userMapper.toDTOList(internalUsers));
+    }
+
+    /**
+     * Modifica di un utente esistente (Solo per Account Manager).
+     */
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ACCOUNT_MANAGER')")
+    public ResponseEntity<UserResponseDTO> updateInternalUser(
+            @PathVariable Long id,
+            @Valid @RequestBody InternalUserUpdateDTO dto) { // Usa un DTO o UserResponseDTO a seconda della tua struttura
+        return ResponseEntity.ok(userService.updateInternalUser(id, dto));
+    }
 
 }

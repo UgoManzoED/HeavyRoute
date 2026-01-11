@@ -111,6 +111,7 @@ public class UserMapper {
         if (dto.getEmail() != null) entity.setEmail(dto.getEmail());
         if (dto.getFirstName() != null) entity.setFirstName(dto.getFirstName());
         if (dto.getLastName() != null) entity.setLastName(dto.getLastName());
+        if (dto.getPhoneNumber() != null) {entity.setPhoneNumber(dto.getPhoneNumber());}
 
         if (dto.getActive() != null) {
             entity.setActive(dto.getActive());

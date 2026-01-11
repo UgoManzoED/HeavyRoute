@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
-import '../../auth/models/user_model.dart'; // <--- Assicurati che l'import sia corretto
-import '../../../../common/models/enums.dart';    // Per i ruoli se servono
+import '../../auth/models/user_model.dart';
+import '../../auth/services/user_service.dart';
+import '../../../../common/models/enums.dart';
 
 class EditUserPopup extends StatefulWidget {
-  // 1. Aggiungiamo il parametro 'user'.
-  // Lo rendiamo opzionale (?) così possiamo usare questo stesso popup
-  // sia per CREARE (user = null) che per MODIFICARE (user = oggetto).
-  final UserModel? user;
+  final UserModel user; // Obbligatorio: qui si entra solo per modificare
 
   const EditUserPopup({
     super.key,
-    this.user,
+    required this.user,
   });
 
   @override
@@ -19,8 +17,9 @@ class EditUserPopup extends StatefulWidget {
 
 class _EditUserPopupState extends State<EditUserPopup> {
   final _formKey = GlobalKey<FormState>();
+  final UserService _userService = UserService();
+  bool _isSaving = false;
 
-  // Controller per i campi di testo
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
   late TextEditingController _emailController;
@@ -29,11 +28,11 @@ class _EditUserPopupState extends State<EditUserPopup> {
   @override
   void initState() {
     super.initState();
-    // 2. Pre-compiliamo i campi se stiamo modificando un utente esistente
-    _firstNameController = TextEditingController(text: widget.user?.firstName ?? '');
-    _lastNameController = TextEditingController(text: widget.user?.lastName ?? '');
-    _emailController = TextEditingController(text: widget.user?.email ?? '');
-    _phoneController = TextEditingController(text: widget.user?.phoneNumber ?? '');
+    // Pre-popoliamo con i dati esistenti
+    _firstNameController = TextEditingController(text: widget.user.firstName);
+    _lastNameController = TextEditingController(text: widget.user.lastName);
+    _emailController = TextEditingController(text: widget.user.email);
+    _phoneController = TextEditingController(text: widget.user.phoneNumber);
   }
 
   @override
@@ -47,46 +46,54 @@ class _EditUserPopupState extends State<EditUserPopup> {
 
   @override
   Widget build(BuildContext context) {
-    // Capiamo se stiamo modificando o creando
-    final isEditing = widget.user != null;
-
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
-        width: 500, // Larghezza fissa per desktop/web
+        width: 500,
         padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize: MainAxisSize.min, // Si adatta al contenuto
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --- TITOLO ---
+              // --- HEADER ---
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    isEditing ? "Modifica Utente" : "Nuovo Utente",
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
+                  const Text("Modifica Utente", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   IconButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.pop(context, false),
                     icon: const Icon(Icons.close),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
 
-              // --- CAMPI ---
+              // --- RUOLO (Sola Lettura) ---
+              const Text("Ruolo Aziendale", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.grey)),
+              const SizedBox(height: 6),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Text(
+                  widget.user.role.name.replaceAll('_', ' '),
+                  style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // --- CAMPI ANAGRAFICI ---
               Row(
                 children: [
-                  Expanded(
-                    child: _buildTextField("Nome", _firstNameController),
-                  ),
+                  Expanded(child: _buildTextField("Nome", _firstNameController)),
                   const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildTextField("Cognome", _lastNameController),
-                  ),
+                  Expanded(child: _buildTextField("Cognome", _lastNameController)),
                 ],
               ),
               const SizedBox(height: 16),
@@ -96,26 +103,26 @@ class _EditUserPopupState extends State<EditUserPopup> {
 
               const SizedBox(height: 32),
 
-              // --- BOTTONI AZIONE ---
+              // --- BOTTONI ---
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                    ),
+                    onPressed: _isSaving ? null : () => Navigator.pop(context, false),
+                    style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24)),
                     child: const Text("Annulla"),
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton(
-                    onPressed: _saveUser,
+                    onPressed: _isSaving ? null : _saveChanges,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF0D0D1A),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
                     ),
-                    child: Text(isEditing ? "Salva Modifiche" : "Crea Utente"),
+                    child: _isSaving
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : const Text("Salva Modifiche"),
                   ),
                 ],
               ),
@@ -134,8 +141,10 @@ class _EditUserPopupState extends State<EditUserPopup> {
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
+          enabled: !_isSaving,
           validator: (value) {
             if (value == null || value.isEmpty) return "Campo obbligatorio";
+            if (isEmail && !value.contains("@")) return "Email non valida";
             return null;
           },
           decoration: InputDecoration(
@@ -147,24 +156,41 @@ class _EditUserPopupState extends State<EditUserPopup> {
     );
   }
 
-  void _saveUser() {
-    if (_formKey.currentState!.validate()) {
-      // TODO: Implementare la chiamata al Service per aggiornare (PUT) o creare (POST)
+  Future<void> _saveChanges() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isSaving = true);
 
-      // Esempio logica:
-      // final updatedUser = UserModel(
-      //   id: widget.user?.id ?? 0,
-      //   firstName: _firstNameController.text,
-      //   ...
-      // );
-      // _userService.updateUser(updatedUser);
+    // Manteniamo ID, Ruolo e altri dati invariati
+    final updatedUser = UserModel(
+      id: widget.user.id,
+      username: widget.user.username,
+      email: _emailController.text.trim(),
+      firstName: _firstNameController.text.trim(),
+      lastName: _lastNameController.text.trim(),
+      phoneNumber: _phoneController.text.trim(),
+      role: widget.user.role, // Il ruolo vecchio viene reinviato ma ignorato o non modificato
+      active: widget.user.active,
+      // Campi opzionali preservati
+      serialNumber: widget.user.serialNumber,
+      hireDate: widget.user.hireDate,
+      licenseNumber: widget.user.licenseNumber,
+      status: widget.user.status,
+      companyName: widget.user.companyName,
+      vatNumber: widget.user.vatNumber,
+      pec: widget.user.pec,
+      address: widget.user.address,
+    );
 
-      Navigator.pop(context); // Chiude il popup
+    final success = await _userService.updateInternalUser(updatedUser.id, updatedUser);
 
-      // Feedback utente
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Operazione salvata (Mock)")),
-      );
+    if (mounted) {
+      setState(() => _isSaving = false);
+      if (success) {
+        Navigator.pop(context, true); // Chiude ritornando TRUE (successo)
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Utente aggiornato con successo!"), backgroundColor: Colors.green));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Errore durante l'aggiornamento"), backgroundColor: Colors.red));
+      }
     }
   }
 }
