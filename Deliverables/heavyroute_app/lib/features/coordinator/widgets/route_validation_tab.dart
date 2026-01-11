@@ -25,6 +25,8 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
+      // Recupera sia quelli DA VALIDARE (per lavorarli)
+      // sia quelli VALIDATI (per storico, se il backend lo permette, o filtra solo WAITING)
       final data = await _service.getProposedRoutes();
       if (mounted) {
         setState(() {
@@ -37,18 +39,22 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
     }
   }
 
-  Future<void> _handleValidation(int tripId, bool approved) async {
+  /// Gestisce la validazione effettiva chiamando il servizio
+  Future<void> _executeValidation(int tripId, bool approved) async {
+    // Mostra caricamento (opzionale se dentro dialog)
     final success = await _service.validateRoute(tripId, approved);
+
     if (!mounted) return;
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(approved ? "Percorso validato con successo!" : "Richiesta respinta."),
+          content: Text(approved ? "Percorso validato e notificato al Planner!" : "Richiesta respinta."),
           backgroundColor: approved ? Colors.green : Colors.orange,
           behavior: SnackBarBehavior.floating,
         ),
       );
+      // Ricarica i dati per aggiornare la UI e rimuovere l'elemento o cambiare stato
       _loadData();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -57,13 +63,128 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
     }
   }
 
+  /// Apre il popup con la Mappa (Placeholder) prima di confermare
+  void _openValidationDialog(TripModel trip) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          width: 700,
+          height: 600,
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Intestazione Dialog
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Verifica Percorso: ${trip.tripCode}",
+                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      Text("${trip.request.origin} -> ${trip.request.destination}",
+                          style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  )
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // --- PLACEHOLDER MAPPA ---
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE3F2FD), // Colore azzurrino tipo mappa
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blueGrey.shade100),
+                  ),
+                  child: Stack(
+                    children: [
+                      // Sfondo griglia simulata
+                      Center(
+                        child: Opacity(
+                          opacity: 0.1,
+                          child: GridView.builder(
+                            itemCount: 100,
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 10),
+                            itemBuilder: (c, i) => Container(
+                              margin: const EdgeInsets.all(1),
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Tracciato e Pin
+                      Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.map_outlined, size: 64, color: Colors.blueGrey),
+                            const SizedBox(height: 16),
+                            Text("Visualizzazione Mappa Interattiva",
+                                style: TextStyle(color: Colors.blueGrey[700], fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 8),
+                            const Text("Qui verrà renderizzato il percorso calcolato\ncon i vincoli di viabilità applicati.",
+                                textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // -------------------------
+
+              const SizedBox(height: 24),
+
+              // Pulsanti Azione
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("Annulla", style: TextStyle(color: Colors.grey)),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      // 1. Chiudi Dialog
+                      Navigator.pop(context);
+                      // 2. Esegui Validazione
+                      await _executeValidation(trip.id, true);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0D0D1A),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    icon: const Icon(Icons.check_circle, color: Colors.white),
+                    label: const Text("CONFERMA E VALIDA", style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16), // Arrotondamento più moderno
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
@@ -78,7 +199,7 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
         children: [
           const Text("Validazione Percorsi", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          Text("Esamina e approva i percorsi pianificati per i trasporti eccezionali.",
+          Text("Esamina la mappa e approva i percorsi per renderli definitivi.",
               style: TextStyle(color: Colors.grey[600], fontSize: 14)),
 
           const SizedBox(height: 32),
@@ -102,6 +223,7 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
     );
   }
 
+  // ... _buildEmptyState e _buildTableHeader restano uguali ...
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -145,19 +267,16 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
     final String description = trip.route?.description ?? "Standard";
 
     return Container(
-      color: isPending ? const Color(0xFFFFFBEB) : Colors.transparent, // Highlight giallo se pending
+      color: isPending ? const Color(0xFFFFFBEB) : Colors.transparent,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // 1. Codice
-          Expanded(flex: 1, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(trip.tripCode, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-          ])),
+          Expanded(flex: 1, child: Text(trip.tripCode, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
 
           // 2. Itinerario
           Expanded(flex: 3, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            // Usiamo i getter sicuri .origin e .destination
             _buildLocationRow(Icons.circle, trip.request.origin, isStart: true),
             const SizedBox(height: 4),
             _buildLocationRow(Icons.location_on, trip.request.destination, isStart: false),
@@ -181,21 +300,25 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               if (isPending) ...[
+                // MODIFICA QUI: Il bottone chiama _openValidationDialog
                 _buildActionButton(
-                  "Valida", const Color(0xFF0D0D1A), Colors.white, Icons.check,
-                      () => _handleValidation(trip.id, true),
+                  "Esamina",
+                  const Color(0xFF0D0D1A),
+                  Colors.white,
+                  Icons.map, // Icona cambiata in Mappa
+                      () => _openValidationDialog(trip),
                 ),
                 const SizedBox(width: 8),
                 IconButton(
                   icon: const Icon(Icons.close, color: Colors.red),
                   tooltip: "Rifiuta",
-                  onPressed: () => _handleValidation(trip.id, false),
+                  onPressed: () => _executeValidation(trip.id, false), // Rifiuto diretto senza mappa
                 ),
               ] else ...[
                 IconButton(
-                  icon: const Icon(Icons.map_outlined, color: Colors.blueGrey),
-                  tooltip: "Vedi Mappa",
-                  onPressed: () { },
+                  icon: const Icon(Icons.visibility_outlined, color: Colors.blueGrey),
+                  tooltip: "Vedi Dettagli",
+                  onPressed: () => _openValidationDialog(trip), // Riapre la mappa solo per view
                 ),
               ]
             ],

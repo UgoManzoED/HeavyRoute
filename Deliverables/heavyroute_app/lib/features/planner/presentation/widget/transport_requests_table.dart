@@ -3,22 +3,24 @@ import '../../../../features/requests/models/transport_request.dart';
 
 class TransportRequestsTable extends StatelessWidget {
   final List<TransportRequest> requests;
-  final Function(int) onApproveTap;
+  // MODIFICA 1: Ora passiamo l'intero oggetto request, non solo l'int id
+  final Function(TransportRequest) onPlanTap;
 
   const TransportRequestsTable({
     super.key,
     required this.requests,
-    required this.onApproveTap,
+    required this.onPlanTap, // Rinominiamo per chiarezza
   });
 
   @override
   Widget build(BuildContext context) {
-
+    // ... il resto del build rimane uguale ...
     return SingleChildScrollView(
       scrollDirection: Axis.vertical,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: DataTable(
+          // ... columns rimangono uguali ...
           columnSpacing: 30,
           headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
           columns: const [
@@ -41,10 +43,10 @@ class TransportRequestsTable extends StatelessWidget {
     final status = req.requestStatus.name;
     final bool canApprove = status == "PENDING";
 
+    // ... logica formattazione date/stringhe rimane uguale ...
     final dateStr = req.pickupDate.toString().split(' ').first;
     final origin = req.originAddress.split(',').first;
     final dest = req.destinationAddress.split(',').first;
-
     final weight = req.load != null ? "${req.load!.weightKg} kg" : "-";
 
     return DataRow(cells: [
@@ -57,22 +59,24 @@ class TransportRequestsTable extends StatelessWidget {
       DataCell(_buildStatusBadge(status)),
       DataCell(
         canApprove
-            ? ElevatedButton(
-          onPressed: () => onApproveTap(req.id),
+            ? ElevatedButton.icon( // MODIFICA 2: Usiamo icon button per stile
+          onPressed: () => onPlanTap(req), // Passiamo l'intera request
+          icon: const Icon(Icons.map, size: 14), // Icona Mappa
+          label: const Text("Pianifica", style: TextStyle(fontSize: 12)),
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF0D0D1A),
+            backgroundColor: const Color(0xFF0D0D1A), // O Colors.indigo per differenziare
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
             minimumSize: const Size(0, 32),
           ),
-          child: const Text("Approva", style: TextStyle(fontSize: 12)),
         )
             : const Text("Gestita", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic, fontSize: 12)),
       ),
     ]);
   }
 
+  // ... _buildStatusBadge rimane uguale ...
   Widget _buildStatusBadge(String status) {
     Color color = Colors.grey;
     if (status == "APPROVED") color = Colors.green;
