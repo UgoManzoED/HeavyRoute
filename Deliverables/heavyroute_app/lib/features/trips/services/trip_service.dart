@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../../../core/network/dio_client.dart';
 
 /// Service Layer dedicato alla gestione del ciclo di vita dei Viaggi (Trips).
@@ -22,19 +23,35 @@ class TripService {
   /// @param requestId L'ID univoco della richiesta da approvare.
   /// @return [true] se il server risponde 200 OK (Viaggio creato), [false] altrimenti.
   Future<bool> approveRequest(int requestId) async {
+    final String endpoint = '/trips/$requestId/approve';
+
     try {
-      final response = await _dio.post('/trips/$requestId/approve');
-      return response.statusCode == 200;
-    } on DioException catch (e) {
-      // Gestione errori specifica per chiamate HTTP
-      print("--- ERRORE APPROVAZIONE TRIP ---");
-      print("Status Code: ${e.response?.statusCode}");
-      print("Messaggio Server: ${e.response?.data}");
+      debugPrint("🚀 Chiamata POST: $endpoint");
+
+      final response = await _dio.post(endpoint);
+
+      debugPrint("✅ Risposta Backend: ${response.statusCode}");
+
+      // 200 OK (Successo con dati)
+      // 201 Created (Nuova risorsa creata)
+      // 204 No Content (Successo ma body vuoto)
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 204) {
+        return true;
+      }
+
       return false;
 
+    } on DioException catch (e) {
+      debugPrint("🛑 ERRORE DIO ($endpoint)");
+      debugPrint("Status: ${e.response?.statusCode}");
+      debugPrint("Data: ${e.response?.data}");
+
+      // Se l'errore è 409 (Conflict) o 400
+      return false;
     } catch (e) {
-      // Gestione errori imprevisti
-      print("Errore generico in approveRequest: $e");
+      debugPrint("🛑 ERRORE GENERICO ($endpoint): $e");
       return false;
     }
   }
