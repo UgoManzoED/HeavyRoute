@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../models/request_detail_dto.dart';
+import '../../models/transport_request.dart';
 
 /**
  * Popup per la richiesta di modifica o annullamento di un ordine esistente.
@@ -11,7 +11,7 @@ import '../../models/request_detail_dto.dart';
  */
 class RequestActionPopup extends StatefulWidget {
   /** Il DTO della richiesta contenente i dati necessari. */
-  final RequestDetailDTO request;
+  final TransportRequest request;
 
   /**
    * Costruttore del popup.
