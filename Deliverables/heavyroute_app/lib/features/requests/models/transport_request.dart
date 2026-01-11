@@ -48,7 +48,7 @@ class TransportRequest {
   String get origin => originAddress;
   String get destination => destinationAddress;
 
-  // --- HELPER PER LE DATE ---
+  // --- HELPER DATE ---
   static DateTime _parseDateSafe(String? dateStr) {
     if (dateStr == null) return DateTime.now(); // Fallback
     return DateTime.parse(dateStr);
@@ -57,6 +57,11 @@ class TransportRequest {
   static DateTime? _parseDateSafeNullable(String? dateStr) {
     if (dateStr == null) return null;
     return DateTime.parse(dateStr);
+  }
+
+  // Getter per la UI
+  String get formattedId {
+    return "HR-${id.toString().padLeft(6, '0')}";
   }
 
   factory TransportRequest.fromJson(Map<String, dynamic> json) => _$TransportRequestFromJson(json);

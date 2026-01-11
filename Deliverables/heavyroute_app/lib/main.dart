@@ -6,8 +6,11 @@ import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/landing/presentation/screens/landing_page.dart';
 import 'features/requests/presentation/screens/customer_dashboard_screen.dart';
 import 'features/coordinator/screens/coordinator_dashboard_screen.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('it_IT', null);
   runApp(const HeavyRouteApp());
 }
 
