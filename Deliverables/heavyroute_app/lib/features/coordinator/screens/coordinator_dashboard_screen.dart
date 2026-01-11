@@ -3,6 +3,7 @@ import '../../../../common/heavy_route_app_bar.dart';
 import '../../auth/services/user_service.dart';
 import '../../auth/models/user_dto.dart';
 import '../../requests/presentation/widgets/user_data_popup.dart';
+
 import '../widgets/route_validation_tab.dart';
 import '../widgets/documentation_tab.dart';
 import '../widgets/technical_escort_tab.dart';
@@ -16,11 +17,9 @@ class CoordinatorDashboardScreen extends StatefulWidget {
 }
 
 class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen> {
-  // 1. Inizializzazione Servizio
   final UserService _userService = UserService();
   int _currentTabIndex = 0;
 
-  // Lista delle schermate (Tab)
   final List<Widget> _tabs = const [
     RouteValidationTab(),
     DocumentationTab(),
@@ -28,9 +27,7 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
     RoadConstraintsTab(),
   ];
 
-  // 2. LOGICA PROFILO (Specifica per Coordinatore Traffico)
   Future<void> _openProfilePopup() async {
-    // Spinner di caricamento
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -38,13 +35,11 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
     );
 
     try {
-      // Recupera i dati dal service
       final UserDTO? user = await _userService.getCurrentUser();
 
-      if (mounted) Navigator.pop(context); // Chiudi spinner
+      if (mounted) Navigator.pop(context);
 
       if (user != null && mounted) {
-        // Mostra Popup Profilo
         showDialog(
           context: context,
           builder: (context) => Dialog(
@@ -55,8 +50,8 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
               child: UserDataPopup(
                 user: user,
                 userService: _userService,
-                role: "Traffic Coordinator", // Ruolo visualizzato
-                showDownload: false, // FALSE: Utente Interno (niente doc/azienda)
+                role: "Traffic Coordinator",
+                showDownload: false,
               ),
             ),
           ),
@@ -64,23 +59,18 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
       }
     } catch (e) {
       if (mounted) Navigator.pop(context);
-      print("Errore profilo coordinator: $e");
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA), // Sfondo grigio chiaro standard
-
-      // --- HEADER / CORNICE ---
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: HeavyRouteAppBar(
         subtitle: "Traffic Coordinator Dashboard",
         isDashboard: true,
-        onProfileTap: _openProfilePopup, // Collegamento al metodo sopra
+        onProfileTap: _openProfilePopup,
       ),
-      // ------------------------
-
       body: Column(
         children: [
           const SizedBox(height: 20),
@@ -97,18 +87,18 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
     );
   }
 
-  // --- BARRA DI NAVIGAZIONE TAB ---
   Widget _buildCustomTabBar() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24),
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFFE5E7EB), // Grigio scuro della barra
+        color: const Color(0xFFE5E7EB),
         borderRadius: BorderRadius.circular(50),
       ),
       child: Row(
         children: [
-          _buildTabButton(0, "Validazione Percorsi", Icons.location_on_outlined, badgeCount: 2),
+          // MODIFICA QUI: Rimosso badgeCount: 2
+          _buildTabButton(0, "Validazione Percorsi", Icons.location_on_outlined),
           _buildTabButton(1, "Documentazione", Icons.description_outlined),
           _buildTabButton(2, "Scorta Tecnica", Icons.security_outlined),
           _buildTabButton(3, "Vincoli Viabilità", Icons.warning_amber_rounded),
@@ -134,11 +124,8 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Icona
               Icon(icon, size: 18, color: isSelected ? Colors.black : Colors.grey[700]),
               const SizedBox(width: 8),
-
-              // Testo (con gestione overflow per schermi piccoli)
               Flexible(
                 child: Text(
                   label,
@@ -150,8 +137,7 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                   ),
                 ),
               ),
-
-              // Badge Notifica Rosso
+              // Il badge appare solo se badgeCount > 0. Essendo default 0, non appare nulla.
               if (badgeCount > 0) ...[
                 const SizedBox(width: 6),
                 Container(
