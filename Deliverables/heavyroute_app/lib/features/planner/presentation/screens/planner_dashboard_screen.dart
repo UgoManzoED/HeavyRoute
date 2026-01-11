@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../common/heavy_route_app_bar.dart';
 import '../../../auth/services/user_service.dart';
-import '../../../auth/models/user_dto.dart';
+import '../../../auth/models/user_model.dart';
 import '../../../requests/presentation/widgets/user_data_popup.dart';
-
-// Import dei Tab esistenti
 import '../widget/transport_requests_tab.dart';
 import '../widget/registration_requests_tab.dart';
 import '../widget/assignments_tab.dart';
@@ -32,7 +30,7 @@ class _PlannerDashboardScreenState extends State<PlannerDashboardScreen> {
     const AlertsTab(),
   ];
 
-  // 2. LOGICA APERTURA PROFILO (Specifica per Pianificatore)
+  // 2. LOGICA APERTURA PROFILO
   Future<void> _openProfilePopup() async {
     // Spinner
     showDialog(
@@ -42,8 +40,8 @@ class _PlannerDashboardScreenState extends State<PlannerDashboardScreen> {
     );
 
     try {
-      // Recupera dati
-      final UserDTO? user = await _userService.getCurrentUser();
+      // TIPO AGGIORNATO: UserModel
+      final UserModel? user = await _userService.getCurrentUser();
 
       if (mounted) Navigator.pop(context); // Chiudi spinner
 
@@ -58,8 +56,8 @@ class _PlannerDashboardScreenState extends State<PlannerDashboardScreen> {
               child: UserDataPopup(
                 user: user,
                 userService: _userService,
-                role: "Pianificatore", // <--- Ruolo Fissato
-                showDownload: false,        // <--- Niente tasto doc (Interno)
+                role: "Pianificatore",
+                showDownload: false, // Utente interno, niente doc
               ),
             ),
           ),
@@ -71,49 +69,18 @@ class _PlannerDashboardScreenState extends State<PlannerDashboardScreen> {
     }
   }
 
-  Widget _buildMockWarning() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF7ED),
-        border: Border(bottom: BorderSide(color: Colors.orange.shade200)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.warning_amber_rounded, color: Colors.orange.shade800, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: RichText(
-              text: TextSpan(
-                style: TextStyle(color: Colors.orange.shade900, fontSize: 13),
-                children: const [
-                  TextSpan(text: "MODALITÀ DEMO: ", style: TextStyle(fontWeight: FontWeight.bold)),
-                  TextSpan(text: "I dati visualizzati sono mockup statici."),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
-
-      // 3. APPBAR COLLEGATA
+      // APPBAR COLLEGATA
       appBar: HeavyRouteAppBar(
         subtitle: "Dashboard Pianificatore",
         isDashboard: true,
-        onProfileTap: _openProfilePopup, // <--- Collegamento fondamentale
+        onProfileTap: _openProfilePopup,
       ),
-
       body: Column(
         children: [
-          _buildMockWarning(),
           const SizedBox(height: 20),
           _buildCustomNavBar(),
           const SizedBox(height: 20),
@@ -163,7 +130,7 @@ class _PlannerDashboardScreenState extends State<PlannerDashboardScreen> {
                 ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))]
                 : [],
           ),
-          child: Column( // Usare Column su schermi piccoli o Row su grandi se c'è spazio
+          child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Stack(
@@ -181,14 +148,14 @@ class _PlannerDashboardScreenState extends State<PlannerDashboardScreen> {
                     )
                 ],
               ),
-              const SizedBox(height: 4), // Spazio tra icona e testo
+              const SizedBox(height: 4),
               Text(
                 label,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   color: isSelected ? Colors.black : Colors.grey[700],
-                  fontSize: 11, // Testo un po' più piccolo per farci stare tutto
+                  fontSize: 11,
                 ),
               ),
             ],

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../auth/models/user_dto.dart';
+import '../../../auth/models/user_model.dart';
 
 class CompanyDataTab extends StatelessWidget {
-  final UserDTO user;
+  final UserModel user;
 
   const CompanyDataTab({super.key, required this.user});
 
@@ -12,15 +12,18 @@ class CompanyDataTab extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          _buildReadOnlyField("Nome Azienda", user.company ?? "Non specificato"),
+          _buildReadOnlyField("Ragione Sociale", user.companyName ?? "Non specificato"),
           const SizedBox(height: 16),
-          _buildReadOnlyField("Partita IVA", user.vat ?? "Non specificata"),
+          _buildReadOnlyField("Partita IVA", user.vatNumber ?? "Non specificata"),
+          const SizedBox(height: 16),
+          _buildReadOnlyField("PEC", user.pec ?? "Non specificata"),
+          const SizedBox(height: 16),
+          _buildReadOnlyField("Sede Legale", user.address ?? "Non specificato"),
         ],
       ),
     );
   }
 
-  // (Usa lo stesso helper _buildReadOnlyField di sopra o crea un widget condiviso)
   Widget _buildReadOnlyField(String label, String? value) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

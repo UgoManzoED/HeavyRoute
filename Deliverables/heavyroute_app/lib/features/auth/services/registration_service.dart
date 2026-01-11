@@ -1,28 +1,27 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import '../../../../core/network/dio_client.dart';
-import '../models/client_registration_dto.dart';
+import '../models/dto/auth_requests.dart';
 
 /// Service responsabile della registrazione Clienti.
-/// <p>
-/// Gestisce la comunicazione HTTP e, soprattutto, la <b>Normalizzazione degli Errori</b>.
-/// Trasforma le risposte RFC 7807 (ProblemDetails) di Spring Boot in una mappa
-/// semplice utilizzabile dal Form Flutter per evidenziare i campi errati.
-/// </p>
+///
+/// Gestisce la comunicazione HTTP e la normalizzazione degli errori RFC 7807
+/// (ProblemDetails) di Spring Boot in una mappa per la UI.
 class RegistrationService {
   final Dio _dio = DioClient.instance;
 
   /// Invia la richiesta di registrazione.
   ///
-  /// @return
-  /// - `null`: Se l'operazione ha successo (HTTP 200/201).
-  /// - `Map<String, dynamic>`: Una mappa contenente gli errori.
-  ///    - Chiave: Nome del campo (es. 'vatNumber') o 'global'.
-  ///    - Valore: Messaggio di errore da mostrare all'utente.
-  Future<Map<String, dynamic>?> registerClient(ClientRegistrationDTO dto) async {
+  /// Restituisce:
+  /// - `null`: Se successo.
+  /// - `Map<String, dynamic>`: Mappa degli errori {campo: messaggio}.
+  Future<Map<String, dynamic>?> registerClient(CustomerRegistrationRequest request) async {
     try {
+      // NOTA: Verifica che l'endpoint nel backend corrisponda esattamente a questo path.
+      // Se il Controller ha @RequestMapping("/api/users"), allora qui va bene.
       final response = await _dio.post(
         '/users/register/client',
-        data: dto.toJson(),
+        data: request.toJson(),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -31,60 +30,68 @@ class RegistrationService {
       return {'global': 'Errore imprevisto: ${response.statusCode}'};
 
     } on DioException catch (e) {
-      // --- DEBUGGING ---
-      print("🛑 ERRORE HTTP: ${e.response?.statusCode}");
-      print("🛑 JSON GREZZO: ${e.response?.data}");
-      print("🛑 TIPO DATO: ${e.response?.data.runtimeType}");
-      // -------------------------------
-
-      final data = e.response?.data;
-
-      // 1. Se il server è giù o c'è un errore di rete puro
-      if (data == null) {
-        return {'global': 'Nessuna risposta dal server.'};
-      }
-
-      if (data is Map<String, dynamic>) {
-
-        // CASO A: Errori di Validazione
-        if (data.containsKey('errors')) {
-          final errors = data['errors'];
-          if (errors is Map) {
-            return Map<String, dynamic>.from(errors);
-          }
-        }
-
-        // CASO B: Eccezioni di Business
-        if (data.containsKey('detail')) {
-          String detail = data['detail'];
-
-          if (detail.contains("Partita IVA")) {
-            return {'vatNumber': detail};
-          }
-          if (detail.contains("username") || detail.contains("Username")) {
-            return {'username': detail};
-          }
-          if (detail.contains("email") || detail.contains("Email")) {
-            return {'email': detail};
-          }
-          if (detail.contains("PEC")) {
-            return {'pec': detail};
-          }
-
-          // Altrimenti errore globale
-          return {'global': detail};
-        }
-
-        // CASO C: Fallback
-        if (data.containsKey('title')) {
-          return {'global': data['title']};
-        }
-      }
-
-      return {'global': 'Errore di connessione o dati non validi.'};
+      return _handleDioError(e);
     } catch (e) {
-      print("🛑 ERRORE DART: $e");
+      debugPrint("🛑 ERRORE DART GENERICO: $e");
       return {'global': 'Errore interno app: $e'};
     }
+  }
+
+  /// Metodo privato per pulire la logica di gestione errori
+  Map<String, dynamic> _handleDioError(DioException e) {
+    if (kDebugMode) {
+      debugPrint("🛑 ERRORE HTTP: ${e.response?.statusCode}");
+      debugPrint("🛑 BODY: ${e.response?.data}");
+    }
+
+    final data = e.response?.data;
+
+    // 1. Errore di connessione o server giù
+    if (data == null) {
+      return {'global': 'Nessuna risposta dal server. Controlla la connessione.'};
+    }
+
+    // 2. Analisi del body JSON
+    if (data is Map<String, dynamic>) {
+
+      // CASO A: Errori di Validazione (@Valid fallito nel DTO backend)
+      if (data.containsKey('errors')) {
+        final errors = data['errors'];
+        if (errors is Map) {
+          return Map<String, dynamic>.from(errors);
+        }
+      }
+
+      // CASO B: Eccezioni di Business (BusinessRuleException)
+      if (data.containsKey('detail') && data['detail'] != null) {
+        String detail = data['detail'].toString();
+
+        // Tentativo di mappare il messaggio testuale sul campo specifico del form.
+        if (detail.toLowerCase().contains("partita iva")) {
+          return {'vatNumber': detail};
+        }
+        if (detail.toLowerCase().contains("username")) {
+          return {'username': detail};
+        }
+        if (detail.toLowerCase().contains("email")) {
+          return {'email': detail};
+        }
+        if (detail.toLowerCase().contains("pec")) {
+          return {'pec': detail};
+        }
+        if (detail.toLowerCase().contains("targa")) {
+          return {'vehiclePlate': detail};
+        }
+
+        // Se non riconosciamo la parola chiave, mostriamo l'errore generico
+        return {'global': detail};
+      }
+
+      // CASO C: Fallback su 'title' o 'message'
+      if (data.containsKey('title')) return {'global': data['title']};
+      if (data.containsKey('message')) return {'global': data['message']};
+    }
+
+    return {'global': 'Errore server (${e.response?.statusCode}): Impossibile leggere i dettagli.'};
   }
 }

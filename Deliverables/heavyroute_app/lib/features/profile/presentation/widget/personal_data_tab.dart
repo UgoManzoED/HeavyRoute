@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../auth/models/user_dto.dart';
+import '../../../auth/models/user_model.dart';
 
 class PersonalDataTab extends StatelessWidget {
-  final UserDTO user; // Riceviamo i dati
+  final UserModel user;
 
   const PersonalDataTab({super.key, required this.user});
 
@@ -12,14 +12,18 @@ class PersonalDataTab extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          // Esempio di visualizzazione dati (Puoi sostituire con TextFormFields)
           _buildReadOnlyField("Nome", user.firstName),
           const SizedBox(height: 16),
           _buildReadOnlyField("Cognome", user.lastName),
           const SizedBox(height: 16),
           _buildReadOnlyField("Email", user.email),
           const SizedBox(height: 16),
-          _buildReadOnlyField("Telefono", user.phone ?? "Non specificato"),
+          _buildReadOnlyField("Telefono", user.phoneNumber ?? "Non specificato"),
+
+          if (user.serialNumber != null) ...[
+            const SizedBox(height: 16),
+            _buildReadOnlyField("Matricola", user.serialNumber),
+          ]
         ],
       ),
     );
