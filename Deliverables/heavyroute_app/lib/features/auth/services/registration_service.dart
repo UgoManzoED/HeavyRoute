@@ -37,6 +37,41 @@ class RegistrationService {
     }
   }
 
+  Future<List<dynamic>> getPendingRegistrations() async {
+    try {
+      // Deve corrispondere al @GetMapping("/pending") del controller
+      final response = await _dio.get('/users/pending');
+      return response.data;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /**
+   * Approva una registrazione (imposta active=true nel DB).
+   */
+  Future<bool> approveUser(int userId) async {
+    try {
+      // Deve corrispondere al @PatchMapping("/{id}/approve")
+      final response = await _dio.patch('/users/$userId/approve');
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
+   * Rifiuta una registrazione (elimina l'utente dal DB).
+   */
+  Future<bool> rejectUser(int userId) async {
+    try {
+      final response = await _dio.delete('/users/$userId/reject');
+      return response.statusCode == 204 || response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
   /// Metodo privato per pulire la logica di gestione errori
   Map<String, dynamic> _handleDioError(DioException e) {
     if (kDebugMode) {
@@ -93,5 +128,8 @@ class RegistrationService {
     }
 
     return {'global': 'Errore server (${e.response?.statusCode}): Impossibile leggere i dettagli.'};
+
+
+
   }
 }

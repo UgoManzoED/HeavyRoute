@@ -4,6 +4,8 @@ import com.heavyroute.users.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -81,4 +83,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return Un {@link Optional} contenente l'utente solo se esiste ED è disattivato (`active = false`).
      */
     Optional<User> findByUsernameAndActiveFalse(String username);
+
+    List<User> findByActiveFalse();
 }

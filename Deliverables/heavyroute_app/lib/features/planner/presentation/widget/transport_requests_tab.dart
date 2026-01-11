@@ -155,20 +155,38 @@ class _TransportRequestsTabState extends State<TransportRequestsTab> {
     );
   }
 
+  /**
+   * Crea una riga della tabella basata sul modello {@link TransportRequest}.
+   * <p>
+   * Sfrutta il getter {@code customerName} per decidere se mostrare
+   * il nome dell'azienda o il nome/cognome del privato.
+   * </p>
+   * @param req L'oggetto richiesta proveniente dal database.
+   * @return Una riga formattata per la DataTable.
+   */
   DataRow _buildRow(TransportRequest req) {
-    final status = req.requestStatus.name;
+    // Conversione dello stato in stringa per la logica del badge
+    final String status = req.requestStatus.name;
     final bool canApprove = status == "PENDING";
 
-    final dateStr = req.pickupDate.toString().split(' ').first;
-    final origin = req.originAddress.split(',').first;
-    final dest = req.destinationAddress.split(',').first;
+    // Formattazione semplificata degli indirizzi e della data
+    final String origin = req.originAddress.split(',').first;
+    final String dest = req.destinationAddress.split(',').first;
+    final String dateStr = "${req.pickupDate.day}/${req.pickupDate.month}/${req.pickupDate.year}";
 
     return DataRow(cells: [
       DataCell(Text("#${req.id}", style: const TextStyle(fontWeight: FontWeight.bold))),
-      DataCell(Text(req.customerName ?? "Cliente")),
+
+      // Utilizzo del getter personalizzato definito nel modello
+      DataCell(Text(req.customerName)),
+
       DataCell(SizedBox(width: 150, child: Text(origin, overflow: TextOverflow.ellipsis))),
       DataCell(SizedBox(width: 150, child: Text(dest, overflow: TextOverflow.ellipsis))),
+
+      // Accesso ai dettagli del carico (LoadDetails)
+      // Assicurati che 'weightKg' o il campo corrispondente esista in LoadDetails
       DataCell(Text("${req.load.weightKg ?? '-'} kg")),
+
       DataCell(Text(dateStr)),
       DataCell(_buildStatusBadge(status)),
       DataCell(
@@ -186,7 +204,6 @@ class _TransportRequestsTabState extends State<TransportRequestsTab> {
       ),
     ]);
   }
-
   /**
    * Genera un badge colorato basato sullo stato della richiesta.
    * @param status Stringa rappresentante lo stato.

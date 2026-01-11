@@ -13,6 +13,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
@@ -39,6 +41,18 @@ public class UserController {
         return ResponseEntity.ok(userMapper.toDTO(user));
     }
 
+    @GetMapping("/pending")
+    @PreAuthorize("hasAnyRole('LOGISTIC_PLANNER', 'ACCOUNT_MANAGER')")
+    public ResponseEntity<List<UserResponseDTO>> getPending() {
+        return ResponseEntity.ok(userService.findInactiveUsers());
+    }
+    @PatchMapping("/{id}/approve")
+    @PreAuthorize("hasAnyRole('LOGISTIC_PLANNER', 'ACCOUNT_MANAGER')")
+    public ResponseEntity<UserResponseDTO> approve(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.activateUser(id));
+    }
+
+
     /**
      * Registrazione pubblica per un nuovo Committente.
      */
@@ -55,4 +69,7 @@ public class UserController {
     public ResponseEntity<UserResponseDTO> createInternalUser(@Valid @RequestBody InternalUserCreateDTO dto) {
         return ResponseEntity.ok(userService.createInternalUser(dto));
     }
+
+
+
 }

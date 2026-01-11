@@ -3,6 +3,7 @@ package com.heavyroute.users.service;
 import com.heavyroute.users.dto.*;
 import com.heavyroute.users.model.User;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -66,4 +67,28 @@ public interface UserService {
      * Aggiorna i dati di un cliente (Committente).
      */
     UserResponseDTO updateCustomer(Long id, CustomerUpdateDTO dto);
+
+    /**
+     * Recupera tutti gli utenti che si sono registrati ma non sono ancora attivi.
+     * @return Lista di DTO degli utenti in attesa.
+     */
+    List<UserResponseDTO> findInactiveUsers();
+
+    /**
+     * Attiva un utente impostando il flag active a true.
+     * <p>
+     * <b>OCL Post:</b> user.active == true
+     * </p>
+     * @param id Identificativo dell'utente da approvare.
+     * @return Il DTO dell'utente aggiornato.
+     */
+    UserResponseDTO activateUser(Long id);
+
+    /**
+     * Elimina definitivamente un utente dal sistema (rifiuto registrazione).
+     * @param id L'identificativo dell'utente da rimuovere.
+     */
+    void deleteUser(Long id);
+
 }
+
