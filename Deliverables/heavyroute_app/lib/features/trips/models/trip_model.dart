@@ -10,7 +10,7 @@ part 'trip_model.g.dart';
 @JsonSerializable()
 class TripModel {
   final int id;
-  final String tripCode; // Es. "TRP-2026-X8Y9"
+  final String tripCode;
 
   @JsonKey(unknownEnumValue: TripStatus.IN_PLANNING)
   final TripStatus status;
@@ -18,10 +18,10 @@ class TripModel {
   // Relazione 1:1 con la richiesta originale
   final TransportRequest request;
 
-  // Dati operativi (possono essere null se il viaggio è appena stato creato)
+  // Dati operativi
   final RouteModel? route;
-  final UserModel? driver;   // L'autista assegnato
-  final VehicleModel? vehicle; // Il mezzo assegnato
+  final UserModel? driver;
+  final VehicleModel? vehicle;
 
   TripModel({
     required this.id,
@@ -32,6 +32,19 @@ class TripModel {
     this.driver,
     this.vehicle,
   });
+
+  // --- GETTERS PER LA UI ---
+
+  /// Restituisce il nome completo dell'autista o null se non assegnato
+  String? get driverName {
+    if (driver == null) return null;
+    return "${driver!.firstName} ${driver!.lastName}";
+  }
+
+  /// Restituisce la targa del veicolo o null se non assegnato
+  String? get vehiclePlate {
+    return vehicle?.licensePlate;
+  }
 
   factory TripModel.fromJson(Map<String, dynamic> json) => _$TripModelFromJson(json);
   Map<String, dynamic> toJson() => _$TripModelToJson(this);

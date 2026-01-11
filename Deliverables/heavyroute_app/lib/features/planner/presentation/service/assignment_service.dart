@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import '../../../../core/network/dio_client.dart';
-import '../../../../common/models/enums.dart'; // Importa TripStatus
-import '../../../trips/models/trip_model.dart'; // Importa il nuovo Model di lettura
-import '../../models/dto/assign_trip_request.dart'; // Importa il nuovo DTO di scrittura
+import '../../../../common/models/enums.dart';
+import '../../../trips/models/trip_model.dart';
+import '../model/assign_trip_request.dart';
 
 /**
  * Service per la gestione del ciclo di vita dei Viaggi e delle Assegnazioni.

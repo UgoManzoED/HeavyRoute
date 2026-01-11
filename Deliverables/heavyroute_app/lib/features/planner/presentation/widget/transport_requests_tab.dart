@@ -1,15 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../../../features/requests/models/request_detail_dto.dart';
+import '../../../../features/requests/models/transport_request.dart';
 import '../../../../features/requests/services/request_service.dart';
 import '../../../../features/trips/services/trip_service.dart';
 
 /**
- * Tab dedicata alla gestione e approvazione delle richieste di trasporto.
- * <p>
- * Carica esclusivamente le richieste presenti nel database tramite {@link RequestService}.
- * Permette al Logistic Planner di valutare le richieste e trasformarle in viaggi (Trip).
- * </p>
- * @author Roman
+ * Tab per la gestione delle richieste di trasporto.
  */
 class TransportRequestsTab extends StatefulWidget {
   const TransportRequestsTab({super.key});
@@ -25,8 +20,8 @@ class _TransportRequestsTabState extends State<TransportRequestsTab> {
   /** Servizio per la gestione e creazione dei viaggi. */
   final TripService _tripService = TripService();
 
-  /** Future che gestisce lo stato asincrono del caricamento delle richieste. */
-  late Future<List<RequestDetailDTO>> _requestsFuture;
+  // TIPO AGGIORNATO: Future<List<TransportRequest>>
+  late Future<List<TransportRequest>> _requestsFuture;
 
   @override
   void initState() {
@@ -92,7 +87,7 @@ class _TransportRequestsTabState extends State<TransportRequestsTab> {
           _buildHeader(),
           const SizedBox(height: 24),
           Expanded(
-            child: FutureBuilder<List<RequestDetailDTO>>(
+            child: FutureBuilder<List<TransportRequest>>(
               future: _requestsFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -136,11 +131,7 @@ class _TransportRequestsTabState extends State<TransportRequestsTab> {
     );
   }
 
-  /**
-   * Costruisce la tabella dei dati basata sulla lista di DTO.
-   * @param requests Lista delle richieste provenienti dal database.
-   */
-  Widget _buildDataTable(List<RequestDetailDTO> requests) {
+  Widget _buildDataTable(List<TransportRequest> requests) {
     return SingleChildScrollView(
       scrollDirection: Axis.vertical,
       child: SingleChildScrollView(
@@ -164,26 +155,26 @@ class _TransportRequestsTabState extends State<TransportRequestsTab> {
     );
   }
 
-  /**
-   * Crea una riga della tabella per una singola richiesta.
-   * @param req Il DTO contenente i dati della richiesta.
-   */
-  DataRow _buildRow(RequestDetailDTO req) {
-    final status = req.status.toString().split('.').last.toUpperCase();
+  DataRow _buildRow(TransportRequest req) {
+    final status = req.requestStatus.name;
     final bool canApprove = status == "PENDING";
+
+    final dateStr = req.pickupDate.toString().split(' ').first;
+    final origin = req.originAddress.split(',').first;
+    final dest = req.destinationAddress.split(',').first;
 
     return DataRow(cells: [
       DataCell(Text("#${req.id}", style: const TextStyle(fontWeight: FontWeight.bold))),
-      DataCell(Text(req.clientFullName ?? "N/D")),
-      DataCell(SizedBox(width: 150, child: Text(req.originAddress, overflow: TextOverflow.ellipsis))),
-      DataCell(SizedBox(width: 150, child: Text(req.destinationAddress, overflow: TextOverflow.ellipsis))),
-      DataCell(Text("${req.weight} ton")),
-      DataCell(Text(req.pickupDate)),
+      DataCell(Text(req.customerName ?? "Cliente")),
+      DataCell(SizedBox(width: 150, child: Text(origin, overflow: TextOverflow.ellipsis))),
+      DataCell(SizedBox(width: 150, child: Text(dest, overflow: TextOverflow.ellipsis))),
+      DataCell(Text("${req.load.weightKg ?? '-'} kg")),
+      DataCell(Text(dateStr)),
       DataCell(_buildStatusBadge(status)),
       DataCell(
         canApprove
             ? ElevatedButton(
-          onPressed: () => _approveRequest(req.id!),
+          onPressed: () => _approveRequest(req.id),
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF0D0D1A),
             foregroundColor: Colors.white,
