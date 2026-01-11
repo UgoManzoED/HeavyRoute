@@ -82,4 +82,15 @@ public class UserController {
         return ResponseEntity.ok(userMapper.toDTOList(internalUsers));
     }
 
+    /**
+     * Modifica di un utente esistente (Solo per Account Manager).
+     */
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ACCOUNT_MANAGER')")
+    public ResponseEntity<UserResponseDTO> updateInternalUser(
+            @PathVariable Long id,
+            @Valid @RequestBody InternalUserUpdateDTO dto) { // Usa un DTO o UserResponseDTO a seconda della tua struttura
+        return ResponseEntity.ok(userService.updateInternalUser(id, dto));
+    }
+
 }

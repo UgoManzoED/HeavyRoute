@@ -82,4 +82,6 @@ public class InternalUserUpdateDTO {
      * Permette di disabilitare temporaneamente un dipendente.
      */
     private Boolean active;
+
+    private String phoneNumber;
 }
