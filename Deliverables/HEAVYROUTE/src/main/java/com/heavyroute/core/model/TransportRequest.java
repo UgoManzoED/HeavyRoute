@@ -4,8 +4,12 @@ import com.heavyroute.common.model.BaseEntity;
 import com.heavyroute.core.enums.RequestStatus;
 import com.heavyroute.users.model.User;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.SuperBuilder;
+
 import java.time.LocalDate;
 
 /**
@@ -19,6 +23,9 @@ import java.time.LocalDate;
 @Table(name = "transport_request")
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@SuperBuilder
 public class TransportRequest extends BaseEntity {
 
     /**
