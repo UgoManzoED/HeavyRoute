@@ -2,23 +2,20 @@ package com.heavyroute.auth.controller;
 
 import com.heavyroute.auth.dto.JwtResponseDTO;
 import com.heavyroute.auth.dto.LoginRequestDTO;
-import com.heavyroute.auth.security.JwtUtils;
-import com.heavyroute.users.model.User;
-import com.heavyroute.users.repository.UserRepository;
+import com.heavyroute.auth.service.AuthService;
+import com.heavyroute.users.dto.CustomerRegistrationDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * Controller per la gestione dell'autenticazione pubblica.
+ * Endpoint pubblico per la gestione dell'Autenticazione e Registrazione.
  * <p>
- * Espone gli endpoint accessibili senza token (definiti in SecurityConfig),
- * permettendo agli utenti di ottenere il loro primo JWT.
+ * Questa classe funge da "Porta d'Ingresso" (Facade) per gli utenti non ancora autenticati.
+ * <b>Nota:</b> Tutti i metodi di questo controller devono essere esplicitamente
+ * permessi (permitAll) nella {@code SecurityConfig}, altrimenti nessuno potrà mai loggarsi.
  * </p>
  */
 @RestController
@@ -26,41 +23,42 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthenticationManager authenticationManager;
-    private final UserRepository userRepository;
-    private final JwtUtils jwtUtils;
+    private final AuthService authService;
 
     /**
-     * Effettua il Login dell'utente.
+     * Gestisce la richiesta di registrazione di un nuovo Committente.
+     * <p>
+     * <b>Flusso:</b>
+     * <ol>
+     * <li>Deserializza il JSON nel DTO {@link CustomerRegistrationDTO}.</li>
+     * <li>Applica la validazione dei campi tramite {@code @Valid}. Se fallisce,
+     * lancia eccezione gestita dal {@code GlobalExceptionHandler} (400 Bad Request).</li>
+     * <li>Delega la creazione all'{@code AuthService}.</li>
+     * </ol>
+     * </p>
      *
-     * @param loginRequest DTO contenente username e password.
-     * @return 200 OK con il JWT se le credenziali sono valide.
-     * 401 Unauthorized se le credenziali sono errate (gestito globalmente).
+     * @param registrationDTO Il payload JSON contenente dati anagrafici e fiscali.
+     * @return 201 Created (senza corpo) per confermare l'avvenuta creazione della risorsa.
+     */
+    @PostMapping("/register/customer")
+    public ResponseEntity<Void> registerCustomer(@RequestBody @Valid CustomerRegistrationDTO registrationDTO) {
+        authService.registerCustomer(registrationDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    /**
+     * Punto di ingresso per il Login.
+     * <p>
+     * Riceve username e password in chiaro (via HTTPS), li valida sintatticamente
+     * e richiede al Service di generare un JWT se le credenziali sono corrette.
+     * </p>
+     *
+     * @param loginRequest DTO con username e password.
+     * @return 200 OK contenente il Token JWT e i dettagli utente (Ruolo, Nome, ecc.).
      */
     @PostMapping("/login")
-    public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequestDTO loginRequest) {
-
-        // 1. Autenticazione Core
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
-
-        // 2. Security Context
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        // 3. Generazione Token
-        String jwt = jwtUtils.generateJwtToken(authentication);
-
-        // 4. Recupero Dettagli Utente (Enrichment)
-        User user = userRepository.findByUsername(loginRequest.getUsername()).orElseThrow();
-
-        // 5. Risposta
-        return ResponseEntity.ok(new JwtResponseDTO(
-                jwt,
-                "Bearer",
-                user.getId(),
-                user.getUsername(),
-                user.getEmail(),
-                user.getRole().name()
-        ));
+    public ResponseEntity<JwtResponseDTO> authenticateUser(@Valid @RequestBody LoginRequestDTO loginRequest) {
+        JwtResponseDTO jwtResponse = authService.login(loginRequest);
+        return ResponseEntity.ok(jwtResponse);
     }
 }

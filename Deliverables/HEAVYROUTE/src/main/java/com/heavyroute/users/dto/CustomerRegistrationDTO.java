@@ -66,7 +66,8 @@ public class CustomerRegistrationDTO {
      * </p>
      */
     @NotBlank(message = "La Partita IVA è obbligatoria")
-    @Size(min = 11, max = 16, message = "La Partita IVA deve avere una lunghezza valida (tra 11 e 16 caratteri)")
+    @Size(min = 11, max = 11, message = "La Partita IVA deve essere di esattamente 11 caratteri")
+    @Pattern(regexp = "^[0-9]{11}$", message = "La Partita IVA deve contenere solo numeri")
     private String vatNumber;
 
     /**
