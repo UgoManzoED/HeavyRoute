@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:heavyroute_app/features/auth/presentation/screens/widgets/registration_form.dart';
-import '../../models/client_registration_dto.dart';
+import '../../models/dto/auth_requests.dart';
 import '../../services/registration_service.dart';
 
 /// Schermata principale per la registrazione di un nuovo cliente.
@@ -76,7 +76,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isLoading = true);
 
     // Creazione del DTO
-    final dto = ClientRegistrationDTO(
+    final dto = CustomerRegistrationRequest(
       username: _usernameController.text.trim(),
       firstName: _nameController.text.trim(),
       lastName: _surnameController.text.trim(),

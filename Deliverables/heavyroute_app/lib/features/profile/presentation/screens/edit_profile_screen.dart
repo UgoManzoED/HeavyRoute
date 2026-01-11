@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../../auth/models/user_dto.dart';
+import '../../../auth/models/user_model.dart';
 import '../../../auth/services/user_service.dart';
 import '../widget/personal_data_tab.dart';
 import '../widget/company_data_tab.dart';
 import '../widget/security_tab.dart';
 
 class EditProfileScreen extends StatefulWidget {
-  final UserDTO user;
+  final UserModel user;
   final UserService userService;
   final String? role;
   final bool isInternal;
@@ -29,7 +29,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
   @override
   void initState() {
     super.initState();
-    // La lunghezza del controller deve corrispondere esattamente al numero di widget nella TabBar
     _tabController = TabController(
         length: widget.isInternal ? 2 : 3,
         vsync: this
@@ -58,7 +57,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
               controller: _tabController,
               children: [
                 PersonalDataTab(user: widget.user),
-                // Se è interno, questo widget non viene proprio creato
                 if (!widget.isInternal) CompanyDataTab(user: widget.user),
                 const SecurityTab(),
               ],
@@ -95,6 +93,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
   }
 
   Widget _buildProfileHeader() {
+    final String initials = (widget.user.firstName.isNotEmpty && widget.user.lastName.isNotEmpty)
+        ? "${widget.user.firstName[0]}${widget.user.lastName[0]}".toUpperCase()
+        : "?";
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 40),
       child: Row(
@@ -109,7 +111,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
             ),
             child: Center(
               child: Text(
-                "${widget.user.firstName?[0] ?? ''}${widget.user.lastName?[0] ?? ''}".toUpperCase(),
+                initials,
                 style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
               ),
             ),
@@ -124,7 +126,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
               ),
               const SizedBox(height: 4),
               Text(
-                widget.user.email ?? "",
+                widget.user.email,
                 style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               ),
               const SizedBox(height: 8),
@@ -169,10 +171,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> with SingleTicker
           labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           indicatorSize: TabBarIndicatorSize.tab,
           dividerColor: Colors.transparent,
-          // RIMOSSO 'const' qui perché la lista ora è dinamica
           tabs: [
             const _MyTabItem(icon: Icons.person_outline, label: "Personali"),
-            // IL TOCCO MAGICO: Aggiunge il tab Aziendali solo se NON è interno
             if (!widget.isInternal)
               const _MyTabItem(icon: Icons.business, label: "Aziendali"),
             const _MyTabItem(icon: Icons.lock_outline, label: "Sicurezza"),

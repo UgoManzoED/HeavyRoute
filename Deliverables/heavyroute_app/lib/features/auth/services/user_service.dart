@@ -1,45 +1,44 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import '../../../core/network/dio_client.dart';
-import '../models/user_dto.dart';
+import '../../../core/storage/token_storage.dart';
+import '../models/user_model.dart';
 
-/**
- * Servizio che gestisce le chiamate API per i dati utente.
- * Utilizza un'istanza centralizzata di Dio per le operazioni di rete.
- * @author Roman
- * @version 1.0
- */
+/// Servizio che gestisce le chiamate API per i dati utente (Profilo).
 class UserService {
-  /** Istanza di Dio ottenuta dal client di rete core */
   final Dio _dio = DioClient.instance;
 
-  /**
-   * Recupera i dati dell'utente corrente.
-   * @return Un [UserDTO] con i dati utente. In caso di errore, restituisce null.
-   */
-  Future<UserDTO?> getCurrentUser() async {
+  /// Recupera i dati dell'utente corrente (/users/me).
+  ///
+  /// Restituisce un [UserModel] (che contiene id, ruolo, e campi specifici
+  /// come patente o p.iva a seconda del ruolo).
+  Future<UserModel?> getCurrentUser() async {
     try {
       final response = await _dio.get('/users/me');
 
       if (response.statusCode == 200 && response.data != null) {
-        print("Dati Utente Ricevuti dal Backend: ${response.data}");
-        return UserDTO.fromJson(response.data);
+        if (kDebugMode) {
+          print("✅ Dati Utente Ricevuti: ${response.data}");
+        }
+        // Deserializza nel nuovo modello unificato
+        return UserModel.fromJson(response.data);
       }
       return null;
     } on DioException catch (e) {
-      print("Errore API (GetCurrentUser): ${e.response?.statusCode} - ${e.response?.data}");
+      debugPrint("🛑 Errore API (GetCurrentUser): ${e.response?.statusCode}");
       return null;
     } catch (e) {
-      print("Errore generico (GetCurrentUser): $e");
+      debugPrint("🛑 Errore generico (GetCurrentUser): $e");
       return null;
     }
   }
 
-  /**
-   * Aggiorna i dati dell'utente corrente.
-   * @param userData I dati utente da aggiornare.
-   * @return [bool] true se l'operazione ha avuto successo, false altrimenti.
-   */
-  Future<bool> updateUser(UserDTO userData) async {
+  /// Aggiorna i dati dell'utente corrente.
+  ///
+  /// NOTA: In un'applicazione reale, l'oggetto di update spesso differisce
+  /// dal modello di lettura (es. non puoi aggiornare l'ID o il Ruolo).
+  /// Per ora inviamo il [UserModel], ma il backend dovrebbe ignorare i campi non modificabili.
+  Future<bool> updateUser(UserModel userData) async {
     try {
       final response = await _dio.put(
         '/users/me',
@@ -47,29 +46,24 @@ class UserService {
       );
 
       if (response.statusCode == 200 || response.statusCode == 204) {
-        print("Successo! Dati utente aggiornati: ${response.data}");
+        debugPrint("✅ Dati utente aggiornati con successo.");
         return true;
       }
       return false;
     } on DioException catch (e) {
-      print("Errore API (UpdateUser): ${e.response?.statusCode} - ${e.response?.data}");
+      debugPrint("🛑 Errore API (UpdateUser): ${e.response?.statusCode} - ${e.response?.data}");
       return false;
     } catch (e) {
-      print("Errore generico (UpdateUser): $e");
+      debugPrint("🛑 Errore generico (UpdateUser): $e");
       return false;
     }
   }
 
-  /**
-   * Esegue la procedura di logout.
-   * <p>
-   * Rimuove il token JWT dalla memoria persistente e pulisce i dati
-   * dell'utente corrente per prevenire accessi non autorizzati.
-   * </p>
-   */
+  /// Esegue il logout.
+  ///
+  /// Pulisce il TokenStorage (JWT e Ruolo) per forzare il login al prossimo avvio.
   Future<void> logout() async {
-    // Esempio: _storage.delete(key: 'jwt_token');
-    // Pulisci anche eventuali variabili di stato interne
-    print("Token invalidato e rimosso dalla memoria.");
+    await TokenStorage.deleteAll();
+    debugPrint("🚪 Logout eseguito: Sessione locale rimossa.");
   }
 }
