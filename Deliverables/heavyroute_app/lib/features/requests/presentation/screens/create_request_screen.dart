@@ -1,33 +1,22 @@
 import 'package:flutter/material.dart';
-import '../../models/create_request_model.dart';
+import '../../models/dto/create_request_model.dart';
 import '../../services/request_service.dart';
 
 /**
  * Schermata per la creazione di una nuova richiesta di trasporto.
- * Presenta un modulo validato per inserire indirizzi, data e specifiche tecniche del carico.
- * * @author Roman
- * @version 1.0
  */
 class CreateRequestScreen extends StatefulWidget {
-  /**
-   * Costruttore per CreateRequestScreen.
-   * * @param key Chiave univoca del widget.
-   */
   const CreateRequestScreen({super.key});
 
   @override
   State<CreateRequestScreen> createState() => _CreateRequestScreenState();
 }
 
-/**
- * Stato della schermata CreateRequestScreen.
- * Gestisce i controller del testo, la validazione del form e l'invio dei dati.
- */
 class _CreateRequestScreenState extends State<CreateRequestScreen> {
   final _formKey = GlobalKey<FormState>();
   final RequestService _requestService = RequestService();
 
-  // Controller per i campi di testo
+  // Controller
   final _originController = TextEditingController();
   final _destController = TextEditingController();
   final _dateController = TextEditingController();
@@ -35,6 +24,9 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
   final _lengthController = TextEditingController();
   final _widthController = TextEditingController();
   final _heightController = TextEditingController();
+
+  // Controller per il tipo di carico
+  final _typeController = TextEditingController(text: "Generico");
 
   @override
   void dispose() {
@@ -45,13 +37,10 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
     _lengthController.dispose();
     _widthController.dispose();
     _heightController.dispose();
+    _typeController.dispose();
     super.dispose();
   }
 
-  /**
-   * Mostra il selettore di data e aggiorna il controller relativo.
-   * * @param context Il contesto di build.
-   */
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -61,41 +50,51 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
     );
     if (picked != null) {
       setState(() {
-        // Formattazione YYYY-MM-DD come richiesto dal DTO
+        // Formato ISO YYYY-MM-DD
         _dateController.text = picked.toIso8601String().split('T')[0];
       });
     }
   }
 
   /**
-   * Valida il form e invia la richiesta tramite il [RequestService].
+   * Crea la struttura PIATTA richiesta dal Backend.
    */
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      final request = CreateRequestModel(
-        origin: _originController.text,
-        destination: _destController.text,
-        pickupDate: _dateController.text,
-        weight: double.parse(_weightController.text),
-        length: double.parse(_lengthController.text),
-        width: double.parse(_widthController.text),
-        height: double.parse(_heightController.text),
-        loadType: 'special',
-      );
 
       try {
-        // Supponiamo che createRequest restituisca un bool o un oggetto
-        await _requestService.createRequest(request);
+        final request = CreateRequestModel(
+          originAddress: _originController.text,
+          destinationAddress: _destController.text,
+          pickupDate: _dateController.text,
+
+          loadType: _typeController.text.isNotEmpty ? _typeController.text : 'Special',
+          description: "Carico standard",
+          weight: double.parse(_weightController.text),
+          length: double.parse(_lengthController.text),
+          width: double.parse(_widthController.text),
+          height: double.parse(_heightController.text),
+        );
+
+        // Invio
+        final success = await _requestService.createRequest(request);
+
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Richiesta inviata con successo!')),
-          );
-          Navigator.pop(context);
+          if (success) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Richiesta inviata con successo!'), backgroundColor: Colors.green),
+            );
+            Navigator.pop(context, true);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Errore: Il server ha rifiutato la richiesta'), backgroundColor: Colors.red),
+            );
+          }
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Errore durante l\'invio: $e')),
+            SnackBar(content: Text('Eccezione invio: $e'), backgroundColor: Colors.red),
           );
         }
       }
@@ -131,7 +130,9 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
               ),
               const SizedBox(height: 24),
               _buildSectionTitle('Specifiche Carico'),
-              _buildTextField(_weightController, 'Peso (t)', Icons.monitor_weight, isNumeric: true),
+              _buildTextField(_typeController, 'Tipo Merce', Icons.category),
+              const SizedBox(height: 12),
+              _buildTextField(_weightController, 'Peso (kg)', Icons.monitor_weight, isNumeric: true),
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -145,7 +146,11 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
               const SizedBox(height: 32),
               ElevatedButton(
                 onPressed: _submitForm,
-                style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: const Color(0xFF0D0D1A),
+                  foregroundColor: Colors.white,
+                ),
                 child: const Text('INVIA RICHIESTA', style: TextStyle(fontSize: 16)),
               ),
             ],
@@ -155,9 +160,6 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
     );
   }
 
-  /**
-   * Helper per costruire i campi di testo del form.
-   */
   Widget _buildTextField(TextEditingController controller, String label, IconData icon, {bool isNumeric = false}) {
     return TextFormField(
       controller: controller,
