@@ -90,5 +90,6 @@ public interface UserService {
      */
     void deleteUser(Long id);
 
+    public List<User> findAllInternalUsers();
 }
 

@@ -212,4 +212,12 @@ public class UserServiceImpl implements UserService {
         }
         userRepository.deleteById(id);
     }
+
+    @Override
+    public List<User> findAllInternalUsers() {
+        // Recupera tutti gli utenti che NON sono 'CUSTOMER' (o filtra per i ruoli specifici)
+        return userRepository.findAll().stream()
+                .filter(user -> !user.getRole().name().equals("CUSTOMER"))
+                .collect(Collectors.toList());
+    }
 }
