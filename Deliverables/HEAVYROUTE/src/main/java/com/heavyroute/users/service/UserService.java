@@ -30,7 +30,7 @@ public interface UserService {
      * @return Il DTO dell'utente creato (senza dati sensibili).
      * @throws com.heavyroute.common.exception.UserAlreadyExistException se lo username è già in uso.
      */
-    UserDTO registerNewClient(CustomerRegistrationDTO dto);
+    UserResponseDTO registerNewClient(CustomerRegistrationDTO dto);
 
     /**
      * Crea un utente interno con password temporanea.
@@ -43,7 +43,7 @@ public interface UserService {
      * @return Il DTO dell'utente creato.
      * @throws com.heavyroute.common.exception.UserAlreadyExistException se l'email o lo username sono già presenti.
      */
-    UserDTO createInternalUser(InternalUserCreateDTO dto);
+    UserResponseDTO createInternalUser(InternalUserCreateDTO dto);
 
     /**
      * Disabilita l'accesso al sistema per un utente specifico.
@@ -60,10 +60,10 @@ public interface UserService {
     /**
      * Aggiorna un utente dello staff interno.
      */
-    UserDTO updateInternalUser(Long id, InternalUserUpdateDTO dto);
+    UserResponseDTO updateInternalUser(Long id, InternalUserUpdateDTO dto);
 
     /**
      * Aggiorna i dati di un cliente (Committente).
      */
-    UserDTO updateCustomer(Long id, CustomerUpdateDTO dto);
+    UserResponseDTO updateCustomer(Long id, CustomerUpdateDTO dto);
 }

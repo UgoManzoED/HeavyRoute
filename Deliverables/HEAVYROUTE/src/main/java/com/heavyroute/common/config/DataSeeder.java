@@ -137,7 +137,7 @@ public class DataSeeder implements CommandLineRunner {
                 .licenseNumber(license)
                 .serialNumber(serial)
                 .hireDate(LocalDate.now().minusMonths(6)) // Assunto 6 mesi fa
-                .status(status)
+                .driverStatus(status)
                 .build();
         driverRepository.save(d);
     }

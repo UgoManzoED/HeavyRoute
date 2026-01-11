@@ -1,7 +1,8 @@
 package com.heavyroute.core.service;
 
 import com.heavyroute.core.dto.RequestCreationDTO;
-import com.heavyroute.core.dto.RequestDetailDTO;
+import com.heavyroute.core.dto.TransportRequestResponseDTO;
+
 import java.util.List;
 
 /**
@@ -32,7 +33,7 @@ public interface TransportRequestService {
      * @param username L'identificativo univoco del cliente (dal SecurityContext).
      * @return Una lista di DTO contenente i dettagli delle richieste sottomesse da questo utente.
      */
-    List<RequestDetailDTO> getRequestsByClientUsername(String username);
+    List<TransportRequestResponseDTO> getRequestsByClientUsername(String username);
 
     /**
      * Crea una nuova richiesta di trasporto nel sistema.
@@ -51,11 +52,11 @@ public interface TransportRequestService {
      *
      * @param dto Oggetto contenente i dati di input validati (origine, destinazione, carico).
      * @param username L'autore della richiesta (necessario per settare la relazione 'owner').
-     * @return {@link RequestDetailDTO} La richiesta appena creata, completa di ID e Timestamp.
+     * @return {@link TransportRequestResponseDTO} La richiesta appena creata, completa di ID e Timestamp.
      * @throws com.heavyroute.common.exception.BusinessRuleException se la data è nel passato.
      * @throws com.heavyroute.common.exception.ResourceNotFoundException se l'utente non esiste.
      */
-    RequestDetailDTO createRequest(RequestCreationDTO dto, String username);
+    TransportRequestResponseDTO createRequest(RequestCreationDTO dto, String username);
 
     /**
      * Recupera l'elenco completo delle richieste di trasporto presenti nel sistema.
@@ -70,7 +71,7 @@ public interface TransportRequestService {
      * di caricare l'intera tabella in memoria.
      * </p>
      *
-     * @return Una lista di {@link RequestDetailDTO} rappresentante tutte le richieste.
+     * @return Una lista di {@link TransportRequestResponseDTO} rappresentante tutte le richieste.
      */
-    List<RequestDetailDTO> getAllRequests();
+    List<TransportRequestResponseDTO> getAllRequests();
 }

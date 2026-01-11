@@ -1,5 +1,6 @@
 package com.heavyroute.core.dto;
 
+import com.heavyroute.core.enums.TripStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,7 +17,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class TripDTO {
+public class TripResponseDTO {
 
     /**
      * Identificativo tecnico del database.
@@ -32,13 +33,8 @@ public class TripDTO {
 
     /**
      * Stato corrente del viaggio serializzato come stringa (es. "IN_PLANNING").
-     * <p>
-     * Viene esposto come String (e non come Enum) per disaccoppiare il contratto API:
-     * se l'Enum interno cambia o viene rinominato, la stringa qui può essere mappata o mantenuta
-     * per retrocompatibilità verso i client vecchi.
-     * </p>
      */
-    private String status;
+    private TripStatus status;
 
     /**
      * ID dell'autista (riferimento tecnico).
@@ -79,7 +75,7 @@ public class TripDTO {
      * direttamente a componenti UI dedicati (es. {@code <RequestSummaryCard data={trip.request} />}).
      * </p>
      */
-    private RequestDetailDTO request;
+    private TransportRequestResponseDTO request;
 
     /**
      * ID del Committente (Utente che ha creato la richiesta).

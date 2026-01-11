@@ -1,6 +1,7 @@
-package com.heavyroute.resources.service;
+package com.heavyroute.resources.mapper;
 
-import com.heavyroute.resources.dto.VehicleDTO;
+import com.heavyroute.resources.dto.VehicleCreationDTO;
+import com.heavyroute.resources.dto.VehicleResponseDTO;
 import com.heavyroute.resources.model.Vehicle;
 import com.heavyroute.resources.enums.VehicleStatus;
 import org.springframework.stereotype.Component;
@@ -20,53 +21,54 @@ import java.util.stream.Collectors;
 public class VehicleMapper {
 
     /**
-     * Converte un'entità {@link Vehicle} in un {@link VehicleDTO}.
+     * Converte un'entità {@link Vehicle} in un {@link VehicleCreationDTO}.
      * <p>
      * Utilizza {@code .name()} sull'Enum dello stato per popolare il campo String del DTO.
      * </p>
      * * @param entity L'entità da convertire.
      * @return Il DTO popolato.
      */
-    public VehicleDTO toDTO(Vehicle entity) {
+    public VehicleResponseDTO toResponseDTO(Vehicle entity) {
         if (entity == null) return null;
 
-        VehicleDTO dto = new VehicleDTO();
+        VehicleResponseDTO dto = new VehicleResponseDTO();
+        dto.setId(entity.getId());
         dto.setLicensePlate(entity.getLicensePlate());
         dto.setModel(entity.getModel());
         dto.setMaxLoadCapacity(entity.getMaxLoadCapacity());
         dto.setMaxHeight(entity.getMaxHeight());
         dto.setMaxWidth(entity.getMaxWidth());
         dto.setMaxLength(entity.getMaxLength());
+        dto.setStatus(entity.getStatus());
 
-        // Conversione Enum -> String per il DTO
-        if (entity.getStatus() != null) {
-            dto.setStatus(VehicleStatus.valueOf(entity.getStatus().name()));
-        }
+        // Campi calcolati per il Frontend
+        dto.setAvailable(entity.getStatus() == VehicleStatus.AVAILABLE);
+        dto.setInMaintenance(entity.getStatus() == VehicleStatus.MAINTENANCE);
 
         return dto;
     }
 
     /**
-     * Converte una lista di entità Vehicle in una lista di VehicleDTO.
+     * Converte una lista di entità Vehicle in una lista di VehicleCreationDTO.
      */
-    public List<VehicleDTO> toDTOList(List<Vehicle> entities) {
+    public List<VehicleResponseDTO> toResponseDTOList(List<Vehicle> entities) {
         if (entities == null) {
             return List.of();
         }
         return entities.stream()
-                .map(this::toDTO)
+                .map(this::toResponseDTO)
                 .collect(Collectors.toList());
     }
 
     /**
-     * Converte un {@link VehicleDTO} in un'entità {@link Vehicle}.
+     * Converte un {@link VehicleCreationDTO} in un'entità {@link Vehicle}.
      * <p>
      * Utilizza {@code VehicleStatus.valueOf()} per convertire la stringa del DTO nell'Enum richiesto dall'Entity.
      * </p>
      * * @param dto Il DTO da convertire.
      * @return L'entità configurata.
      */
-    public Vehicle toEntity(VehicleDTO dto) {
+    public Vehicle toEntity(VehicleCreationDTO dto) {
         if (dto == null) return null;
 
         return Vehicle.builder()
@@ -76,8 +78,7 @@ public class VehicleMapper {
                 .maxHeight(dto.getMaxHeight())
                 .maxWidth(dto.getMaxWidth())
                 .maxLength(dto.getMaxLength())
-                // Conversione String -> Enum per l'Entity
-                .status(VehicleStatus.valueOf(String.valueOf(dto.getStatus())))
+                .status(dto.getStatus())
                 .build();
     }
 }

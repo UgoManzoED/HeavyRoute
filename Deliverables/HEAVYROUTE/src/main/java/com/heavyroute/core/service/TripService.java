@@ -1,9 +1,8 @@
 package com.heavyroute.core.service;
 
-import com.heavyroute.core.dto.PlanningDTO;
-import com.heavyroute.core.dto.TripDTO;
+import com.heavyroute.core.dto.TripAssignmentDTO;
+import com.heavyroute.core.dto.TripResponseDTO;
 import com.heavyroute.core.enums.TripStatus;
-import com.heavyroute.core.model.Trip;
 
 import java.util.List;
 
@@ -30,7 +29,7 @@ public interface TripService {
      * @throws com.heavyroute.common.exception.ResourceNotFoundException se la richiesta non esiste
      * @throws com.heavyroute.common.exception.BusinessRuleException se la richiesta non è in stato PENDING
      */
-    TripDTO approveRequest(Long requestId);
+    TripResponseDTO approveRequest(Long requestId);
 
     /**
      * Assegna le risorse operative (Autista, Veicolo) a un viaggio esistente.
@@ -43,7 +42,7 @@ public interface TripService {
      * @throws com.heavyroute.common.exception.ResourceNotFoundException se il viaggio non esiste
      * @throws com.heavyroute.common.exception.BusinessRuleException se il viaggio non è in pianificazione o le risorse non sono
      */
-    void planTrip(Long tripId, PlanningDTO dto);
+    void planTrip(Long tripId, TripAssignmentDTO dto);
 
     /**
      * Recupera i dettagli di un viaggio per la visualizzazione.
@@ -51,7 +50,7 @@ public interface TripService {
      * @param id L'identificativo del viaggio.
      * @return Un DTO arricchito con descrizioni utile al Frontend.
      */
-    TripDTO getTripById(Long id);
+    TripResponseDTO getTripById(Long id);
 
     /**
      * Recupera una lista di viaggi filtrata per stato operativo.
@@ -62,7 +61,7 @@ public interface TripService {
      * @param status Lo stato dei viaggi da ricercare (es. IN_PLANNING).
      * @return Lista di DTO, vuota se non vengono trovati viaggi in quello stato.
      */
-    List<TripDTO> getTripsByStatus(TripStatus status);
+    List<TripResponseDTO> getTripsByStatus(TripStatus status);
 
     /**
      * Calcola e associa un percorso ottimale al viaggio.

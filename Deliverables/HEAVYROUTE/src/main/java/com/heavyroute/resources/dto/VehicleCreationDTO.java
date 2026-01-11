@@ -20,7 +20,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class VehicleDTO {
+public class VehicleCreationDTO {
 
     /**
      * Targa del veicolo.

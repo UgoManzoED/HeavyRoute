@@ -1,9 +1,9 @@
 package com.heavyroute.core.service;
 
 import com.heavyroute.common.exception.BusinessRuleException;
-import com.heavyroute.core.dto.PlanningDTO;
-import com.heavyroute.core.dto.TripDTO;
-import com.heavyroute.core.dto.TripMapper;
+import com.heavyroute.core.dto.TripAssignmentDTO;
+import com.heavyroute.core.dto.TripResponseDTO;
+import com.heavyroute.core.mapper.TripMapper;
 import com.heavyroute.core.enums.RequestStatus;
 import com.heavyroute.core.enums.TripStatus;
 import com.heavyroute.core.model.TransportRequest;
@@ -74,7 +74,7 @@ class TripServiceTest {
         });
 
         // Mockiamo il mapper per evitare NullPointerException
-        when(tripMapper.toDTO(any(Trip.class))).thenReturn(new TripDTO());
+        when(tripMapper.toDTO(any(Trip.class))).thenReturn(new TripResponseDTO());
 
         // ACT
         tripService.approveRequest(reqId);
@@ -125,7 +125,7 @@ class TripServiceTest {
         when(vehicleRepository.findByLicensePlate(plate)).thenReturn(Optional.of(vehicle));
 
         // ACT
-        PlanningDTO dto = new PlanningDTO(tripId, driverId, plate);
+        TripAssignmentDTO dto = new TripAssignmentDTO(tripId, driverId, plate);
         tripService.planTrip(tripId, dto);
 
         // ASSERT
@@ -160,7 +160,7 @@ class TripServiceTest {
         when(vehicleRepository.findByLicensePlate(plate)).thenReturn(Optional.of(vehicle));
 
         // ACT & ASSERT
-        PlanningDTO dto = new PlanningDTO(tripId, driverId, plate);
+        TripAssignmentDTO dto = new TripAssignmentDTO(tripId, driverId, plate);
 
         BusinessRuleException exception = assertThrows(BusinessRuleException.class, () -> {
             tripService.planTrip(tripId, dto);

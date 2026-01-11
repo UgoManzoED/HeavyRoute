@@ -1,5 +1,6 @@
 package com.heavyroute.core.dto;
 
+import com.heavyroute.core.enums.TripStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,24 +17,22 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProposedRouteDTO {
+public class RouteResponseDTO {
 
     // --- Identificativi ---
     private Long id;              // ID della Route (o del Trip, a seconda della logica)
-    private String orderId;       // Codice Ordine (es. "ORD-045")
+    private String tripCode;       // Codice Ordine (es. "ORD-045")
 
     // --- Contesto ---
     private String plannerName;   // Nome del pianificatore (es. "Mario Bianchi")
     private String origin;        // Indirizzo partenza
     private String destination;   // Indirizzo arrivo
     private String loadType;      // Tipologia carico (es. "Carico Eccezionale")
-    private String status;        // Stato approvazione (PENDING, APPROVED, REJECTED)
+    private TripStatus status;        // Stato approvazione (PENDING, APPROVED, REJECTED)
 
-    // --- Dati Tecnici (Dalla Entity Route) ---
+    // --- Dati Tecnici ---
     private String routeDescription; // Descrizione umana (es. "A1 Milano-Roma")
     private Double distance;         // Distanza in km
     private Double duration;         // Durata in minuti
 
-    // Nota: La polyline di solito non si manda nella lista per risparmiare banda,
-    // si recupera solo nel dettaglio se serve disegnare la mappa.
 }

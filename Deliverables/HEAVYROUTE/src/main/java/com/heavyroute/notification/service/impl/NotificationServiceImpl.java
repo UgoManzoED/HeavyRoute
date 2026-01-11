@@ -4,7 +4,7 @@ import com.heavyroute.common.exception.ResourceNotFoundException;
 import com.heavyroute.notification.dto.NotificationDTO;
 import com.heavyroute.notification.enums.NotificationStatus;
 import com.heavyroute.notification.enums.NotificationType;
-import com.heavyroute.notification.dto.NotificationMapper;
+import com.heavyroute.notification.mapper.NotificationMapper;
 import com.heavyroute.notification.model.Notification;
 import com.heavyroute.notification.repository.NotificationRepository;
 import com.heavyroute.notification.service.NotificationService;

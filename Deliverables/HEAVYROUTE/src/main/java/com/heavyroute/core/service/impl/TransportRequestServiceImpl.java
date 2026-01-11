@@ -50,11 +50,11 @@ public class TransportRequestServiceImpl implements TransportRequestService {
      * </p>
      *
      * @param dto DTO contenente i dati inseriti dal Committente.
-     * @return {@link RequestDetailDTO} I dettagli della richiesta salvata.
+     * @return {@link TransportRequestResponseDTO} I dettagli della richiesta salvata.
      */
     @Override
     @Transactional
-    public RequestDetailDTO createRequest(RequestCreationDTO dto, String username) {
+    public TransportRequestResponseDTO createRequest(RequestCreationDTO dto, String username) {
         User client = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Utente non trovato: " + username));
 
@@ -68,10 +68,14 @@ public class TransportRequestServiceImpl implements TransportRequestService {
         request.setRequestStatus(RequestStatus.PENDING);
 
         LoadDetails load = new LoadDetails();
+        load.setType(dto.getLoadType());
         load.setWeightKg(dto.getWeight());
         load.setHeight(dto.getHeight());
         load.setWidth(dto.getWidth());
         load.setLength(dto.getLength());
+        request.setLoad(load);
+        load.setQuantity(1);
+
         request.setLoad(load);
 
         TransportRequest saved = repository.save(request);
@@ -85,10 +89,10 @@ public class TransportRequestServiceImpl implements TransportRequestService {
      * di sistema (Committente e PL).
      * </p>
      *
-     * @return Lista di {@link RequestDetailDTO} rappresentanti tutte le richieste.
+     * @return Lista di {@link TransportRequestResponseDTO} rappresentanti tutte le richieste.
      */
     @Override
-    public List<RequestDetailDTO> getAllRequests() {
+    public List<TransportRequestResponseDTO> getAllRequests() {
         return repository.findAll().stream()
                 .map(this::mapToDetailDTO)
                 .collect(Collectors.toList());
@@ -111,12 +115,12 @@ public class TransportRequestServiceImpl implements TransportRequestService {
      * </p>
      *
      * @param username Lo username univoco del cliente (tipicamente estratto dal SecurityContext).
-     * @return Lista di {@link RequestDetailDTO} appartenenti all'utente specificato.
+     * @return Lista di {@link TransportRequestResponseDTO} appartenenti all'utente specificato.
      * @throws ResourceNotFoundException se lo username non corrisponde a nessun utente registrato.
      */
     @Override
     @Transactional(readOnly = true)
-    public List<RequestDetailDTO> getRequestsByClientUsername(String username) {
+    public List<TransportRequestResponseDTO> getRequestsByClientUsername(String username) {
         User client = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Utente non trovato: " + username));
 
@@ -135,20 +139,25 @@ public class TransportRequestServiceImpl implements TransportRequestService {
      * @param entity L'entità JPA da mappare.
      * @return Il DTO popolato con i dati dell'entità.
      */
-    private RequestDetailDTO mapToDetailDTO(TransportRequest entity) {
-        RequestDetailDTO dto = new RequestDetailDTO();
+    private TransportRequestResponseDTO mapToDetailDTO(TransportRequest entity) {
+        TransportRequestResponseDTO dto = new TransportRequestResponseDTO();
         dto.setId(entity.getId());
         dto.setOriginAddress(entity.getOriginAddress());
         dto.setDestinationAddress(entity.getDestinationAddress());
         dto.setPickupDate(entity.getPickupDate());
-        dto.setStatus(entity.getRequestStatus());
+        dto.setRequestStatus(entity.getRequestStatus());
 
         // Mapping dei dettagli del carico dall'oggetto embedded
         if (entity.getLoad() != null) {
-            dto.setWeight(entity.getLoad().getWeightKg());
-            dto.setHeight(entity.getLoad().getHeight());
-            dto.setWidth(entity.getLoad().getWidth());
-            dto.setLength(entity.getLoad().getLength());
+            TransportRequestResponseDTO.LoadDetailsDTO loadDto = new TransportRequestResponseDTO.LoadDetailsDTO();
+
+            loadDto.setType(entity.getLoad().getType());
+            loadDto.setWeightKg(entity.getLoad().getWeightKg());
+            loadDto.setHeight(entity.getLoad().getHeight());
+            loadDto.setWidth(entity.getLoad().getWidth());
+            loadDto.setLength(entity.getLoad().getLength());
+
+            dto.setLoad(loadDto);
         }
 
         // Popolamento Dati Cliente ---

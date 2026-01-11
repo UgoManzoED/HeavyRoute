@@ -1,7 +1,7 @@
 package com.heavyroute.core.controller;
 
-import com.heavyroute.core.dto.PlanningDTO;
-import com.heavyroute.core.dto.TripDTO;
+import com.heavyroute.core.dto.TripAssignmentDTO;
+import com.heavyroute.core.dto.TripResponseDTO;
 import com.heavyroute.core.service.TripService;
 import com.heavyroute.core.enums.TripStatus;
 import jakarta.validation.Valid;
@@ -46,7 +46,7 @@ public class TripManagementController {
      */
     @PostMapping("/{requestId}/approve")
     @PreAuthorize("hasRole('LOGISTIC_PLANNER')")
-    public ResponseEntity<TripDTO> approve(@PathVariable Long requestId) {
+    public ResponseEntity<TripResponseDTO> approve(@PathVariable Long requestId) {
         return ResponseEntity.status(HttpStatus.CREATED).body(tripService.approveRequest(requestId));
     }
 
@@ -70,7 +70,7 @@ public class TripManagementController {
     @PreAuthorize("hasRole('LOGISTIC_PLANNER')")
     public ResponseEntity<Void> planResources(
             @PathVariable Long tripId,
-            @Valid @RequestBody PlanningDTO dto) {
+            @Valid @RequestBody TripAssignmentDTO dto) {
 
         // Assicuriamo coerenza tra URL e Body (Security best practice)
         dto.setTripId(tripId);
@@ -86,11 +86,11 @@ public class TripManagementController {
      * nello stato <code>IN_PLANNING</code> che necessitano di assegnazione risorse.
      * </p>
      *
-     * @return Una lista di {@link TripDTO} filtrata per stato operativo.
+     * @return Una lista di {@link TripResponseDTO} filtrata per stato operativo.
      */
     @GetMapping("/planning")
     @PreAuthorize("hasRole('LOGISTIC_PLANNER')")
-    public ResponseEntity<List<TripDTO>> getTripsToPlan() {
+    public ResponseEntity<List<TripResponseDTO>> getTripsToPlan() {
         return ResponseEntity.ok(tripService.getTripsByStatus(TripStatus.IN_PLANNING));
     }
 }

@@ -2,6 +2,7 @@ package com.heavyroute.users.controller;
 
 import com.heavyroute.common.exception.ResourceNotFoundException;
 import com.heavyroute.users.dto.*;
+import com.heavyroute.users.mapper.UserMapper;
 import com.heavyroute.users.model.User;
 import com.heavyroute.users.service.UserService;
 import jakarta.validation.Valid;
@@ -25,7 +26,7 @@ public class UserController {
      * Utilizzato dal Frontend per popolare la Dashboard e il form profilo.
      */
     @GetMapping("/me")
-    public ResponseEntity<UserDTO> getCurrentUser() {
+    public ResponseEntity<UserResponseDTO> getCurrentUser() {
         // 1. Recupera lo username dal contesto di sicurezza (dal Token JWT)
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String currentUsername = authentication.getName();
@@ -42,7 +43,7 @@ public class UserController {
      * Registrazione pubblica per un nuovo Committente.
      */
     @PostMapping("/register/client")
-    public ResponseEntity<UserDTO> registerClient(@Valid @RequestBody CustomerRegistrationDTO dto) {
+    public ResponseEntity<UserResponseDTO> registerClient(@Valid @RequestBody CustomerRegistrationDTO dto) {
         return ResponseEntity.ok(userService.registerNewClient(dto));
     }
 
@@ -51,7 +52,7 @@ public class UserController {
      */
     @PostMapping("/internal")
     @PreAuthorize("hasRole('ACCOUNT_MANAGER')")
-    public ResponseEntity<UserDTO> createInternalUser(@Valid @RequestBody InternalUserCreateDTO dto) {
+    public ResponseEntity<UserResponseDTO> createInternalUser(@Valid @RequestBody InternalUserCreateDTO dto) {
         return ResponseEntity.ok(userService.createInternalUser(dto));
     }
 }
