@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../common/heavy_route_app_bar.dart';
 import '../../auth/services/user_service.dart';
-import '../../auth/models/user_dto.dart';
+import '../../auth/models/user_model.dart'; // CORRETTO: rimosso il punto finale
 import '../../requests/presentation/widgets/user_data_popup.dart';
 
 import '../widgets/route_validation_tab.dart';
@@ -9,6 +9,14 @@ import '../widgets/documentation_tab.dart';
 import '../widgets/technical_escort_tab.dart';
 import '../widgets/road_constraints_tab.dart';
 
+/**
+ * Dashboard principale per il Traffic Coordinator.
+ * <p>
+ * Gestisce la navigazione tra le tab operative: Validazione Percorsi, Documentazione,
+ * Scorta Tecnica e Vincoli Viabilità.
+ * </p>
+ * @author Roman
+ */
 class CoordinatorDashboardScreen extends StatefulWidget {
   const CoordinatorDashboardScreen({super.key});
 
@@ -27,6 +35,9 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
     RoadConstraintsTab(),
   ];
 
+  /**
+   * Apre il popup con i dati dell'utente loggato.
+   */
   Future<void> _openProfilePopup() async {
     showDialog(
       context: context,
@@ -35,7 +46,7 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
     );
 
     try {
-      final UserDTO? user = await _userService.getCurrentUser();
+      final UserModel? user = (await _userService.getCurrentUser()) as UserModel?;
 
       if (mounted) Navigator.pop(context);
 
@@ -48,7 +59,7 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 600),
               child: UserDataPopup(
-                user: user,
+                user: user, // CORRETTO: Aggiunta la variabile user
                 userService: _userService,
                 role: "Traffic Coordinator",
                 showDownload: false,
@@ -97,7 +108,6 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
       ),
       child: Row(
         children: [
-          // MODIFICA QUI: Rimosso badgeCount: 2
           _buildTabButton(0, "Validazione Percorsi", Icons.location_on_outlined),
           _buildTabButton(1, "Documentazione", Icons.description_outlined),
           _buildTabButton(2, "Scorta Tecnica", Icons.security_outlined),
@@ -137,7 +147,6 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
                   ),
                 ),
               ),
-              // Il badge appare solo se badgeCount > 0. Essendo default 0, non appare nulla.
               if (badgeCount > 0) ...[
                 const SizedBox(width: 6),
                 Container(

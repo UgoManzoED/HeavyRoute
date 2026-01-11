@@ -1,18 +1,20 @@
 import 'package:dio/dio.dart';
 import '../../../../core/network/dio_client.dart';
-import '../dto/proposed_route_dto.dart';
+import '../../trips/models/trip_model.dart';
 
 class TrafficCoordinatorService {
   final Dio _dio = DioClient.instance;
 
   // Endpoint: GET /api/traffic-coordinator/routes
-  Future<List<ProposedRouteDTO>> getProposedRoutes() async {
+  Future<List<TripModel>> getProposedRoutes() async {
     try {
-      final response = await _dio.get('/traffic-coordinator/routes');
+      // Filtriamo per lo stato WAITING_VALIDATION
+      final response = await _dio.get('/trips', queryParameters: {'status': 'WAITING_VALIDATION'});
 
       if (response.statusCode == 200 && response.data != null) {
-        final List<dynamic> list = response.data;
-        return list.map((json) => ProposedRouteDTO.fromJson(json)).toList();
+        final List<dynamic> data = response.data;
+        // Utilizza il factory TripModel.fromJson
+        return data.map((json) => TripModel.fromJson(json)).toList();
       }
       return [];
     } catch (e) {
@@ -21,13 +23,19 @@ class TrafficCoordinatorService {
     }
   }
 
-  // Endpoint: PATCH /api/traffic-coordinator/routes/{id}/validate
-  Future<bool> validateRoute(String routeId, bool isApproved) async {
+  /**
+   * Approva o Rifiuta il percorso.
+   * <p>
+   * Corregge l'errore dell'argomento: accetta un [int] per l'ID del viaggio.
+   * </p>
+   * @param tripId L'ID numerico del viaggio (TripModel.id).
+   * @param approved true per approvare, false per richiedere modifiche.
+   */
+  Future<bool> validateRoute(int tripId, bool approved) async {
     try {
-      final response = await _dio.patch(
-        '/traffic-coordinator/routes/$routeId/validate',
-        queryParameters: {'approved': isApproved},
-      );
+      final String action = approved ? 'approve' : 'reject';
+      // L'endpoint usa l'ID intero nel path
+      final response = await _dio.patch('/trips/$tripId/route/$action');
       return response.statusCode == 200;
     } catch (e) {
       print("Errore validateRoute: $e");
