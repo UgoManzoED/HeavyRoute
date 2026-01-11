@@ -13,6 +13,7 @@ LoadDetails _$LoadDetailsFromJson(Map<String, dynamic> json) => LoadDetails(
   widthMeters: (json['width'] as num?)?.toDouble() ?? 0.0,
   heightMeters: (json['height'] as num?)?.toDouble() ?? 0.0,
   lengthMeters: (json['length'] as num?)?.toDouble() ?? 0.0,
+  quantity: (json['quantity'] as num?)?.toInt() ?? 1,
 );
 
 Map<String, dynamic> _$LoadDetailsToJson(LoadDetails instance) =>
@@ -23,4 +24,5 @@ Map<String, dynamic> _$LoadDetailsToJson(LoadDetails instance) =>
       'width': instance.widthMeters,
       'height': instance.heightMeters,
       'length': instance.lengthMeters,
+      'quantity': instance.quantity,
     };
