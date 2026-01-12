@@ -71,26 +71,30 @@ class _PlannerDashboardScreenState extends State<PlannerDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      // APPBAR COLLEGATA
-      appBar: HeavyRouteAppBar(
-        subtitle: "Dashboard Pianificatore",
-        isDashboard: true,
-        onProfileTap: _openProfilePopup,
-      ),
-      body: Column(
-        children: [
-          const SizedBox(height: 20),
-          _buildCustomNavBar(),
-          const SizedBox(height: 20),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: _tabs[_selectedIndex],
+    // 1. PopScope blocca il gesto "indietro" (swipe/freccia)
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8F9FA),
+        // APPBAR COLLEGATA
+        appBar: HeavyRouteAppBar(
+          subtitle: "Dashboard Pianificatore",
+          // isDashboard: true, <--- RIMOSSO
+          onProfileTap: _openProfilePopup,
+        ),
+        body: Column(
+          children: [
+            const SizedBox(height: 20),
+            _buildCustomNavBar(),
+            const SizedBox(height: 20),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: _tabs[_selectedIndex],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

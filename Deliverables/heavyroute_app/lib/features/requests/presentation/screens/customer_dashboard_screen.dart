@@ -93,24 +93,28 @@ class _DashboardScreenState extends State<CustomerDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      appBar: HeavyRouteAppBar(
-        subtitle: 'Dashboard Committente',
-        isDashboard: true,
-        // COLLEGATO AL NUOVO METODO DEL POPUP
-        onProfileTap: _openProfilePopup,
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async => _refreshRequests(),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            children: [
-              AddOrderHeader(onAddTap: _openNewOrderDialog),
-              const SizedBox(height: 32),
-              _buildOrdersSection(),
-            ],
+    // 1. PopScope blocca il gesto "indietro" (swipe/freccia)
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8F9FA),
+        appBar: HeavyRouteAppBar(
+          subtitle: 'Dashboard Committente',
+          // isDashboard: true, <--- RIMOSSO
+          // COLLEGATO AL NUOVO METODO DEL POPUP
+          onProfileTap: _openProfilePopup,
+        ),
+        body: RefreshIndicator(
+          onRefresh: () async => _refreshRequests(),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              children: [
+                AddOrderHeader(onAddTap: _openNewOrderDialog),
+                const SizedBox(height: 32),
+                _buildOrdersSection(),
+              ],
+            ),
           ),
         ),
       ),

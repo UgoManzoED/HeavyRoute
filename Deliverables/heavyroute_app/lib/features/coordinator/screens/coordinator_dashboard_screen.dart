@@ -75,25 +75,29 @@ class _CoordinatorDashboardScreenState extends State<CoordinatorDashboardScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      appBar: HeavyRouteAppBar(
-        subtitle: "Traffic Coordinator Dashboard",
-        isDashboard: true,
-        onProfileTap: _openProfilePopup,
-      ),
-      body: Column(
-        children: [
-          const SizedBox(height: 20),
-          _buildCustomTabBar(),
-          const SizedBox(height: 20),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: _tabs[_currentTabIndex],
+    // 1. PopScope BLOCCA la navigazione indietro (niente freccia, niente swipe)
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8F9FA),
+        appBar: HeavyRouteAppBar(
+          subtitle: "Traffic Coordinator Dashboard",
+          // isDashboard: true, <--- RIMOSSO (Il default è già corretto)
+          onProfileTap: _openProfilePopup,
+        ),
+        body: Column(
+          children: [
+            const SizedBox(height: 20),
+            _buildCustomTabBar(),
+            const SizedBox(height: 20),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: _tabs[_currentTabIndex],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
