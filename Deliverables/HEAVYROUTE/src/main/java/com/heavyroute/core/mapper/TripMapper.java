@@ -40,7 +40,7 @@ public class TripMapper {
             TransportRequestResponseDTO requestDTO = toRequestDTO(trip.getRequest());
             dto.setRequest(requestDTO);
 
-            // Flattening dei dati cliente per comodità
+            // Flattening dei dati cliente
             dto.setClientId(requestDTO.getClientId());
             dto.setClientFullName(requestDTO.getClientFullName());
         }

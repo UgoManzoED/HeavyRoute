@@ -31,9 +31,16 @@ public class RouteResponseDTO {
     private TripStatus status;        // Stato approvazione (PENDING, APPROVED, REJECTED)
 
     // --- Dati Tecnici ---
-    private String routeDescription; // Descrizione umana (es. "A1 Milano-Roma")
+    private String routeDescription; // Descrizione (es. "A1 Milano-Roma")
     private Double distance;         // Distanza in km
     private Double duration;         // Durata in minuti
     private String polyline;
 
+    // Coordinate Partenza
+    private Double startLat;
+    private Double startLon;
+
+    // Coordinate Arrivo
+    private Double endLat;
+    private Double endLon;
 }
