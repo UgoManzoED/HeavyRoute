@@ -20,7 +20,7 @@ class RegistrationService {
       // NOTA: Verifica che l'endpoint nel backend corrisponda esattamente a questo path.
       // Se il Controller ha @RequestMapping("/api/users"), allora qui va bene.
       final response = await _dio.post(
-        '/users/register/client',
+        '/api/users/register/client',
         data: request.toJson(),
       );
 
@@ -40,7 +40,7 @@ class RegistrationService {
   Future<List<dynamic>> getPendingRegistrations() async {
     try {
       // Deve corrispondere al @GetMapping("/pending") del controller
-      final response = await _dio.get('/users/pending');
+      final response = await _dio.get('/api/users/pending');
       return response.data;
     } catch (e) {
       return [];
@@ -53,7 +53,7 @@ class RegistrationService {
   Future<bool> approveUser(int userId) async {
     try {
       // Deve corrispondere al @PatchMapping("/{id}/approve")
-      final response = await _dio.patch('/users/$userId/approve');
+      final response = await _dio.patch('/api/users/$userId/approve');
       return response.statusCode == 200;
     } catch (e) {
       return false;
@@ -65,7 +65,7 @@ class RegistrationService {
    */
   Future<bool> rejectUser(int userId) async {
     try {
-      final response = await _dio.delete('/users/$userId/reject');
+      final response = await _dio.delete('/api/users/$userId/reject');
       return response.statusCode == 204 || response.statusCode == 200;
     } catch (e) {
       return false;

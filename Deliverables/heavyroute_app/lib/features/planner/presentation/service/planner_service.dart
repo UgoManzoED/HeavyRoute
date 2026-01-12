@@ -16,7 +16,7 @@ class PlannerService {
 
       print("Payload inviato: $payload"); // Controlla nella console cosa stai inviando
 
-      final response = await _dio.post('/trips', data: payload);
+      final response = await _dio.post('/api/trips', data: payload);
 
       print("Risposta Server: ${response.statusCode}");
 
