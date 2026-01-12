@@ -22,6 +22,10 @@ public class RouteMapper {
                 .distance(route.getRouteDistance())
                 .duration(route.getRouteDuration())
                 .polyline(route.getPolyline())
+                .startLat(route.getStartLocation() != null ? route.getStartLocation().getLatitude() : null)
+                .startLon(route.getStartLocation() != null ? route.getStartLocation().getLongitude() : null)
+                .endLat(route.getEndLocation() != null ? route.getEndLocation().getLatitude() : null)
+                .endLon(route.getEndLocation() != null ? route.getEndLocation().getLongitude() : null)
                 .build();
     }
 }

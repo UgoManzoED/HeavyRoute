@@ -1,5 +1,6 @@
 package com.heavyroute.core.controller;
 
+import com.heavyroute.core.dto.RouteValidationRequest;
 import com.heavyroute.core.dto.TripAssignmentDTO;
 import com.heavyroute.core.dto.TripResponseDTO;
 import com.heavyroute.core.service.TripService;
@@ -90,9 +91,14 @@ public class TripManagementController {
      */
     @PostMapping("/{tripId}/route/approve")
     @PreAuthorize("hasRole('TRAFFIC_COORDINATOR')")
-    public ResponseEntity<Void> validateRoute(@PathVariable Long tripId) {
-        log.info("Traffic Coordinator sta validando il viaggio ID: {}", tripId);
-        tripService.validateRoute(tripId);
+    public ResponseEntity<Void> validateRoute(@PathVariable Long tripId,
+                                              @RequestBody RouteValidationRequest request) {
+        log.info("Decisione Coordinator per viaggio ID {}: Approved = {}, Feedback = {}",
+                tripId, request.getApproved(), request.getFeedback());
+
+        // Passiamo entrambi i parametri al service
+        tripService.validateRoute(tripId, request.getApproved(), request.getFeedback());
+
         return ResponseEntity.ok().build();
     }
 }

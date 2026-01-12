@@ -1,14 +1,10 @@
 package com.heavyroute.common.config;
 
+import com.heavyroute.common.model.GeoLocation;
 import com.heavyroute.core.enums.RequestStatus;
 import com.heavyroute.core.enums.TripStatus;
-import com.heavyroute.core.model.LoadDetails;
-import com.heavyroute.core.model.Route;
-import com.heavyroute.core.model.TransportRequest;
-import com.heavyroute.core.model.Trip;
-import com.heavyroute.core.repository.RouteRepository;
-import com.heavyroute.core.repository.TransportRequestRepository;
-import com.heavyroute.core.repository.TripRepository;
+import com.heavyroute.core.model.*;
+import com.heavyroute.core.repository.*;
 import com.heavyroute.resources.enums.VehicleStatus;
 import com.heavyroute.resources.model.Vehicle;
 import com.heavyroute.resources.repository.VehicleRepository;
@@ -40,21 +36,17 @@ public class DataSeeder implements CommandLineRunner {
     private final RouteRepository routeRepository;
     private final PasswordEncoder passwordEncoder;
 
-    // Costante per la password di sviluppo (uguale per tutti)
     private static final String DEV_PASSWORD = "password";
 
     @Override
     @Transactional
     public void run(String... args) {
-        // Controllo idempotenza: se ci sono utenti, non faccio nulla
         if (userRepository.count() > 0) {
             log.info("Database già popolato. Seeding saltato.");
             return;
         }
 
         log.info("Inizio popolamento Database con dati di test coerenti...");
-
-        // Pre-calcolo la password hashata
         String encodedPwd = passwordEncoder.encode(DEV_PASSWORD);
 
         // --- 1. PERSONALE INTERNO ---
@@ -65,12 +57,10 @@ public class DataSeeder implements CommandLineRunner {
         // --- 2. FLOTTA VEICOLI ---
         createVehicle("VE-001-AB", "Iveco Stralis 480", 25000.0, 13.6, 2.55, 4.0, VehicleStatus.AVAILABLE);
         createVehicle("XC-999-ZZ", "Volvo FH16 750", 60000.0, 18.0, 3.0, 4.5, VehicleStatus.AVAILABLE);
-        createVehicle("MN-555-XX", "Scania R500", 30000.0, 13.6, 2.55, 4.0, VehicleStatus.MAINTENANCE);
 
         // --- 3. AUTISTI ---
         createDriver("driver1", "Giovanni", "Esposito", "d1@hr.com", "PAT-CE-123456", "DRV-101", DriverStatus.FREE, encodedPwd);
         createDriver("driver2", "Luca", "Moretti", "d2@hr.com", "PAT-CE-987654", "DRV-102", DriverStatus.FREE, encodedPwd);
-        createDriver("driver3", "Matteo", "Ricci", "d3@hr.com", "PAT-CE-112233", "DRV-103", DriverStatus.ON_THE_ROAD, encodedPwd);
 
         // --- 4. COMMITTENTI ---
         Customer hitachi = createCustomer("hitachi", "Giulia", "Manfredi", "logistica@hitachirail.com",
@@ -80,46 +70,60 @@ public class DataSeeder implements CommandLineRunner {
                 "Ansaldo Energia", "00725620150", "Via Lorenzi 8, Genova", encodedPwd);
 
         // --- 5. RICHIESTE PENDENTI ---
-        createRequest(hitachi, "Stabilimento Hitachi, Napoli", "Deposito Trenitalia, Firenze",
+        createRequest(hitachi, "Via Argine 425, Napoli", "Piazza della Stazione, Firenze",
                 LocalDate.now().plusDays(10), RequestStatus.PENDING,
                 35000.0, 24.0, 2.8, 3.8, "Carrozza Metro");
 
-        createRequest(ansaldo, "Porto di Genova", "Centrale Turbigo (MI)",
+        createRequest(ansaldo, "Piazzale Traghetti, Genova", "Via Torino, Milano",
                 LocalDate.now().plusDays(20), RequestStatus.PENDING,
                 280000.0, 12.0, 4.5, 4.2, "Turbina GT36");
 
-        // --- 6. VIAGGI E ROTTE (Per Dashboard Coordinator) ---
+        // --- 6. VIAGGI E ROTTE ---
 
-        // SCENARIO A: Viaggio in attesa di validazione
-        // Regola: Richiesta = APPROVED, Viaggio = WAITING_VALIDATION
+        // SCENARIO A: Viaggio in attesa di validazione (Napoli -> Firenze)
         TransportRequest req1 = createRequest(hitachi, "Interporto Bologna", "Hitachi Pistoia",
                 LocalDate.now().plusDays(3), RequestStatus.APPROVED,
                 5000.0, 6.0, 2.4, 2.5, "Casse Ricambi");
 
-        Route route1 = createRoute("Autostrada A1 Direttissima", 120.5, 90.0, "polyline_data_A");
+        Route route1 = createRoute("Itinerario A1 - Direttissima", 475.0, 310.0, "polyline_A",
+                40.8518, 14.2681, 43.7696, 11.2558);
         createTrip(req1, route1, TripStatus.WAITING_VALIDATION, "T-2026-001");
 
-        // SCENARIO B: Viaggio già validato (Storico o Assegnazione risorse)
-        // Regola: Richiesta = PLANNED, Viaggio = VALIDATED
+        // SCENARIO B: Viaggio già validato (Milano -> Torino)
         TransportRequest req2 = createRequest(ansaldo, "Milano", "Torino",
                 LocalDate.now().plusDays(5), RequestStatus.PLANNED,
                 15000.0, 13.6, 2.5, 4.0, "Generatore");
 
-        Route route2 = createRoute("A4 Torino-Milano", 140.0, 110.0, "polyline_data_B");
+        Route route2 = createRoute("A4 Milano-Torino", 140.0, 110.0, "polyline_B",
+                45.4642, 9.1900, 45.0703, 7.6868);
         createTrip(req2, route2, TripStatus.VALIDATED, "T-2026-002");
 
-        // SCENARIO C: Un altro viaggio in attesa (per testare la lista)
+        // SCENARIO C: Viaggio in attesa (Napoli -> Roma)
         TransportRequest req3 = createRequest(hitachi, "Napoli Port", "Roma Smistamento",
                 LocalDate.now().plusDays(7), RequestStatus.APPROVED,
                 12000.0, 10.0, 2.5, 3.0, "Componenti Meccanici");
 
-        Route route3 = createRoute("SS7 Appia", 210.0, 180.0, "polyline_data_C");
+        Route route3 = createRoute("SS7 Appia", 210.0, 180.0, "polyline_C",
+                40.8359, 14.2488, 41.9028, 12.4964);
         createTrip(req3, route3, TripStatus.WAITING_VALIDATION, "T-2026-003");
 
-        log.info("DATABASE POPOLATO CON SUCCESSO.");
+        log.info("✅ DATABASE POPOLATO CON SUCCESSO.");
     }
 
-    // Helper methods
+    // --- HELPER METHODS ---
+
+    private Route createRoute(String desc, Double dist, Double dur, String poly,
+                              Double sLat, Double sLon, Double eLat, Double eLon) {
+        Route r = new Route();
+        r.setDescription(desc);
+        r.setRouteDistance(dist);
+        r.setRouteDuration(dur);
+        r.setPolyline(poly);
+        r.setStartLocation(new GeoLocation(sLat, sLon));
+        r.setEndLocation(new GeoLocation(eLat, eLon));
+        return routeRepository.save(r);
+    }
+
     private void createPlanner(String username, String name, String surname, String serial, String pwd) {
         LogisticPlanner user = LogisticPlanner.builder()
                 .username(username).password(pwd).email(username + "@heavyroute.com")
@@ -179,34 +183,15 @@ public class DataSeeder implements CommandLineRunner {
 
     private TransportRequest createRequest(Customer client, String origin, String dest, LocalDate date, RequestStatus status,
                                            Double weight, Double len, Double wid, Double hei, String typeDesc) {
-
         LoadDetails load = new LoadDetails();
-        load.setWeightKg(weight);
-        load.setLength(len);
-        load.setWidth(wid);
-        load.setHeight(hei);
-        load.setType(typeDesc);
-        load.setQuantity(1);
+        load.setWeightKg(weight); load.setLength(len); load.setWidth(wid); load.setHeight(hei);
+        load.setType(typeDesc); load.setQuantity(1);
 
         TransportRequest req = TransportRequest.builder()
-                .client(client)
-                .originAddress(origin)
-                .destinationAddress(dest)
-                .pickupDate(date)
-                .requestStatus(status)
-                .load(load)
+                .client(client).originAddress(origin).destinationAddress(dest)
+                .pickupDate(date).requestStatus(status).load(load)
                 .build();
-
         return requestRepository.save(req);
-    }
-
-    private Route createRoute(String desc, Double distKm, Double durMin, String polyline) {
-        Route r = new Route();
-        r.setDescription(desc);
-        r.setRouteDistance(distKm);
-        r.setRouteDuration(durMin);
-        r.setPolyline(polyline);
-        return routeRepository.save(r);
     }
 
     private void createTrip(TransportRequest request, Route route, TripStatus status, String code) {

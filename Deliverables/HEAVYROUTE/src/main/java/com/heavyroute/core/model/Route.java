@@ -1,6 +1,7 @@
 package com.heavyroute.core.model;
 
 import com.heavyroute.common.model.BaseEntity;
+import com.heavyroute.common.model.GeoLocation;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -49,6 +50,20 @@ public class Route extends BaseEntity {
      */
     @Column(nullable = false, columnDefinition = "TEXT")
     private String polyline;
+
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "latitude", column = @Column(name = "start_lat")),
+            @AttributeOverride(name = "longitude", column = @Column(name = "start_lon"))
+    })
+    private GeoLocation startLocation;
+
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "latitude", column = @Column(name = "end_lat")),
+            @AttributeOverride(name = "longitude", column = @Column(name = "end_lon"))
+    })
+    private GeoLocation endLocation;
 
     /**
      * Riferimento inverso al viaggio che utilizza questo percorso.

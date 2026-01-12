@@ -1,7 +1,10 @@
 package com.heavyroute.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.heavyroute.common.model.GeoLocation;
 import com.heavyroute.core.dto.RequestCreationDTO;
+import com.heavyroute.core.model.Route;
+import com.heavyroute.core.service.ExternalMapService;
 import com.heavyroute.users.model.Customer;
 import com.heavyroute.users.repository.UserRepository;
 import com.jayway.jsonpath.JsonPath;
@@ -13,11 +16,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.time.LocalDate;
 
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -33,6 +39,9 @@ public class FullWorkflowIntegrationTest {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private UserRepository userRepository;
     @Autowired private PasswordEncoder passwordEncoder;
+
+    @MockitoBean
+    private ExternalMapService externalMapService;
 
     private Long sharedRequestId;
 
@@ -87,8 +96,20 @@ public class FullWorkflowIntegrationTest {
     void step2_approveRequest() throws Exception {
         Assumptions.assumeTrue(sharedRequestId != null, "Salto: Step 1 fallito");
 
+        Route mockRoute = Route.builder()
+                .routeDistance(100.0)
+                .routeDuration(60.0)
+                .polyline("encoded_polyline_test")
+                .startLocation(new GeoLocation(40.8518, 14.2681)) // Napoli
+                .endLocation(new GeoLocation(41.9028, 12.4964))   // Roma
+                .build();
+
+        when(externalMapService.calculateFullRoute(anyString(), anyString()))
+                .thenReturn(mockRoute);
+
         mockMvc.perform(post("/api/trips/" + sharedRequestId + "/approve").with(csrf()))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.status").value("WAITING_VALIDATION"));
+                .andExpect(jsonPath("$.status").value("WAITING_VALIDATION"))
+                .andExpect(jsonPath("$.tripCode").exists());
     }
 }
