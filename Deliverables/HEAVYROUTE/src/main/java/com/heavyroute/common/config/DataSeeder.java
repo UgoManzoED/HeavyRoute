@@ -27,7 +27,7 @@ import java.time.LocalDate;
 
 @Component
 @RequiredArgsConstructor
-@Profile("!test") // Questo seeder NON parte durante i test automatici
+@Profile("!test")
 @Slf4j
 public class DataSeeder implements CommandLineRunner {
 
@@ -52,7 +52,7 @@ public class DataSeeder implements CommandLineRunner {
             return;
         }
 
-        log.info("Inizio popolamento Database con dati di test...");
+        log.info("Inizio popolamento Database con dati di test coerenti...");
 
         // Pre-calcolo la password hashata
         String encodedPwd = passwordEncoder.encode(DEV_PASSWORD);
@@ -64,13 +64,12 @@ public class DataSeeder implements CommandLineRunner {
 
         // --- 2. FLOTTA VEICOLI ---
         createVehicle("VE-001-AB", "Iveco Stralis 480", 25000.0, 13.6, 2.55, 4.0, VehicleStatus.AVAILABLE);
-        createVehicle("XC-999-ZZ", "Volvo FH16 750", 60000.0, 18.0, 3.0, 4.5, VehicleStatus.AVAILABLE); // Mezzo eccezionale
+        createVehicle("XC-999-ZZ", "Volvo FH16 750", 60000.0, 18.0, 3.0, 4.5, VehicleStatus.AVAILABLE);
         createVehicle("MN-555-XX", "Scania R500", 30000.0, 13.6, 2.55, 4.0, VehicleStatus.MAINTENANCE);
 
         // --- 3. AUTISTI ---
         createDriver("driver1", "Giovanni", "Esposito", "d1@hr.com", "PAT-CE-123456", "DRV-101", DriverStatus.FREE, encodedPwd);
         createDriver("driver2", "Luca", "Moretti", "d2@hr.com", "PAT-CE-987654", "DRV-102", DriverStatus.FREE, encodedPwd);
-        // Questo autista è in viaggio (simulazione)
         createDriver("driver3", "Matteo", "Ricci", "d3@hr.com", "PAT-CE-112233", "DRV-103", DriverStatus.ON_THE_ROAD, encodedPwd);
 
         // --- 4. COMMITTENTI ---
@@ -80,50 +79,47 @@ public class DataSeeder implements CommandLineRunner {
         Customer ansaldo = createCustomer("ansaldo", "Roberto", "Ferry", "transport@ansaldo.com",
                 "Ansaldo Energia", "00725620150", "Via Lorenzi 8, Genova", encodedPwd);
 
-        // --- 5. RICHIESTE PENDENTI (Visibili al Planner) ---
-
-        // Richiesta 1: Hitachi (In attesa)
+        // --- 5. RICHIESTE PENDENTI ---
         createRequest(hitachi, "Stabilimento Hitachi, Napoli", "Deposito Trenitalia, Firenze",
                 LocalDate.now().plusDays(10), RequestStatus.PENDING,
                 35000.0, 24.0, 2.8, 3.8, "Carrozza Metro");
 
-        // Richiesta 2: Ansaldo (In attesa - Eccezionale)
         createRequest(ansaldo, "Porto di Genova", "Centrale Turbigo (MI)",
                 LocalDate.now().plusDays(20), RequestStatus.PENDING,
                 280000.0, 12.0, 4.5, 4.2, "Turbina GT36");
 
-        // --- 6. VIAGGI E ROTTE (Visibili al Coordinator) ---
+        // --- 6. VIAGGI E ROTTE (Per Dashboard Coordinator) ---
 
-        // SCENARIO A: Viaggio pianificato ma che necessita di validazione percorso
-        // 1. Creiamo la richiesta (Approvata dal planner)
-        TransportRequest reqForTrip1 = createRequest(hitachi, "Interporto Bologna", "Hitachi Pistoia",
+        // SCENARIO A: Viaggio in attesa di validazione
+        // Regola: Richiesta = APPROVED, Viaggio = WAITING_VALIDATION
+        TransportRequest req1 = createRequest(hitachi, "Interporto Bologna", "Hitachi Pistoia",
                 LocalDate.now().plusDays(3), RequestStatus.APPROVED,
                 5000.0, 6.0, 2.4, 2.5, "Casse Ricambi");
 
-        // 2. Creiamo la rotta proposta
-        Route route1 = createRoute("Autostrada A1 Direttissima", 120.5, 90.0, "fake_polyline_A");
+        Route route1 = createRoute("Autostrada A1 Direttissima", 120.5, 90.0, "polyline_data_A");
+        createTrip(req1, route1, TripStatus.WAITING_VALIDATION, "T-2026-001");
 
-        // 3. Creiamo il viaggio (Stato: WAITING_VALIDATION)
-        createTrip(reqForTrip1, route1, TripStatus.WAITING_VALIDATION, "T-2026-001");
-
-
-        // SCENARIO B: Viaggio con percorso già validato (Pronto per assegnazione autista)
-        // 1. Creiamo la richiesta (Già in fase di pianificazione avanzata)
-        TransportRequest reqForTrip2 = createRequest(ansaldo, "Milano", "Torino",
-                LocalDate.now().plusDays(5), RequestStatus.PLANNED, // O APPROVED se PLANNED non esiste
+        // SCENARIO B: Viaggio già validato (Storico o Assegnazione risorse)
+        // Regola: Richiesta = PLANNED, Viaggio = VALIDATED
+        TransportRequest req2 = createRequest(ansaldo, "Milano", "Torino",
+                LocalDate.now().plusDays(5), RequestStatus.PLANNED,
                 15000.0, 13.6, 2.5, 4.0, "Generatore");
 
-        // 2. Creiamo la rotta approvata
-        Route route2 = createRoute("A4 Torino-Milano", 140.0, 110.0, "fake_polyline_B");
+        Route route2 = createRoute("A4 Torino-Milano", 140.0, 110.0, "polyline_data_B");
+        createTrip(req2, route2, TripStatus.VALIDATED, "T-2026-002");
 
-        // 3. Creiamo il viaggio (Stato: VALIDATED)
-        createTrip(reqForTrip2, route2, TripStatus.VALIDATED, "T-2026-002");
+        // SCENARIO C: Un altro viaggio in attesa (per testare la lista)
+        TransportRequest req3 = createRequest(hitachi, "Napoli Port", "Roma Smistamento",
+                LocalDate.now().plusDays(7), RequestStatus.APPROVED,
+                12000.0, 10.0, 2.5, 3.0, "Componenti Meccanici");
 
-        log.info("DATABASE POPOLATO CON SUCCESSO. Password utenti: '{}'", DEV_PASSWORD);
+        Route route3 = createRoute("SS7 Appia", 210.0, 180.0, "polyline_data_C");
+        createTrip(req3, route3, TripStatus.WAITING_VALIDATION, "T-2026-003");
+
+        log.info("DATABASE POPOLATO CON SUCCESSO.");
     }
 
-    // ================= HELPER METHODS =================
-
+    // Helper methods
     private void createPlanner(String username, String name, String surname, String serial, String pwd) {
         LogisticPlanner user = LogisticPlanner.builder()
                 .username(username).password(pwd).email(username + "@heavyroute.com")
