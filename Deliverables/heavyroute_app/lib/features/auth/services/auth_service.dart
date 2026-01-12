@@ -10,7 +10,7 @@ class AuthService {
   Future<String?> login(String username, String password) async {
     try {
       final response = await _dio.post(
-        '/auth/login',
+        '/api/auth/login',
         data: {
           'username': username,
           'password': password,

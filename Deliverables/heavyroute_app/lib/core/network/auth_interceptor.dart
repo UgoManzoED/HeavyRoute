@@ -17,8 +17,8 @@ class AuthInterceptor extends Interceptor {
 
     // --- MODIFICA: LISTA DI ESCLUSIONE ---
     // Se la richiesta è per il Login o la Registrazione, NON inviare il token.
-    if (options.path.contains('/auth/login') ||
-        options.path.contains('/users/register')) {
+    if (options.path.contains('/api/auth/login') ||
+        options.path.contains('/api/users/register')) {
       print("🔓 Interceptor: Richiesta pubblica (${options.path}), token saltato.");
       return super.onRequest(options, handler);
     }
