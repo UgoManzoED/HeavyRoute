@@ -26,6 +26,7 @@ class HeavyRouteMap extends StatelessWidget {
     LatLng center = const LatLng(41.8719, 12.5674);
     double zoom = 6.0;
 
+    // Se c'è una rotta, centriamo sull'inizio
     if (route != null && route!.startLat != null) {
       center = LatLng(route!.startLat!, route!.startLon!);
       zoom = 9.0;
@@ -35,21 +36,21 @@ class HeavyRouteMap extends StatelessWidget {
       options: MapOptions(
         initialCenter: center,
         initialZoom: zoom,
+        // interactionOptions: const InteractionOptions(flags: InteractiveFlag.all), // Abilita zoom/pan
       ),
       children: [
         // 1. Layer Mappa
         TileLayer(
-          urlTemplate: "https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}",
-          additionalOptions: {
-            'accessToken': accessToken,
-          },
-          // User Agent richiesto da Mapbox
+          urlTemplate: "https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}@2x?access_token=$accessToken",
+
+          additionalOptions: const {},
+
           userAgentPackageName: 'com.heavyroute.app',
           tileProvider: CancellableNetworkTileProvider(),
           retinaMode: true,
         ),
 
-        // 2. Layer Percorso (Polyline)
+        // 2. Layer Percorso
         if (route != null && route!.polyline.isNotEmpty)
           PolylineLayer(
             polylines: [
