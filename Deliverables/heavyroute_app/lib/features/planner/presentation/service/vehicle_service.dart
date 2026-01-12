@@ -16,7 +16,7 @@ class VehicleService {
    */
   Future<List<VehicleModel>> getVehicles() async {
     try {
-      final response = await _dio.get('/resources/vehicles');
+      final response = await _dio.get('/api/resources/vehicles');
 
       if (response.statusCode == 200 && response.data != null) {
         final List<dynamic> data = response.data;
@@ -36,7 +36,7 @@ class VehicleService {
   Future<bool> createVehicle(VehicleCreationRequest request) async {
     try {
       final response = await _dio.post(
-          '/resources/vehicles',
+          '/api/resources/vehicles',
           data: request.toJson()
       );
 

@@ -14,7 +14,7 @@ class RoadEventService {
   Future<bool> reportRoadEvent(RoadEventCreationRequest request) async {
     try {
       final response = await _dio.post(
-          '/resources/events',
+          '/api/resources/events',
           data: request.toJson()
       );
 
@@ -31,7 +31,7 @@ class RoadEventService {
    */
   Future<List<RoadEventModel>> getActiveEvents() async {
     try {
-      final response = await _dio.get('/resources/events/active');
+      final response = await _dio.get('/api/resources/events/active');
 
       if (response.statusCode == 200 && response.data != null) {
         final List<dynamic> data = response.data;

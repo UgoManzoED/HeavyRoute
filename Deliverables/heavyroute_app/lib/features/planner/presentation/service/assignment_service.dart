@@ -18,7 +18,7 @@ class AssignmentService {
   Future<List<TripModel>> getTripsByStatus(TripStatus status) async {
     try {
       final response = await _dio.get(
-          '/trips',
+          '/api/trips',
           queryParameters: {'status': status.name}
       );
 
@@ -42,7 +42,7 @@ class AssignmentService {
   Future<bool> planTrip(AssignTripRequest request) async {
     try {
       final response = await _dio.post(
-          '/trips/${request.tripId}/plan',
+          '/api/trips/${request.tripId}/plan',
           data: request.toJson()
       );
 

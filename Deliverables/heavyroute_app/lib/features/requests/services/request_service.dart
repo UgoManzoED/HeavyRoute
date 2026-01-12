@@ -11,12 +11,12 @@ class RequestService {
 
   /// Recupera le richieste dell'utente loggato.
   Future<List<TransportRequest>> getMyRequests() async {
-    return _fetchRequests('/requests/my-requests');
+    return _fetchRequests('/api/requests/my-requests');
   }
 
   /// Recupera tutte le richieste (Admin/Planner).
   Future<List<TransportRequest>> getAllRequests() async {
-    return _fetchRequests('/requests');
+    return _fetchRequests('/api/requests');
   }
 
   /// Metodo helper privato per evitare codice duplicato
@@ -55,7 +55,7 @@ class RequestService {
         debugPrint("📤 Invio Payload: ${dto.toJson()}");
       }
 
-      final response = await _dio.post('/requests', data: dto.toJson());
+      final response = await _dio.post('/api/requests', data: dto.toJson());
       return response.statusCode == 200 || response.statusCode == 201;
     } on DioException catch (e) {
       _logDioError("createRequest", e);
@@ -69,7 +69,7 @@ class RequestService {
   /// Elimina una richiesta (solo se PENDING).
   Future<bool> deleteRequest(int requestId) async {
     try {
-      final response = await _dio.delete('/requests/$requestId');
+      final response = await _dio.delete('/api/requests/$requestId');
       return response.statusCode == 200 || response.statusCode == 204;
     } on DioException catch (e) {
       _logDioError("deleteRequest", e);
@@ -81,7 +81,7 @@ class RequestService {
   Future<bool> sendModificationRequest(int requestId, String type, String note) async {
     try {
       final response = await _dio.post(
-        '/requests/$requestId/action-request',
+        '/api/requests/$requestId/action-request',
         data: {
           'type': type,
           'note': note,

@@ -8,13 +8,13 @@ import '../models/user_model.dart';
 class UserService {
   final Dio _dio = DioClient.instance;
 
-  /// Recupera i dati dell'utente corrente (/users/me).
+  /// Recupera i dati dell'utente corrente (/api/users/me).
   ///
   /// Restituisce un [UserModel] (che contiene id, ruolo, e campi specifici
   /// come patente o p.iva a seconda del ruolo).
   Future<UserModel?> getCurrentUser() async {
     try {
-      final response = await _dio.get('/users/me');
+      final response = await _dio.get('/api/users/me');
 
       if (response.statusCode == 200 && response.data != null) {
         if (kDebugMode) {
@@ -37,7 +37,7 @@ class UserService {
     try {
       // Assicurati che l'endpoint del backend restituisca la lista filtrata
       // Se il backend non ha un endpoint specifico, usa '/users' e filtra lato client (meno efficiente ma funziona)
-      final response = await _dio.get('/users/internal');
+      final response = await _dio.get('/api/users/internal');
 
       if (response.statusCode == 200 && response.data != null) {
         final List<dynamic> data = response.data;
@@ -59,7 +59,7 @@ class UserService {
   Future<bool> updateUser(UserModel userData) async {
     try {
       final response = await _dio.put(
-        '/users/me',
+        '/api/users/me',
         data: userData.toJson(),
       );
 
@@ -81,7 +81,7 @@ class UserService {
   Future<bool> updateInternalUser(int id, UserModel userData) async {
     try {
       final response = await _dio.put(
-        '/users/$id', // Chiama l'endpoint creato sopra
+        '/api/users/$id', // Chiama l'endpoint creato sopra
         data: userData.toJson(),
       );
       return response.statusCode == 200;
@@ -95,7 +95,7 @@ class UserService {
   Future<bool> createInternalUser(UserModel userData) async {
     try {
       final response = await _dio.post(
-        '/users/internal',
+        '/api/users/internal',
         data: userData.toJson(),
       );
       return response.statusCode == 200 || response.statusCode == 201;
