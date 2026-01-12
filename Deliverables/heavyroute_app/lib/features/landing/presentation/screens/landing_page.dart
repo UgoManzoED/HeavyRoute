@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 // Verifica che questo percorso sia corretto nel tuo progetto
-import '../../../../common/heavy_route_app_bar.dart';
+import '../../../../common/widgets/heavy_route_app_bar.dart';
 
 class LandingPage extends StatelessWidget {
   const LandingPage({super.key});
