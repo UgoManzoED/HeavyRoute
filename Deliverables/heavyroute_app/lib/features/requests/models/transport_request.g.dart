@@ -46,6 +46,7 @@ Map<String, dynamic> _$TransportRequestToJson(TransportRequest instance) =>
 const _$RequestStatusEnumMap = {
   RequestStatus.PENDING: 'PENDING',
   RequestStatus.APPROVED: 'APPROVED',
+  RequestStatus.PLANNED: 'PLANNED',
   RequestStatus.REJECTED: 'REJECTED',
   RequestStatus.CANCELLED: 'CANCELLED',
   RequestStatus.COMPLETED: 'COMPLETED',

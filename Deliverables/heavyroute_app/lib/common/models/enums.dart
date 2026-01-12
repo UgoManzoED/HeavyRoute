@@ -8,10 +8,17 @@ import 'package:json_annotation/json_annotation.dart';
 /// - APPROVED: È diventata un "Trip" (Viaggio).
 /// - REJECTED: Il Pianificatore l'ha rifiutata (es. merce non trasportabile).
 enum RequestStatus {
+  @JsonValue("PENDING")
   PENDING,
+  @JsonValue("APPROVED")
   APPROVED,
+  @JsonValue("PLANNED")
+  PLANNED,
+  @JsonValue("REJECTED")
   REJECTED,
+  @JsonValue("CANCELLED")
   CANCELLED,
+  @JsonValue("COMPLETED")
   COMPLETED
 }
 

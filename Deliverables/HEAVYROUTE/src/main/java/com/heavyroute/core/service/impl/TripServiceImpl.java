@@ -9,6 +9,7 @@ import com.heavyroute.core.enums.TripStatus;
 import com.heavyroute.core.model.Route;
 import com.heavyroute.core.model.TransportRequest;
 import com.heavyroute.core.model.Trip;
+import com.heavyroute.core.repository.RouteRepository;
 import com.heavyroute.core.repository.TransportRequestRepository;
 import com.heavyroute.core.repository.TripRepository;
 import com.heavyroute.core.mapper.TripMapper;
@@ -22,9 +23,11 @@ import com.heavyroute.users.enums.DriverStatus;
 import com.heavyroute.users.model.Driver;
 import com.heavyroute.users.repository.DriverRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,7 +40,7 @@ import java.util.stream.Collectors;
  * che coinvolgono scritture su database.
  * </p>
  */
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TripServiceImpl implements TripService {
@@ -47,6 +50,7 @@ public class TripServiceImpl implements TripService {
     private final TripMapper tripMapper;
     private final DriverRepository driverRepository;
     private final VehicleRepository vehicleRepository;
+    private final RouteRepository routeRepository;
     private final NotificationService notificationService;
 
     /**
@@ -60,26 +64,34 @@ public class TripServiceImpl implements TripService {
     @Override
     @Transactional
     public TripResponseDTO approveRequest(Long requestId) {
-        // 1. Recupera la richiesta dal DB
         TransportRequest request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Richiesta non trovata con ID: " + requestId));
 
-        // 2. Validazione di Business, si può approvare solo se è PENDING
-        if (request.getRequestStatus() != RequestStatus.PENDING) {
-            throw new BusinessRuleException("Impossibile approvare una richiesta che si trova nello stato: " + request.getRequestStatus());
+        if (request.getRequestStatus() == RequestStatus.PLANNED) {
+            throw new BusinessRuleException("Impossibile approvare: la richiesta è già in fase avanzata (PLANNED)");
         }
 
-        // 3. Aggiorna lo stato della richiesta
+        // 2. Aggiorna lo stato della richiesta
         request.setRequestStatus(RequestStatus.APPROVED);
         requestRepository.save(request);
 
-        // 4. Crea il nuovo oggetto Viaggio (Trip)
+        // 3. Crea il nuovo oggetto Viaggio (Trip)
         Trip trip = new Trip();
-        trip.setStatus(TripStatus.IN_PLANNING);
         trip.setRequest(request);
+        trip.setStatus(TripStatus.WAITING_VALIDATION);
+        trip.setTripCode("T-" + LocalDateTime.now().getYear() + "-" + String.format("%04d", requestId));
 
-        // 5. Converte in DTO e restituisce
+        Route placeholderRoute = new Route();
+        placeholderRoute.setDescription("In attesa di validazione");
+        placeholderRoute.setRouteDistance(0.0);
+        placeholderRoute.setRouteDuration(0.0);
+        placeholderRoute.setPolyline("");
+
+        routeRepository.save(placeholderRoute);
+        trip.setRoute(placeholderRoute);
+
         Trip savedTrip = tripRepository.save(trip);
+        log.info("✅ Viaggio creato: {} per richiesta {}", savedTrip.getTripCode(), requestId);
         return tripMapper.toDTO(savedTrip);
     }
 
@@ -237,11 +249,25 @@ public class TripServiceImpl implements TripService {
         Trip trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new ResourceNotFoundException("Viaggio non trovato con ID: " + tripId));
 
-        if (trip.getStatus() != TripStatus.WAITING_VALIDATION) {
-            throw new BusinessRuleException("Impossibile validare: il viaggio non è in attesa di validazione.");
+        if (trip.getStatus() == TripStatus.VALIDATED) {
+            log.info("Viaggio {} già validato.", tripId);
+            return;
         }
 
+        // Accettiamo la validazione solo se il viaggio è effettivamente in attesa
+        if (trip.getStatus() != TripStatus.WAITING_VALIDATION) {
+            throw new BusinessRuleException("Stato non valido per validazione: " + trip.getStatus());
+        }
+
+        // 1. Aggiorna Viaggio
         trip.setStatus(TripStatus.VALIDATED);
         tripRepository.save(trip);
+
+        // 2. Aggiorna la Richiesta
+        TransportRequest req = trip.getRequest();
+        req.setRequestStatus(RequestStatus.PLANNED);
+        requestRepository.save(req);
+
+        log.info("Rotta validata per viaggio {}. Richiesta collegata ora in stato PLANNED.", tripId);
     }
 }

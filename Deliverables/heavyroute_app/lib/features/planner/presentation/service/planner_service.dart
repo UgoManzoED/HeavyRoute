@@ -14,15 +14,14 @@ class PlannerService {
         'status': 'WAITING_VALIDATION',
       };
 
-      print("Payload inviato: $payload"); // Controlla nella console cosa stai inviando
+      print("Payload (Dati UI): $payload");
 
-      final response = await _dio.post('/api/trips', data: payload);
+      final response = await _dio.post('/api/trips/$requestId/approve');
 
       print("Risposta Server: ${response.statusCode}");
 
       return response.statusCode == 200 || response.statusCode == 201;
     } on DioException catch (e) {
-      // QUESTO È IL PUNTO FONDAMENTALE PER CAPIRE L'ERRORE
       print("Errore Dio: ${e.message}");
       if (e.response != null) {
         print("Status Code: ${e.response?.statusCode}");
