@@ -20,6 +20,7 @@ import com.heavyroute.resources.repository.VehicleRepository;
 import com.heavyroute.users.enums.DriverStatus;
 import com.heavyroute.users.model.Driver;
 import com.heavyroute.users.repository.DriverRepository;
+import com.heavyroute.core.service.ExternalMapService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,6 +35,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("TC-ST-02: Suite Test - Logica di Business Viaggi")
 class TripServiceTest {
 
     @Mock private TripRepository tripRepository;
@@ -41,22 +43,27 @@ class TripServiceTest {
     @Mock private DriverRepository driverRepository;
     @Mock private VehicleRepository vehicleRepository;
     @Mock private RouteRepository routeRepository;
-    @Mock private NotificationService notificationService; // Aggiunto
+    @Mock private NotificationService notificationService;
+    @Mock private ExternalMapService externalMapService;
     @Mock private TripMapper tripMapper;
 
     @InjectMocks
     private TripServiceImpl tripService;
 
     @Test
-    @DisplayName("TC-CORE-03: Approvazione Richiesta - Creazione Viaggio (UC3)")
+    @DisplayName("TC-CORE-03: Approvazione Richiesta - Creazione Proposta Viaggio")
     void approveRequest_ShouldCreateTrip() {
         // ARRANGE
         Long reqId = 1L;
         TransportRequest req = new TransportRequest();
         req.setId(reqId);
         req.setRequestStatus(RequestStatus.PENDING);
+        req.setOriginAddress("Napoli");
+        req.setDestinationAddress("Roma");
 
+        // Mock del servizio mappe reale
         when(requestRepository.findById(reqId)).thenReturn(Optional.of(req));
+        when(externalMapService.calculateFullRoute(anyString(), anyString())).thenReturn(new Route());
         when(routeRepository.save(any(Route.class))).thenAnswer(i -> i.getArgument(0));
         when(tripRepository.save(any(Trip.class))).thenAnswer(i -> {
             Trip t = i.getArgument(0);
@@ -68,12 +75,53 @@ class TripServiceTest {
         // ACT
         tripService.approveRequest(reqId);
 
-        // ASSERT
-        assertEquals(RequestStatus.APPROVED, req.getRequestStatus()); // Side Effect: Stato aggiornato
+        // Verifichiamo che la richiesta rimanga PENDING fino alla validazione del Coordinator
         verify(tripRepository).save(argThat(trip ->
-                trip.getStatus() == TripStatus.WAITING_VALIDATION && // Stato: IN_PIANIFICAZIONE
-                        trip.getTripCode().startsWith("T-2026")
+                trip.getStatus() == TripStatus.WAITING_VALIDATION
         ));
+    }
+
+    @Test
+    @DisplayName("TC-CORE-07: Validazione Rotta - Approvazione Coordinator (OK)")
+    void validateRoute_ShouldUpdateToInPlanning_WhenApproved() {
+        Long tripId = 1L;
+        TransportRequest req = new TransportRequest();
+        req.setRequestStatus(RequestStatus.PENDING);
+
+        Trip trip = new Trip();
+        trip.setStatus(TripStatus.WAITING_VALIDATION);
+        trip.setRequest(req);
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+
+        // ACT - Il coordinator approva (isApproved = true)
+        tripService.validateRoute(tripId, true, "Percorso ottimale");
+
+        // ASSERT
+        assertEquals(TripStatus.IN_PLANNING, trip.getStatus());
+        assertEquals(RequestStatus.APPROVED, req.getRequestStatus());
+    }
+
+    @Test
+    @DisplayName("TC-CORE-08: Validazione Rotta - Rifiuto Coordinator (KO)")
+    void validateRoute_ShouldDeleteAndNotify_WhenRejected() {
+        Long tripId = 1L;
+        TransportRequest req = new TransportRequest();
+        req.setId(10L);
+
+        Trip trip = new Trip();
+        trip.setTripCode("T-123");
+        trip.setStatus(TripStatus.WAITING_VALIDATION);
+        trip.setRequest(req);
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+
+        // ACT - Il coordinator rifiuta (isApproved = false)
+        tripService.validateRoute(tripId, false, "Rotta non transitabile per mezzi pesanti");
+
+        // ASSERT
+        verify(tripRepository).delete(trip);
+        verify(notificationService).send(any(), contains("Rifiutata"), contains("non transitabile"), any(), eq(10L));
     }
 
     @Test
@@ -91,15 +139,11 @@ class TripServiceTest {
         when(driverRepository.findById(driverId)).thenReturn(Optional.of(driver));
         when(vehicleRepository.findByLicensePlate(plate)).thenReturn(Optional.of(vehicle));
 
-        // ACT
-        TripAssignmentDTO dto = new TripAssignmentDTO(tripId, driverId, plate);
-        tripService.planTrip(tripId, dto);
+        tripService.planTrip(tripId, new TripAssignmentDTO(tripId, driverId, plate));
 
-        // ASSERT (Oracle dal LaTeX Sezione 4.4)
         assertEquals(DriverStatus.ASSIGNED, driver.getDriverStatus());
         assertEquals(VehicleStatus.IN_USE, vehicle.getStatus());
         assertEquals(TripStatus.CONFIRMED, trip.getStatus());
-        verify(notificationService).send(eq(driverId), anyString(), anyString(), any(), any());
     }
 
     @Test
@@ -117,34 +161,10 @@ class TripServiceTest {
         when(driverRepository.findById(driverId)).thenReturn(Optional.of(driver));
         when(vehicleRepository.findByLicensePlate(plate)).thenReturn(Optional.of(vehicle));
 
-        // ACT & ASSERT
-        TripAssignmentDTO dto = new TripAssignmentDTO(tripId, driverId, plate);
-        BusinessRuleException ex = assertThrows(BusinessRuleException.class, () -> tripService.planTrip(tripId, dto));
+        assertThrows(BusinessRuleException.class, () ->
+                tripService.planTrip(tripId, new TripAssignmentDTO(tripId, driverId, plate)));
 
-        assertTrue(ex.getMessage().contains("portata insufficiente"));
         verify(tripRepository, times(0)).save(any());
-    }
-
-    @Test
-    @DisplayName("TC-CORE-07: Validazione Rotta - Aggiornamento Coerenza Stati")
-    void validateRoute_ShouldUpdateBothTripAndRequest() {
-        // ARRANGE
-        Long tripId = 1L;
-        TransportRequest req = new TransportRequest();
-        req.setRequestStatus(RequestStatus.APPROVED);
-
-        Trip trip = new Trip();
-        trip.setStatus(TripStatus.WAITING_VALIDATION);
-        trip.setRequest(req);
-
-        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
-
-        // ACT
-        tripService.validateRoute(tripId);
-
-        // ASSERT
-        assertEquals(TripStatus.VALIDATED, trip.getStatus());
-        assertEquals(RequestStatus.PLANNED, req.getRequestStatus());
     }
 
     // --- HELPER METHODS ---

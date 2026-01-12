@@ -13,6 +13,7 @@ import com.heavyroute.core.repository.RouteRepository;
 import com.heavyroute.core.repository.TransportRequestRepository;
 import com.heavyroute.core.repository.TripRepository;
 import com.heavyroute.core.mapper.TripMapper;
+import com.heavyroute.core.service.ExternalMapService;
 import com.heavyroute.core.service.TripService;
 import com.heavyroute.notification.enums.NotificationType;
 import com.heavyroute.notification.service.NotificationService;
@@ -52,6 +53,7 @@ public class TripServiceImpl implements TripService {
     private final VehicleRepository vehicleRepository;
     private final RouteRepository routeRepository;
     private final NotificationService notificationService;
+    private final ExternalMapService externalMapService;
 
     /**
      * {@inheritDoc}
@@ -65,33 +67,22 @@ public class TripServiceImpl implements TripService {
     @Transactional
     public TripResponseDTO approveRequest(Long requestId) {
         TransportRequest request = requestRepository.findById(requestId)
-                .orElseThrow(() -> new ResourceNotFoundException("Richiesta non trovata con ID: " + requestId));
+                .orElseThrow(() -> new ResourceNotFoundException("Richiesta non trovata"));
 
-        if (request.getRequestStatus() == RequestStatus.PLANNED) {
-            throw new BusinessRuleException("Impossibile approvare: la richiesta è già in fase avanzata (PLANNED)");
-        }
+        Route realRoute = externalMapService.calculateFullRoute(
+                request.getOriginAddress(),
+                request.getDestinationAddress()
+        );
+        routeRepository.save(realRoute);
 
-        // 2. Aggiorna lo stato della richiesta
-        request.setRequestStatus(RequestStatus.APPROVED);
-        requestRepository.save(request);
-
-        // 3. Crea il nuovo oggetto Viaggio (Trip)
         Trip trip = new Trip();
         trip.setRequest(request);
-        trip.setStatus(TripStatus.WAITING_VALIDATION);
+        trip.setRoute(realRoute);
+        trip.setStatus(TripStatus.WAITING_VALIDATION); // In attesa del Coordinator
         trip.setTripCode("T-" + LocalDateTime.now().getYear() + "-" + String.format("%04d", requestId));
 
-        Route placeholderRoute = new Route();
-        placeholderRoute.setDescription("In attesa di validazione");
-        placeholderRoute.setRouteDistance(0.0);
-        placeholderRoute.setRouteDuration(0.0);
-        placeholderRoute.setPolyline("");
-
-        routeRepository.save(placeholderRoute);
-        trip.setRoute(placeholderRoute);
-
         Trip savedTrip = tripRepository.save(trip);
-        log.info("✅ Viaggio creato: {} per richiesta {}", savedTrip.getTripCode(), requestId);
+
         return tripMapper.toDTO(savedTrip);
     }
 
@@ -245,29 +236,31 @@ public class TripServiceImpl implements TripService {
 
     @Override
     @Transactional
-    public void validateRoute(Long tripId) {
+    public void validateRoute(Long tripId, boolean isApproved, String feedback) {
         Trip trip = tripRepository.findById(tripId)
-                .orElseThrow(() -> new ResourceNotFoundException("Viaggio non trovato con ID: " + tripId));
+                .orElseThrow(() -> new ResourceNotFoundException("Viaggio non trovato"));
 
-        if (trip.getStatus() == TripStatus.VALIDATED) {
-            log.info("Viaggio {} già validato.", tripId);
-            return;
+        if (isApproved) {
+            // COORDINATOR APPROVA
+            trip.setStatus(TripStatus.IN_PLANNING); // Ora si possono assegnare i mezzi
+            trip.getRequest().setRequestStatus(RequestStatus.APPROVED);
+            log.info("✅ Rotta approvata dal Coordinator per viaggio {}", tripId);
+        } else {
+            // COORDINATOR RIFIUTA
+            Long plannerId = 1L; // Qui dovresti recuperare l'ID del Planner che ha creato il Trip
+
+            notificationService.send(
+                    plannerId,
+                    "Rotta Rifiutata",
+                    "Il Coordinator ha rifiutato il piano per il viaggio " + trip.getTripCode() + ". Nota: " + feedback,
+                    NotificationType.ALERT,
+                    trip.getRequest().getId()
+            );
+
+            // Pulizia: eliminiamo il trip bocciato per permettere una nuova pianificazione
+            requestRepository.save(trip.getRequest()); // Torna gestibile dal planner
+            tripRepository.delete(trip);
+            log.info("❌ Rotta rifiutata. Notifica inviata al Planner.");
         }
-
-        // Accettiamo la validazione solo se il viaggio è effettivamente in attesa
-        if (trip.getStatus() != TripStatus.WAITING_VALIDATION) {
-            throw new BusinessRuleException("Stato non valido per validazione: " + trip.getStatus());
-        }
-
-        // 1. Aggiorna Viaggio
-        trip.setStatus(TripStatus.VALIDATED);
-        tripRepository.save(trip);
-
-        // 2. Aggiorna la Richiesta
-        TransportRequest req = trip.getRequest();
-        req.setRequestStatus(RequestStatus.PLANNED);
-        requestRepository.save(req);
-
-        log.info("Rotta validata per viaggio {}. Richiesta collegata ora in stato PLANNED.", tripId);
     }
 }

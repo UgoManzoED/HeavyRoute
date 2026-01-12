@@ -11,7 +11,6 @@ double _minutesToHours(num? value) {
 class RouteModel {
   final int id;
 
-  // Campo descrittivo per la UI (es. "Veloce", "Ecologico")
   @JsonKey(defaultValue: "Percorso Standard")
   final String description;
 
@@ -34,6 +33,12 @@ class RouteModel {
   @JsonKey(defaultValue: "")
   final String polyline;
 
+  // --- CAMPI PER LA MAPPA ---
+  final double? startLat;
+  final double? startLon;
+  final double? endLat;
+  final double? endLon;
+
   RouteModel({
     required this.id,
     required this.description,
@@ -42,13 +47,17 @@ class RouteModel {
     required this.tollCost,
     required this.isHazmatSuitable,
     required this.polyline,
+    this.startLat,
+    this.startLon,
+    this.endLat,
+    this.endLon,
   });
 
   // Getter per formattare la durata in UI
   String get formattedDuration {
     final int hours = durationHours.floor();
     final int minutes = ((durationHours - hours) * 60).round();
-    return "${hours}h ${minutes}m";
+    return minutes > 0 ? "${hours}h ${minutes}m" : "${hours}h";
   }
 
   factory RouteModel.fromJson(Map<String, dynamic> json) => _$RouteModelFromJson(json);

@@ -75,5 +75,5 @@ public interface TripService {
 
     List<TripResponseDTO> getAllTrips();
 
-    void validateRoute(Long tripId);
+    void validateRoute(Long tripId, boolean isApproved, String feedback);
 }
