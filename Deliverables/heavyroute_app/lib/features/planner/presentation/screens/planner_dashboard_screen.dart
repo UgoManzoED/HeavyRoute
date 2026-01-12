@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../../common/widgets/heavy_route_app_bar.dart';
+import '../../../../common/widgets/heavy_route_map.dart';
 import '../../../auth/services/user_service.dart';
 import '../../../auth/models/user_model.dart';
 import '../../../requests/presentation/widgets/user_data_popup.dart';
+import '../../../trips/models/route_model.dart';
 import '../widget/transport_requests_tab.dart';
 import '../widget/registration_requests_tab.dart';
 import '../widget/assignments_tab.dart';
@@ -17,22 +19,22 @@ class PlannerDashboardScreen extends StatefulWidget {
 }
 
 class _PlannerDashboardScreenState extends State<PlannerDashboardScreen> {
-  // 1. Inizializza il servizio utente
   final UserService _userService = UserService();
-
   int _selectedIndex = 0;
 
-  final List<Widget> _tabs = [
-    const TransportRequestsTab(),
-    const RegistrationRequestsTab(),
-    const FleetTab(),
-    const AssignmentsTab(),
-    const AlertsTab(),
-  ];
+  // 1. STATO PER LA MAPPA
+  RouteModel? _selectedRoute;
 
-  // 2. LOGICA APERTURA PROFILO
+  // 2. CALLBACK DI AGGIORNAMENTO
+  void _onRouteSelected(RouteModel? route) {
+    setState(() {
+      _selectedRoute = route;
+    });
+  }
+
+  // 3. LOGICA PROFILO UTENTE
   Future<void> _openProfilePopup() async {
-    // Spinner
+    // Mostra Spinner caricamento
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -40,7 +42,6 @@ class _PlannerDashboardScreenState extends State<PlannerDashboardScreen> {
     );
 
     try {
-      // TIPO AGGIORNATO: UserModel
       final UserModel? user = await _userService.getCurrentUser();
 
       if (mounted) Navigator.pop(context); // Chiudi spinner
@@ -57,29 +58,37 @@ class _PlannerDashboardScreenState extends State<PlannerDashboardScreen> {
                 user: user,
                 userService: _userService,
                 role: "Pianificatore",
-                showDownload: false, // Utente interno, niente doc
+                showDownload: false,
               ),
             ),
           ),
         );
       }
     } catch (e) {
-      if (mounted) Navigator.pop(context);
-      print("Errore profilo pianificatore: $e");
+      if (mounted) Navigator.pop(context); // Chiudi spinner in caso di errore
+      debugPrint("Errore apertura profilo: $e");
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // 1. PopScope blocca il gesto "indietro" (swipe/freccia)
+    // 4. DEFINIZIONE DELLE TAB
+    final List<Widget> tabs = [
+      TransportRequestsTab(
+        onRoutePreview: _onRouteSelected,
+      ),
+      const RegistrationRequestsTab(),
+      const FleetTab(),
+      const AssignmentsTab(),
+      const AlertsTab(),
+    ];
+
     return PopScope(
       canPop: false,
       child: Scaffold(
         backgroundColor: const Color(0xFFF8F9FA),
-        // APPBAR COLLEGATA
         appBar: HeavyRouteAppBar(
           subtitle: "Dashboard Pianificatore",
-          // isDashboard: true, <--- RIMOSSO
           onProfileTap: _openProfilePopup,
         ),
         body: Column(
@@ -87,10 +96,68 @@ class _PlannerDashboardScreenState extends State<PlannerDashboardScreen> {
             const SizedBox(height: 20),
             _buildCustomNavBar(),
             const SizedBox(height: 20),
+
+            // 5. LAYOUT MASTER-DETAIL (TABELLA + MAPPA)
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: _tabs[_selectedIndex],
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // LATO SINISTRO: Contenuto della Tab corrente
+                  Expanded(
+                    flex: (_selectedIndex == 0 && _selectedRoute != null) ? 3 : 1,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      child: tabs[_selectedIndex],
+                    ),
+                  ),
+
+                  // LATO DESTRO: Mappa
+                  if (_selectedIndex == 0 && _selectedRoute != null) ...[
+                    Expanded(
+                      flex: 2,
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 24, bottom: 24),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            )
+                          ],
+                        ),
+                        // CLIP per arrotondare la mappa
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              // Widget Mappa Reale
+                              HeavyRouteMap(route: _selectedRoute),
+
+                              // Pulsante "X" per chiudere la mappa
+                              Positioned(
+                                top: 10,
+                                right: 10,
+                                child: FloatingActionButton.small(
+                                  backgroundColor: Colors.white,
+                                  elevation: 2,
+                                  child: const Icon(Icons.close, color: Colors.black87),
+                                  onPressed: () {
+                                    setState(() {
+                                      _selectedRoute = null; // Nasconde la mappa
+                                    });
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
           ],
@@ -99,6 +166,7 @@ class _PlannerDashboardScreenState extends State<PlannerDashboardScreen> {
     );
   }
 
+  // --- NAVBAR ---
   Widget _buildCustomNavBar() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24),
@@ -124,7 +192,12 @@ class _PlannerDashboardScreenState extends State<PlannerDashboardScreen> {
     bool isSelected = _selectedIndex == index;
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() => _selectedIndex = index),
+        onTap: () {
+          setState(() {
+            _selectedIndex = index;
+            _selectedRoute = null;
+          });
+        },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
