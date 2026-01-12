@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import '../../../../features/requests/models/transport_request.dart';
 import '../../../../features/requests/services/request_service.dart';
-import '../../../../features/trips/services/trip_service.dart';
+import '../../../../features/trips/models/route_model.dart'; // Importante per la callback
+import '../../../../features/trips/models/trip_model.dart';
 import 'transport_requests_table.dart';
-// IMPORTA IL DIALOG CHE HAI CREATO PRIMA
 import 'route_planner_dialog.dart';
 
 class TransportRequestsTab extends StatefulWidget {
-  const TransportRequestsTab({super.key});
+  final Function(RouteModel?) onRoutePreview;
+
+  const TransportRequestsTab({
+    super.key,
+    required this.onRoutePreview,
+  });
 
   @override
   State<TransportRequestsTab> createState() => _TransportRequestsTabState();
@@ -15,9 +20,6 @@ class TransportRequestsTab extends StatefulWidget {
 
 class _TransportRequestsTabState extends State<TransportRequestsTab> {
   final RequestService _requestService = RequestService();
-  // TripService potrebbe non servire più qui se la logica è spostata nel Dialog,
-  // ma lo lasciamo se serve per altre cose.
-
   late Future<List<TransportRequest>> _requestsFuture;
 
   @override
@@ -32,24 +34,29 @@ class _TransportRequestsTabState extends State<TransportRequestsTab> {
     });
   }
 
-  /// NUOVA FUNZIONE: Apre il dialog invece di approvare subito
-
+  /// Apre il dialog di pianificazione e gestisce il ritorno della rotta
   void _openPlanningDialog(TransportRequest request) {
     showDialog(
       context: context,
-      barrierDismissible: false, // L'utente deve premere Annulla o Invia
+      barrierDismissible: false,
       builder: (context) => RoutePlanningDialog(
         request: request,
-        onSuccess: () {
-          // Questa funzione viene chiamata quando il dialog ha finito con successo
+        onSuccess: (TripModel? createdTrip) {
+          // 1. Notifica la Dashboard per mostrare la rotta sulla mappa
+          if (createdTrip != null && createdTrip.route != null) {
+            widget.onRoutePreview(createdTrip.route);
+          }
+
+          // 2. Feedback visivo all'utente
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text("Viaggio pianificato e inviato al Traffic Coordinator!"),
+              content: Text("Viaggio pianificato! Proposta inviata al Coordinator."),
               backgroundColor: Colors.green,
               behavior: SnackBarBehavior.floating,
             ),
           );
-          // Ricarichiamo la tabella per mostrare lo stato aggiornato
+
+          // 3. Ricarica la tabella
           _loadData();
         },
       ),
@@ -84,8 +91,13 @@ class _TransportRequestsTabState extends State<TransportRequestsTab> {
 
                 return TransportRequestsTable(
                   requests: snapshot.data!,
-                  // COLLEGAMENTO: Passiamo la nuova funzione che apre il dialog
+                  // Passiamo la funzione che apre il dialog
                   onPlanTap: _openPlanningDialog,
+                  // Se l'utente clicca sulla riga, possiamo resettare o mostrare la mappa
+                  onRowTap: (request) {
+                    // Opzionale: se la richiesta ha già una rotta, mostriamola
+                    // widget.onRoutePreview(request.existingRoute);
+                  },
                 );
               },
             ),
@@ -95,7 +107,6 @@ class _TransportRequestsTabState extends State<TransportRequestsTab> {
     );
   }
 
-  // ... _buildHeader e _buildEmptyState rimangono uguali ...
   Widget _buildHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -103,9 +114,11 @@ class _TransportRequestsTabState extends State<TransportRequestsTab> {
         const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Richieste dal Database", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text("Richieste dal Database",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             SizedBox(height: 4),
-            Text("Elenco aggiornato in tempo reale delle richieste clienti", style: TextStyle(color: Colors.grey, fontSize: 14)),
+            Text("Elenco aggiornato in tempo reale",
+                style: TextStyle(color: Colors.grey, fontSize: 14)),
           ],
         ),
         IconButton(
@@ -124,7 +137,8 @@ class _TransportRequestsTabState extends State<TransportRequestsTab> {
         children: [
           Icon(Icons.inbox_outlined, size: 48, color: Colors.grey[300]),
           const SizedBox(height: 16),
-          const Text("Nessuna richiesta trovata.", style: TextStyle(color: Colors.grey)),
+          const Text("Nessuna richiesta trovata.",
+              style: TextStyle(color: Colors.grey)),
         ],
       ),
     );

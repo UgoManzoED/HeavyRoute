@@ -1,36 +1,50 @@
+import 'dart:developer'; // Per i log professionali
 import 'package:dio/dio.dart';
 import '../../../../core/network/dio_client.dart';
+import '../../../trips/models/trip_model.dart';
 
 class PlannerService {
   final Dio _dio = DioClient.instance;
 
-  Future<bool> planTripAndSendToCoordinator(int requestId, String routeDescription) async {
+  /// Approva la richiesta e restituisce il Viaggio completo (con rotta Mapbox)
+  Future<TripModel?> approveRequestAndGetTrip(int requestId) async {
     try {
-      print("--- TENTATIVO INVIO VIAGGIO ---");
+      log("📡 [PlannerService] Tentativo approvazione richiesta #$requestId");
 
-      final payload = {
-        'request_id': requestId,
-        'route_description': routeDescription,
-        'status': 'WAITING_VALIDATION',
-      };
+      final response = await _dio.post(
+        '/api/trips/$requestId/approve',
+        data: {},
+      );
 
-      print("Payload (Dati UI): $payload");
+      log("✅ [PlannerService] Risposta Server: ${response.statusCode}");
 
-      final response = await _dio.post('/api/trips/$requestId/approve');
-
-      print("Risposta Server: ${response.statusCode}");
-
-      return response.statusCode == 200 || response.statusCode == 201;
-    } on DioException catch (e) {
-      print("Errore Dio: ${e.message}");
-      if (e.response != null) {
-        print("Status Code: ${e.response?.statusCode}");
-        print("Dati Errore Server: ${e.response?.data}");
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return TripModel.fromJson(response.data);
       }
-      return false;
+
+      return null;
+
+    } on DioException catch (e) {
+      // Gestione avanzata degli errori (es. 409 da Mapbox o 404)
+      String errorMessage = "Errore di connessione al server.";
+
+      if (e.response != null) {
+        log("🔥 [PlannerService] Errore Backend (${e.response?.statusCode}): ${e.response?.data}");
+
+        final data = e.response?.data;
+        if (data is Map<String, dynamic>) {
+          errorMessage = data['detail'] ?? data['message'] ?? data['error'] ?? errorMessage;
+        }
+      } else {
+        log("🔥 [PlannerService] Errore Dio: ${e.message}");
+      }
+
+      // Rilanciamo l'errore pulito così il Dialog può mostrarlo nella SnackBar
+      throw Exception(errorMessage);
+
     } catch (e) {
-      print("Errore generico: $e");
-      return false;
+      log("🔥 [PlannerService] Errore generico: $e");
+      throw Exception("Si è verificato un errore imprevisto.");
     }
   }
 }

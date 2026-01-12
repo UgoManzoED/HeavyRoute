@@ -14,6 +14,10 @@ RouteModel _$RouteModelFromJson(Map<String, dynamic> json) => RouteModel(
   tollCost: (json['tollCost'] as num?)?.toDouble() ?? 0.0,
   isHazmatSuitable: json['isHazmatSuitable'] as bool? ?? true,
   polyline: json['polyline'] as String? ?? '',
+  startLat: (json['startLat'] as num?)?.toDouble(),
+  startLon: (json['startLon'] as num?)?.toDouble(),
+  endLat: (json['endLat'] as num?)?.toDouble(),
+  endLon: (json['endLon'] as num?)?.toDouble(),
 );
 
 Map<String, dynamic> _$RouteModelToJson(RouteModel instance) =>
@@ -25,4 +29,8 @@ Map<String, dynamic> _$RouteModelToJson(RouteModel instance) =>
       'tollCost': instance.tollCost,
       'isHazmatSuitable': instance.isHazmatSuitable,
       'polyline': instance.polyline,
+      'startLat': instance.startLat,
+      'startLon': instance.startLon,
+      'endLat': instance.endLat,
+      'endLon': instance.endLon,
     };

@@ -3,25 +3,27 @@ import '../../../../features/requests/models/transport_request.dart';
 
 class TransportRequestsTable extends StatelessWidget {
   final List<TransportRequest> requests;
-  // MODIFICA 1: Ora passiamo l'intero oggetto request, non solo l'int id
   final Function(TransportRequest) onPlanTap;
+
+  final Function(TransportRequest)? onRowTap;
 
   const TransportRequestsTable({
     super.key,
     required this.requests,
-    required this.onPlanTap, // Rinominiamo per chiarezza
+    required this.onPlanTap,
+    this.onRowTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    // ... il resto del build rimane uguale ...
     return SingleChildScrollView(
       scrollDirection: Axis.vertical,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: DataTable(
-          // ... columns rimangono uguali ...
           columnSpacing: 30,
+          // Rende la riga visivamente interattiva quando selezionata
+          showCheckboxColumn: false,
           headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
           columns: const [
             DataColumn(label: Text("ID", style: TextStyle(fontWeight: FontWeight.bold))),
@@ -40,48 +42,57 @@ class TransportRequestsTable extends StatelessWidget {
   }
 
   DataRow _buildRow(TransportRequest req) {
-    final status = req.requestStatus.name;
-    final bool canApprove = status == "PENDING";
+    final String statusName = req.requestStatus.name;
+    final bool isPending = statusName == "PENDING";
 
-    // ... logica formattazione date/stringhe rimane uguale ...
+    // Formattazione per pulizia UI
     final dateStr = req.pickupDate.toString().split(' ').first;
-    final origin = req.originAddress.split(',').first;
-    final dest = req.destinationAddress.split(',').first;
-    final weight = req.load != null ? "${req.load!.weightKg} kg" : "-";
+    final originSummary = req.originAddress.split(',').first;
+    final destSummary = req.destinationAddress.split(',').first;
+    final weightStr = req.load != null ? "${req.load!.weightKg} kg" : "-";
 
-    return DataRow(cells: [
-      DataCell(Text("#${req.id}", style: const TextStyle(fontWeight: FontWeight.bold))),
-      DataCell(Text(req.customerName)),
-      DataCell(SizedBox(width: 150, child: Text(origin, overflow: TextOverflow.ellipsis))),
-      DataCell(SizedBox(width: 150, child: Text(dest, overflow: TextOverflow.ellipsis))),
-      DataCell(Text(weight)),
-      DataCell(Text(dateStr)),
-      DataCell(_buildStatusBadge(status)),
-      DataCell(
-        canApprove
-            ? ElevatedButton.icon( // MODIFICA 2: Usiamo icon button per stile
-          onPressed: () => onPlanTap(req), // Passiamo l'intera request
-          icon: const Icon(Icons.map, size: 14), // Icona Mappa
-          label: const Text("Pianifica", style: TextStyle(fontSize: 12)),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF0D0D1A), // O Colors.indigo per differenziare
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-            minimumSize: const Size(0, 32),
-          ),
-        )
-            : const Text("Gestita", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic, fontSize: 12)),
-      ),
-    ]);
+    return DataRow(
+      onSelectChanged: (selected) {
+        if (selected != null && selected) {
+          onRowTap?.call(req);
+        }
+      },
+      cells: [
+        DataCell(Text("#${req.id}", style: const TextStyle(fontWeight: FontWeight.bold))),
+        // Nota: Assicurati che il campo nel modello sia clientFullName
+        DataCell(Text(req.clientFullName)),
+        DataCell(SizedBox(width: 150, child: Text(originSummary, overflow: TextOverflow.ellipsis))),
+        DataCell(SizedBox(width: 150, child: Text(destSummary, overflow: TextOverflow.ellipsis))),
+        DataCell(Text(weightStr)),
+        DataCell(Text(dateStr)),
+        DataCell(_buildStatusBadge(statusName)),
+        DataCell(
+          isPending
+              ? ElevatedButton.icon(
+            onPressed: () => onPlanTap(req),
+            icon: const Icon(Icons.map, size: 14),
+            label: const Text("Pianifica", style: TextStyle(fontSize: 12)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0D0D1A),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+              minimumSize: const Size(0, 32),
+            ),
+          )
+              : const Text("Gestita",
+              style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic, fontSize: 12)),
+        ),
+      ],
+    );
   }
 
-  // ... _buildStatusBadge rimane uguale ...
   Widget _buildStatusBadge(String status) {
     Color color = Colors.grey;
     if (status == "APPROVED") color = Colors.green;
     if (status == "PENDING") color = Colors.orange;
     if (status == "REJECTED") color = Colors.red;
+    if (status == "PLANNED") color = Colors.blue;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
-import '../../../requests/models/transport_request.dart'; // Assicurati di importare il tuo modello
+import '../../../../common/widgets/heavy_route_map.dart';
+import '../../../requests/models/transport_request.dart';
+import '../../../trips/models/trip_model.dart';
 import '../service/planner_service.dart';
 
 class RoutePlanningDialog extends StatefulWidget {
   final TransportRequest request;
-  final VoidCallback onSuccess;
+
+  final Function(TripModel?) onSuccess;
 
   const RoutePlanningDialog({
     super.key,
@@ -17,133 +20,65 @@ class RoutePlanningDialog extends StatefulWidget {
 }
 
 class _RoutePlanningDialogState extends State<RoutePlanningDialog> {
-  final  PlannerService _service = PlannerService();
+  final PlannerService _service = PlannerService();
   bool _isSubmitting = false;
-  int _selectedRouteIndex = 0; // Simuliamo la scelta tra più percorsi (0, 1, 2)
+  int _selectedRouteIndex = 0;
 
+  // Funzione aggiornata per gestire il ritorno del modello dal backend
   Future<void> _submitToCoordinator() async {
     setState(() => _isSubmitting = true);
 
-    // Chiama il servizio per creare il viaggio e metterlo in stato WAITING_VALIDATION
-    final success = await _service.planTripAndSendToCoordinator(
-      widget.request.id,
-      "Itinerario ${_selectedRouteIndex + 1} (Selezionato su Mappa)", // Simuliamo dati del percorso
-    );
+    try {
+      // Il servizio deve chiamare l'endpoint /approve che restituisce il TripModel
+      final TripModel? createdTrip = await _service.approveRequestAndGetTrip(
+        widget.request.id,
+      );
 
-    if (mounted) {
-      setState(() => _isSubmitting = false);
-      if (success) {
-        Navigator.pop(context); // Chiudi il dialog
-        widget.onSuccess(); // Aggiorna la lista chiamante
-      } else {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        if (createdTrip != null) {
+          Navigator.pop(context); // Chiudi il dialog
+
+          // NOTIFICA IL PADRE: Passiamo il trip creato con la sua rotta reale
+          widget.onSuccess(createdTrip);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Errore nell'invio al Coordinator")),
+          SnackBar(content: Text("Errore: ${e.toString()}")),
         );
       }
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
-        width: 800, // Popup largo per la mappa
-        height: 700,
-        padding: const EdgeInsets.all(0),
+        width: 1000, // Leggermente più largo per far spazio alla mappa reale
+        height: 800,
         child: Column(
           children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text("Pianificazione Percorso",
-                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      Text("Richiesta #${widget.request.id} • ${widget.request.clientFullName}",
-                          style: TextStyle(color: Colors.grey[600])),
-                    ],
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  )
-                ],
-              ),
-            ),
+            // Header (Rimane simile, corretto i nomi dei campi della richiesta)
+            _buildHeader(),
             const Divider(height: 1),
 
-            // Body con Mappa e Sidebar
             Expanded(
               child: Row(
                 children: [
-                  // Sidebar opzioni percorso
-                  Container(
-                    width: 250,
-                    padding: const EdgeInsets.all(16),
-                    color: Colors.grey[50],
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text("Percorsi Calcolati",
-                            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
-                        const SizedBox(height: 16),
-                        _buildRouteOption(0, "Principale (A1)", "240 km", "3h 10m", isRecommended: true),
-                        const SizedBox(height: 12),
-                        _buildRouteOption(1, "Alternativa (SS45)", "265 km", "4h 20m"),
-                        const Spacer(),
-                        const Text(
-                          "Seleziona il percorso ottimale per procedere all'invio al Traffic Coordinator.",
-                          style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
-                        ),
-                      ],
-                    ),
-                  ),
+                  _buildSidebar(),
                   const VerticalDivider(width: 1),
-                  // Area Mappa
+                  // AREA MAPPA REALE
                   Expanded(
                     child: Stack(
                       children: [
-                        // Placeholder Mappa
-                        Positioned.fill(
-                          child: Container(
-                            color: const Color(0xFFE3F2FD),
-                            child: CustomPaint(
-                              painter: MapRoutePainter(), // Un painter semplice per disegnare una linea
-                            ),
-                          ),
-                        ),
-                        // Overlay info
-                        Positioned(
-                          top: 16,
-                          left: 16,
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(8),
-                                boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black12)]),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.circle, size: 12, color: Colors.black),
-                                const SizedBox(width: 8),
-                                Text(widget.request.origin, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                const SizedBox(width: 8),
-                                const Icon(Icons.arrow_forward, size: 16, color: Colors.grey),
-                                const SizedBox(width: 8),
-                                const Icon(Icons.location_on, size: 16, color: Colors.red),
-                                const SizedBox(width: 8),
-                                Text(widget.request.destination, style: const TextStyle(fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                          ),
-                        )
+                        // Qui usiamo il widget mappa che abbiamo creato prima!
+                        // Nota: Se non hai ancora la rotta calcolata, mostriamo una mappa base
+                        const HeavyRouteMap(),
+                        _buildMapOverlay(),
                       ],
                     ),
                   ),
@@ -152,39 +87,121 @@ class _RoutePlanningDialogState extends State<RoutePlanningDialog> {
             ),
 
             const Divider(height: 1),
-            // Footer Azioni
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text("Annulla", style: TextStyle(color: Colors.grey)),
-                  ),
-                  const SizedBox(width: 16),
-                  ElevatedButton.icon(
-                    onPressed: _isSubmitting ? null : _submitToCoordinator,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.indigo,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                    ),
-                    icon: _isSubmitting
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Icon(Icons.send),
-                    label: Text(_isSubmitting ? "Invio in corso..." : "INVIA AL COORDINATOR"),
-                  ),
-                ],
-              ),
-            ),
+            _buildFooter(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildRouteOption(int index, String name, String dist, String time, {bool isRecommended = false}) {
+  // --- WIDGETS INTERNI (Estratti per pulizia) ---
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text("Pianificazione Percorso",
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text("Richiesta #${widget.request.id} • ${widget.request.clientFullName}",
+                  style: TextStyle(color: Colors.grey[600])),
+            ],
+          ),
+          IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context))
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSidebar() {
+    return Container(
+      width: 280,
+      padding: const EdgeInsets.all(16),
+      color: Colors.grey[50],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("OPZIONI PERCORSO",
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12)),
+          const SizedBox(height: 16),
+          _buildRouteOption(0, "Percorso Standard", "Calcolo dinamico...", "A1/E35", isRecommended: true),
+          const Spacer(),
+          const Card(
+            color: Color(0xFFFFF9C4),
+            child: Padding(
+              padding: EdgeInsets.all(12.0),
+              child: Text(
+                "Inviando la proposta, il Traffic Coordinator riceverà una notifica per la validazione tecnica.",
+                style: TextStyle(fontSize: 12, color: Colors.black87),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMapOverlay() {
+    return Positioned(
+      top: 16,
+      left: 16,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black12)],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.location_on, size: 16, color: Colors.green),
+            const SizedBox(width: 4),
+            Text(widget.request.originAddress, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8.0),
+              child: Icon(Icons.arrow_forward, size: 14, color: Colors.grey),
+            ),
+            const Icon(Icons.flag, size: 16, color: Colors.red),
+            const SizedBox(width: 4),
+            Text(widget.request.destinationAddress, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFooter() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Annulla")),
+          const SizedBox(width: 16),
+          ElevatedButton.icon(
+            onPressed: _isSubmitting ? null : _submitToCoordinator,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.indigo,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+            ),
+            icon: _isSubmitting
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.send_rounded),
+            label: Text(_isSubmitting ? "Invio..." : "INVIA AL COORDINATOR"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRouteOption(int index, String name, String dist, String desc, {bool isRecommended = false}) {
     bool isSelected = _selectedRouteIndex == index;
     return GestureDetector(
       onTap: () => setState(() => _selectedRouteIndex = index),
@@ -193,64 +210,16 @@ class _RoutePlanningDialogState extends State<RoutePlanningDialog> {
         decoration: BoxDecoration(
           color: isSelected ? Colors.white : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: isSelected ? Colors.indigo : Colors.transparent),
-          boxShadow: isSelected ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)] : [],
+          border: Border.all(color: isSelected ? Colors.indigo : Colors.grey.shade300),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Text(name, style: TextStyle(fontWeight: FontWeight.bold, color: isSelected ? Colors.indigo : Colors.black)),
-                if (isRecommended) ...[
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(color: Colors.green[100], borderRadius: BorderRadius.circular(4)),
-                    child: Text("BEST", style: TextStyle(fontSize: 10, color: Colors.green[800], fontWeight: FontWeight.bold)),
-                  )
-                ]
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Icon(Icons.directions_car, size: 14, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text("$dist • $time", style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-              ],
-            )
+            Text(name, style: TextStyle(fontWeight: FontWeight.bold, color: isSelected ? Colors.indigo : Colors.black)),
+            Text(desc, style: const TextStyle(fontSize: 11, color: Colors.grey)),
           ],
         ),
       ),
     );
   }
-}
-
-// Painter semplice per disegnare una linea curva sulla "mappa"
-class MapRoutePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.indigo
-      ..strokeWidth = 4
-      ..style = PaintingStyle.stroke;
-
-    final path = Path();
-    path.moveTo(size.width * 0.2, size.height * 0.8); // Start
-    path.quadraticBezierTo(
-        size.width * 0.5, size.height * 0.5, // Control point
-        size.width * 0.8, size.height * 0.2 // End
-    );
-
-    canvas.drawPath(path, paint);
-
-    // Draw Start Point
-    canvas.drawCircle(Offset(size.width * 0.2, size.height * 0.8), 6, Paint()..color = Colors.black);
-    // Draw End Point
-    canvas.drawCircle(Offset(size.width * 0.8, size.height * 0.2), 6, Paint()..color = Colors.red);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
