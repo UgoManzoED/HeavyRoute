@@ -76,6 +76,8 @@ public class ResourceServiceImpl implements ResourceService {
                 .collect(Collectors.toList());
     }
 
+
+
     /**
      * {@inheritDoc}
      * Filtro avanzato: Veicoli disponibili E capaci di portare il carico.
