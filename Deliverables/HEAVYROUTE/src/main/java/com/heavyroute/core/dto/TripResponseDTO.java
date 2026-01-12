@@ -1,5 +1,7 @@
 package com.heavyroute.core.dto;
 
+
+
 import com.heavyroute.core.enums.TripStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -36,21 +38,12 @@ public class TripResponseDTO {
      */
     private TripStatus status;
 
-    /**
-     * ID dell'autista (riferimento tecnico).
-     * Corrisponde al campo 'driverId' dell'Entity.
-     */
+    // --- DATI AUTISTA (Arricchiti) ---
     private Long driverId;
-
-    /**
-     * Nome completo dell'autista (Dato arricchito).
-     * <p>
-     * <b>Nota:</b> Questo campo NON esiste nella tabella 'trips'.
-     * Il Mapper deve recuperarlo interrogando il {@code DriverService} o la cache
-     * usando il {@code driverId}.
-     * </p>
-     */
-    private String driverName;
+    private String driverName;     // Es. "Mario"
+    private String driverSurname;  // NUOVO: Es. "Rossi"
+    private String currentLocation; // NUOVO: Es. "A1 - km 45" (Opzionale)
+    // ---------------------------------
 
     /**
      * Targa del veicolo.

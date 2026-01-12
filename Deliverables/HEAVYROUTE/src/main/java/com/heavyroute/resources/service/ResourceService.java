@@ -29,6 +29,16 @@ public interface ResourceService {
     List<VehicleResponseDTO> getAllVehicles();
 
     /**
+     * Recupera SOLO i veicoli con stato AVAILABLE.
+     * <p>
+     * Metodo leggero per popolare i dropdown di selezione.
+     * </p>
+     * @return Lista di veicoli disponibili.
+     */
+    // --- QUESTO ERA QUELLO CHE MANCAVA ---
+    List<VehicleResponseDTO> getAvailableVehicles();
+
+    /**
      * Ricerca i mezzi attualmente disponibili e compatibili con le specifiche di un carico.
      * <p>
      * Questo metodo è fondamentale per il processo di pianificazione dei trasporti eccezionali,

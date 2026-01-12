@@ -29,7 +29,7 @@ public class TripAssignmentDTO {
      * che l'intento del body corrisponda alla risorsa invocata.
      * </p>
      */
-    @NotNull(message = "L'ID del viaggio è obbligatorio")
+
     @Positive
     private Long tripId;
 

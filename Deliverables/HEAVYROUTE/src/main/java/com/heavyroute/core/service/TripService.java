@@ -1,5 +1,4 @@
 package com.heavyroute.core.service;
-
 import com.heavyroute.core.dto.TripAssignmentDTO;
 import com.heavyroute.core.dto.TripResponseDTO;
 import com.heavyroute.core.enums.TripStatus;
@@ -76,4 +75,7 @@ public interface TripService {
     List<TripResponseDTO> getAllTrips();
 
     void validateRoute(Long tripId, boolean isApproved, String feedback);
+
+    // --- NUOVO METODO ---
+    void updateStatus(Long tripId, String newStatus);
 }

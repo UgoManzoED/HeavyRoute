@@ -46,12 +46,12 @@ public class ResourceServiceImpl implements ResourceService {
         Vehicle vehicle = vehicleMapper.toEntity(dto);
         Vehicle saved = vehicleRepository.save(vehicle);
 
-        // USARE toResponseDTO PER AVERE L'ID
         return vehicleMapper.toResponseDTO(saved);
     }
 
     /**
      * {@inheritDoc}
+     * Recupera TUTTI i veicoli (Indipendentemente dallo stato).
      */
     @Override
     @Transactional(readOnly = true)
@@ -61,6 +61,27 @@ public class ResourceServiceImpl implements ResourceService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * {@inheritDoc}
+     * Recupera SOLO i veicoli con stato AVAILABLE.
+     * <p>
+     * <b>UTILIZZO:</b> Popola il dropdown "Seleziona Veicolo" nel Planner.
+     * </p>
+     */
+
+    @Transactional(readOnly = true)
+    public List<VehicleResponseDTO> getAvailableVehicles() {
+        return vehicleRepository.findByStatus(VehicleStatus.AVAILABLE).stream()
+                .map(vehicleMapper::toResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+
+
+    /**
+     * {@inheritDoc}
+     * Filtro avanzato: Veicoli disponibili E capaci di portare il carico.
+     */
     @Override
     @Transactional(readOnly = true)
     public List<VehicleResponseDTO> getAvailableCompatibleVehicles(Double weight, Double height, Double width, Double length) {
@@ -72,9 +93,7 @@ public class ResourceServiceImpl implements ResourceService {
 
     /**
      * {@inheritDoc}
-     * <p>
      * Salva una nuova segnalazione stradale geolocalizzata.
-     * </p>
      */
     @Override
     @Transactional

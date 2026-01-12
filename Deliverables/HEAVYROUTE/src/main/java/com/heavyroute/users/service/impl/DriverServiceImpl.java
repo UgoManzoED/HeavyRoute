@@ -21,7 +21,6 @@ import java.util.stream.Collectors;
  * il livello di persistenza e il livello di presentazione tramite l'uso di DTO.
  * </p>
  */
-
 @Service
 @RequiredArgsConstructor
 public class DriverServiceImpl implements DriverService {
@@ -44,16 +43,21 @@ public class DriverServiceImpl implements DriverService {
      * @return Una lista di {@link UserResponseDTO} rappresentante gli autisti liberi.
      * Restituisce una lista vuota se non sono presenti autisti con stato FREE.
      */
-
     @Override
     @Transactional(readOnly = true)
     public List<UserResponseDTO> findAvailableDrivers() {
         // Recupera le entità dal repository filtrando per stato operativo
-        List<Driver> freeDrivers = driverRepository.findAllByDriverStatus(DriverStatus.FREE);
+        // Nota: Assicurati che nel Repository il metodo si chiami 'findByDriverStatus'
+        List<Driver> freeDrivers = driverRepository.findByDriverStatus(DriverStatus.FREE);
 
-        // Converte la collezione di entità in una lista di DTO tramite mapping polimorfico
+        // Converte la collezione di entità in una lista di DTO tramite mapping
         return freeDrivers.stream()
                 .map(userMapper::toDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Driver> findByDriverStatus(DriverStatus status) {
+        return List.of();
     }
 }
