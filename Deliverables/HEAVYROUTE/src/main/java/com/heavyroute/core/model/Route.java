@@ -48,7 +48,7 @@ public class Route extends BaseEntity {
      * Viene mappata come TEXT per accomodare stringhe molto lunghe.
      * </p>
      */
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String polyline;
 
     @Embedded
