@@ -49,4 +49,6 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
      * Recupera tutti i viaggi che si trovano in uno specifico stato operativo.
      */
     List<Trip> findByStatus(TripStatus status);
+
+    Optional<Trip> findByRequestId(Long requestId);
 }

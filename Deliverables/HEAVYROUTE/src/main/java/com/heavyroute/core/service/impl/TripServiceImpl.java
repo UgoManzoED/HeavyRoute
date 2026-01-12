@@ -30,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -74,28 +75,37 @@ public class TripServiceImpl implements TripService {
     @Override
     @Transactional
     public TripResponseDTO approveRequest(Long requestId) {
+        // 1. CHECK IDEMPOTENZA
+        Optional<Trip> existingTrip = tripRepository.findByRequestId(requestId);
+        if (existingTrip.isPresent()) {
+            log.info("Viaggio già esistente per Request ID {}. Restituisco esistente.", requestId);
+            return mapToDTOWithDriverInfo(existingTrip.get());
+        }
+
+        // --- SE NON ESISTE, PROCEDI CON LA CREAZIONE ---
+
         TransportRequest request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Richiesta non trovata con ID: " + requestId));
 
-        // 1. Calcolo della rotta reale tramite servizio esterno
+        // Calcolo della rotta reale tramite servizio esterno
         Route realRoute = externalMapService.calculateFullRoute(
                 request.getOriginAddress(),
                 request.getDestinationAddress()
         );
 
-        // 2. Persistenza della rotta (Importante: va salvata prima o via Cascade, qui salviamo esplicitamente)
+        // Persistenza della rotta
         routeRepository.save(realRoute);
 
-        // 3. Creazione del Viaggio
+        // Creazione del Viaggio
         Trip trip = new Trip();
         trip.setRequest(request);
-        trip.setRoute(realRoute); // Associazione della rotta calcolata
-        trip.setStatus(TripStatus.WAITING_VALIDATION); // In attesa del Coordinator
+        trip.setRoute(realRoute);
+        trip.setStatus(TripStatus.WAITING_VALIDATION);
         trip.setTripCode("T-" + LocalDateTime.now().getYear() + "-" + String.format("%04d", requestId));
 
         Trip savedTrip = tripRepository.save(trip);
 
-        return tripMapper.toDTO(savedTrip);
+        return mapToDTOWithDriverInfo(savedTrip);
     }
 
     /**
@@ -317,13 +327,43 @@ public class TripServiceImpl implements TripService {
      * Utile per visualizzare "Chi sta guidando cosa" nelle liste.
      */
     private TripResponseDTO mapToDTOWithDriverInfo(Trip trip) {
-        TripResponseDTO dto = tripMapper.toDTO(trip);
+        // 1. Mapping automatico base
+        TripResponseDTO tripDTO = tripMapper.toDTO(trip);
 
+        // 2. Driver info
         if (trip.getDriver() != null) {
-            dto.setDriverId(trip.getDriver().getId());
-            dto.setDriverName(trip.getDriver().getFirstName());
-            dto.setDriverSurname(trip.getDriver().getLastName());
+            tripDTO.setDriverId(trip.getDriver().getId());
+            tripDTO.setDriverName(trip.getDriver().getFirstName());
+            tripDTO.setDriverSurname(trip.getDriver().getLastName());
         }
-        return dto;
+
+        // 3. MAPPING ROTTA
+        if (trip.getRoute() != null) {
+            Route r = trip.getRoute();
+
+            // Creiamo il DTO della rotta
+            com.heavyroute.core.dto.RouteResponseDTO routeDTO = new com.heavyroute.core.dto.RouteResponseDTO();
+
+            // Copia i dati semplici
+            routeDTO.setId(r.getId());
+            routeDTO.setRouteDescription(r.getDescription());
+            routeDTO.setDistance(r.getRouteDistance());
+            routeDTO.setDuration(r.getRouteDuration());
+            routeDTO.setPolyline(r.getPolyline());
+
+            // ESTRAZIONE COORDINAT
+            if (r.getStartLocation() != null) {
+                routeDTO.setStartLat(r.getStartLocation().getLatitude());
+                routeDTO.setStartLon(r.getStartLocation().getLongitude());
+            }
+            if (r.getEndLocation() != null) {
+                routeDTO.setEndLat(r.getEndLocation().getLatitude());
+                routeDTO.setEndLon(r.getEndLocation().getLongitude());
+            }
+
+            tripDTO.setRoute(routeDTO);
+        }
+
+        return tripDTO;
     }
 }
