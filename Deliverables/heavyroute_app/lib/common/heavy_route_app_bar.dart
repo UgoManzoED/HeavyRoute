@@ -47,12 +47,15 @@ class HeavyRouteAppBar extends StatelessWidget implements PreferredSizeWidget {
       // DESTRA: LOGICA AGGIORNATA SU isLanding
       actions: [
         if (isLanding) ...[
-          // CASO LANDING PAGE (Prima era !isDashboard)
+          // CASO LANDING PAGE
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
             child: OutlinedButton.icon(
               onPressed: () {
-                Navigator.pushNamed(context, '/login');
+                // --- MODIFICA QUI ---
+                // Usiamo pushReplacementNamed invece di pushNamed.
+                // Questo distrugge la Landing Page dalla cronologia e mette il Login al suo posto.
+                Navigator.pushReplacementNamed(context, '/login');
               },
               icon: const Icon(Icons.login, size: 18),
               label: const Text("Accedi"),
@@ -63,7 +66,7 @@ class HeavyRouteAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
           )
         ] else ...[
-          // CASO DASHBOARD (Prima era isDashboard)
+          // CASO DASHBOARD (Loggato)
 
           // 1. TASTO LOGOUT CON DIALOG (INVARIATO)
           IconButton(
@@ -86,6 +89,7 @@ class HeavyRouteAppBar extends StatelessWidget implements PreferredSizeWidget {
                           Navigator.pop(ctx);
                           await TokenStorage.deleteAll();
                           if (context.mounted) {
+                            // Pulisce tutto e torna alla Landing
                             Navigator.pushNamedAndRemoveUntil(
                                 context, '/', (route) => false);
                           }

@@ -25,60 +25,67 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _isHoveringRegister = false;
 
-  // Logica di Login
   Future<void> _handleLogin() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Inserisci email e password"), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Inserisci email e password"), backgroundColor: Colors.red));
       return;
     }
 
     setState(() => _isLoading = true);
 
-    // Chiamata al Service
-    final success = await _authService.login(email, password);
+    // Usiamo 'dynamic' perché il tuo service ora restituisce una Stringa (il ruolo) o bool
+    final result = await _authService.login(email, password);
 
     setState(() => _isLoading = false);
 
-    if (success != null && mounted) {
-      // Recuperiamo il ruolo dal TokenStorage
+    print("🔵 Risultato AuthService: $result"); // DEBUG
+
+    // --- LA CORREZIONE È QUI ---
+    // Accettiamo il login se il risultato NON è null e NON è false.
+    // Quindi "CUSTOMER" passerà questo controllo.
+    if (result != null && result != false) {
+
+      // Recuperiamo il ruolo dal TokenStorage (è più sicuro rileggerlo)
       final role = await TokenStorage.getRole();
+      print("🔵 Ruolo recuperato dallo storage: $role");
 
       if (mounted) {
+        String? routeName;
+
+        // Mappatura Ruoli -> Rotte
+        // Nota: Gestisco sia il nome pulito che quello con prefisso ROLE_ per sicurezza
         if (role == 'LOGISTIC_PLANNER' || role == 'ROLE_LOGISTIC_PLANNER') {
-          Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const PlannerDashboardScreen())
-          );
+          routeName = '/planner_dashboard';
         } else if (role == 'CUSTOMER' || role == 'ROLE_CUSTOMER') {
-          Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const CustomerDashboardScreen())
-          );
+          routeName = '/customer_dashboard';
         } else if (role == 'ACCOUNT_MANAGER' || role == 'ROLE_ACCOUNT_MANAGER') {
-          Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const AccountManagerScreen())
-          );
+          routeName = '/account_manager';
+        } else if (role == 'TRAFFIC_COORDINATOR' || role == 'ROLE_TRAFFIC_COORDINATOR') {
+          routeName = '/traffic_dashboard';
         }
-        // --- AGGIUNTO DA QUI ---
-        else if (role == 'TRAFFIC_COORDINATOR' || role == 'ROLE_TRAFFIC_COORDINATOR') {
-          Navigator.pushReplacement(
+
+        if (routeName != null) {
+          print("🚀 Navigazione verso: $routeName");
+          // Pulisce la cronologia e va alla dashboard
+          Navigator.pushNamedAndRemoveUntil(
               context,
-              MaterialPageRoute(builder: (_) => const CoordinatorDashboardScreen())
+              routeName,
+                  (route) => false
           );
-        }
-        // --- A QUI ---
-        else {
+        } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Ruolo non riconosciuto ($role). Contattare l'amministratore.")),
+            SnackBar(content: Text("Ruolo non riconosciuto: $role")),
           );
         }
       }
+    } else {
+      // Caso di errore
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Login Fallito: Credenziali errate"), backgroundColor: Colors.red),
+      );
     }
   }
 
@@ -102,7 +109,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       // Tasto "Torna alla Home"
                       TextButton.icon(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () {
+                          // Sostituisce il Login con la Landing. Nessun "Indietro" possibile.
+                          Navigator.pushReplacementNamed(context, '/');
+                        },
                         icon: const Icon(Icons.arrow_back, size: 20, color: Colors.black87),
                         label: const Text("Torna alla Home", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w500)),
                         style: TextButton.styleFrom(padding: EdgeInsets.zero, alignment: Alignment.centerLeft),
