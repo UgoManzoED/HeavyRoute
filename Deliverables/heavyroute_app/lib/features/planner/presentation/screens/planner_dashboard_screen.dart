@@ -77,16 +77,10 @@ class _PlannerDashboardScreenState extends State<PlannerDashboardScreen> {
       TransportRequestsTab(
         onRoutePreview: _onRouteSelected,
       ),
-      // const RegistrationRequestsTab(),
-      // const FleetTab(),
-      // const AssignmentsTab(),
-      // const AlertsTab(),
-
-      // Mettiamo dei segnaposto vuoti per non rompere la navbar
-      const Center(child: Text("Registrazioni DISABILITATO")),
-      const Center(child: Text("Flotta DISABILITATO")),
-      const Center(child: Text("Assegnazioni DISABILITATO")),
-      const Center(child: Text("Avvisi DISABILITATO")),
+      const RegistrationRequestsTab(),
+      const FleetTab(),
+      const AssignmentsTab(),
+      const AlertsTab(),
     ];
 
     return PopScope(
