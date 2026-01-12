@@ -1,12 +1,9 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart'; // Serve per kDebugMode e kIsWeb
+import 'package:flutter/foundation.dart';
 import 'auth_interceptor.dart';
 
 /// Configurazione Singleton del client HTTP.
-/// <p>
-/// Questa classe è il cuore della comunicazione di rete.
-/// Configura l'URL base, i timeout e aggiunge logger per il debug.
-/// </p>
 class DioClient {
   static final String _baseUrl = kIsWeb
       ? 'http://localhost:8080'
@@ -23,40 +20,70 @@ class DioClient {
       },
     ),
   )
-  // 1. Aggiungiamo intercettore per il Token
+  // 1. Intercettore Token
     ..interceptors.add(AuthInterceptor())
 
-  // 2. Logger manuale per il Debug
+  // 2. LOGGER COMPLETO PER DEBUG
     ..interceptors.add(
       InterceptorsWrapper(
-        // PRIMA che la richiesta parta
+        // --- RICHIESTA ---
         onRequest: (options, handler) {
           if (kDebugMode) {
-            print('---------------------------------------------------');
-            print('📡 [REQ] INVIO: ${options.method} ${options.path}');
-            print('   Dati: ${options.data}');
+            print('\n==================== 📡 RICHIESTA ====================');
+            print('URL: ${options.method} ${options.uri}'); // URL completo
+            print('HEADERS:');
+            options.headers.forEach((k, v) => print('   $k: $v'));
+
+            if (options.data != null) {
+              print('BODY (Payload):');
+              try {
+                var encoder = const JsonEncoder.withIndent('  ');
+                print(encoder.convert(options.data));
+              } catch (e) {
+                print(options.data);
+              }
+            }
+            print('======================================================\n');
           }
           return handler.next(options);
         },
 
-        // QUANDO la risposta arriva con successo (200/201)
+        // --- RISPOSTA (SUCCESSO) ---
         onResponse: (response, handler) {
           if (kDebugMode) {
-            print('✅ [RES] OK (${response.statusCode}): ${response.requestOptions.path}');
+            print('\n==================== ✅ RISPOSTA (${response.statusCode}) ====================');
+            print('DA: ${response.requestOptions.path}');
+
+            print('DATI RICEVUTI:');
+            try {
+              var encoder = const JsonEncoder.withIndent('  ');
+              print(encoder.convert(response.data));
+            } catch (e) {
+              print(response.data);
+            }
+            print('======================================================\n');
           }
           return handler.next(response);
         },
 
-        // QUANDO c'è un errore (403, 404, 500...)
+        // --- ERRORE ---
         onError: (DioException e, handler) {
           if (kDebugMode) {
-            print('---------------------------------------------------');
-            print('🛑 [ERR] ERRORE RILEVATO!');
-            print('   URL COLPEVOLE: ${e.requestOptions.path}');
-            print('   Metodo: ${e.requestOptions.method}');
-            print('   Status Code: ${e.response?.statusCode}');
-            print('   Risposta Server: ${e.response?.data}');
-            print('---------------------------------------------------');
+            print('\n==================== 🛑 ERRORE ====================');
+            print('URL: ${e.requestOptions.method} ${e.requestOptions.path}');
+            print('STATUS CODE: ${e.response?.statusCode}');
+            print('MESSAGGIO: ${e.message}');
+
+            if (e.response?.data != null) {
+              print('DETTAGLI SERVER:');
+              try {
+                var encoder = const JsonEncoder.withIndent('  ');
+                print(encoder.convert(e.response?.data));
+              } catch (_) {
+                print(e.response?.data);
+              }
+            }
+            print('===================================================\n');
           }
           return handler.next(e);
         },

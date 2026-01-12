@@ -9,23 +9,26 @@ part of 'route_model.dart';
 RouteModel _$RouteModelFromJson(Map<String, dynamic> json) => RouteModel(
   id: (json['id'] as num).toInt(),
   description: json['description'] as String? ?? 'Percorso Standard',
-  distanceKm: (json['routeDistance'] as num?)?.toDouble() ?? 0.0,
-  durationHours: _minutesToHours(json['routeDuration'] as num?),
+  distanceKm:
+      (RouteModel._readDistance(json, 'distance') as num?)?.toDouble() ?? 0.0,
+  durationHours: _minutesToHours(
+    RouteModel._readDuration(json, 'duration') as num?,
+  ),
   tollCost: (json['tollCost'] as num?)?.toDouble() ?? 0.0,
   isHazmatSuitable: json['isHazmatSuitable'] as bool? ?? true,
-  polyline: json['polyline'] as String? ?? '',
-  startLat: (json['startLat'] as num?)?.toDouble(),
-  startLon: (json['startLon'] as num?)?.toDouble(),
-  endLat: (json['endLat'] as num?)?.toDouble(),
-  endLon: (json['endLon'] as num?)?.toDouble(),
+  polyline: RouteModel._readPolyline(json, 'polyline') as String? ?? '',
+  startLat: (RouteModel._readStartLat(json, 'startLat') as num?)?.toDouble(),
+  startLon: (RouteModel._readStartLon(json, 'startLon') as num?)?.toDouble(),
+  endLat: (RouteModel._readEndLat(json, 'endLat') as num?)?.toDouble(),
+  endLon: (RouteModel._readEndLon(json, 'endLon') as num?)?.toDouble(),
 );
 
 Map<String, dynamic> _$RouteModelToJson(RouteModel instance) =>
     <String, dynamic>{
       'id': instance.id,
       'description': instance.description,
-      'routeDistance': instance.distanceKm,
-      'routeDuration': instance.durationHours,
+      'distance': instance.distanceKm,
+      'duration': instance.durationHours,
       'tollCost': instance.tollCost,
       'isHazmatSuitable': instance.isHazmatSuitable,
       'polyline': instance.polyline,
