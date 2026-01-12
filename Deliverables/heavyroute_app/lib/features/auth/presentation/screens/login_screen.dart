@@ -36,28 +36,27 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
 
-    // Usiamo 'dynamic' perché il tuo service ora restituisce una Stringa (il ruolo) o bool
+    // Chiamata al Service
     final result = await _authService.login(email, password);
 
     setState(() => _isLoading = false);
 
-    print("🔵 Risultato AuthService: $result"); // DEBUG
+    print("🔵 Risultato AuthService: $result");
 
-    // --- LA CORREZIONE È QUI ---
-    // Accettiamo il login se il risultato NON è null e NON è false.
-    // Quindi "CUSTOMER" passerà questo controllo.
     if (result != null && result != false) {
-
-      // Recuperiamo il ruolo dal TokenStorage (è più sicuro rileggerlo)
+      // Recuperiamo il ruolo dal TokenStorage
       final role = await TokenStorage.getRole();
       print("🔵 Ruolo recuperato dallo storage: $role");
 
       if (mounted) {
         String? routeName;
 
-        // Mappatura Ruoli -> Rotte
-        // Nota: Gestisco sia il nome pulito che quello con prefisso ROLE_ per sicurezza
-        if (role == 'LOGISTIC_PLANNER' || role == 'ROLE_LOGISTIC_PLANNER') {
+        // --- AGGIUNTA BLOCCO DRIVER QUI SOTTO ---
+        if (role == 'DRIVER' || role == 'ROLE_DRIVER') {
+          routeName = '/driver_dashboard';
+        }
+        // ----------------------------------------
+        else if (role == 'LOGISTIC_PLANNER' || role == 'ROLE_LOGISTIC_PLANNER') {
           routeName = '/planner_dashboard';
         } else if (role == 'CUSTOMER' || role == 'ROLE_CUSTOMER') {
           routeName = '/customer_dashboard';
@@ -69,7 +68,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (routeName != null) {
           print("🚀 Navigazione verso: $routeName");
-          // Pulisce la cronologia e va alla dashboard
           Navigator.pushNamedAndRemoveUntil(
               context,
               routeName,
@@ -82,7 +80,6 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
     } else {
-      // Caso di errore
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Login Fallito: Credenziali errate"), backgroundColor: Colors.red),
       );
