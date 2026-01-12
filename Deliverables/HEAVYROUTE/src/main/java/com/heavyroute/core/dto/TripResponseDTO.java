@@ -1,17 +1,41 @@
 package com.heavyroute.core.dto;
 
+
+
 import com.heavyroute.core.enums.TripStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+/**
+ * Data Transfer Object (DTO) per la visualizzazione dei dettagli di un viaggio.
+ * <p>
+ * Questa classe rappresenta un "Read Model": è ottimizzata per la lettura da parte del client (Frontend/App).
+ * A differenza dell'Entity, contiene dati "denormalizzati" o "appiattiti" (es. nomi autisti, modelli veicoli)
+ * per evitare che il client debba effettuare chiamate aggiuntive ad altri microservizi o endpoint.
+ * </p>
+ */
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class TripResponseDTO {
 
+    /**
+     * Identificativo tecnico del database.
+     * Utile per operazioni di update/delete o per i link REST (HATEOAS).
+     */
     private Long id;
+
+    /**
+     * Codice business leggibile.
+     * È l'identificativo principale mostrato nelle interfacce utente.
+     */
     private String tripCode;
+
+    /**
+     * Stato corrente del viaggio serializzato come stringa (es. "IN_PLANNING").
+     */
     private TripStatus status;
 
     // --- DATI AUTISTA (Arricchiti) ---
@@ -21,12 +45,39 @@ public class TripResponseDTO {
     private String currentLocation; // NUOVO: Es. "A1 - km 45" (Opzionale)
     // ---------------------------------
 
+    /**
+     * Targa del veicolo.
+     */
     private String vehiclePlate;
+
+    /**
+     * Modello del veicolo (Dato arricchito).
+     * <p>
+     * Utile per la UI (es. "Iveco Stralis"), permette all'operatore di riconoscere
+     * il mezzo senza dover decifrare la targa.
+     * Da popolare tramite {@code VehicleService}.
+     * </p>
+     */
     private String vehicleModel;
 
+    /**
+     * Dettagli completi della Richiesta di Trasporto che ha originato questo viaggio.
+     * <p>
+     * <b>Struttura JSON:</b> Nel payload di risposta, questi dati saranno raggruppati
+     * sotto la chiave {@code "request"}, permettendo al Frontend di passare questo oggetto
+     * direttamente a componenti UI dedicati (es. {@code <RequestSummaryCard data={trip.request} />}).
+     * </p>
+     */
     private TransportRequestResponseDTO request;
 
+    /**
+     * ID del Committente (Utente che ha creato la richiesta).
+     */
     private Long clientId;
+
+    /**
+     * Nome completo del Committente (Dato arricchito per la UI).
+     */
     private String clientFullName;
 
     private RouteResponseDTO route;
