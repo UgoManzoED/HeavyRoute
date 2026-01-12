@@ -1,29 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart'; // Questo serve per caricare il file .env
 import 'package:intl/date_symbol_data_local.dart';
-
-// --- NESSUN IMPORT DI MAPBOX QUI ---
-
+import 'package:device_preview/device_preview.dart';
 import 'features/landing/presentation/screens/landing_page.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/coordinator/screens/coordinator_dashboard_screen.dart';
 import 'features/gestore/screens/account_manager_screen.dart';
 import 'features/planner/presentation/screens/planner_dashboard_screen.dart';
 import 'features/requests/presentation/screens/customer_dashboard_screen.dart';
+import 'features/driver/presentation/screens/driver_dashboard_screen.dart';
 import 'core/theme/app_theme.dart';
-// import 'core/navigation/auth_guard.dart'; // Scommenta se usi il guardiano
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // 1. Carichiamo le chiavi (serve per dopo)
   await dotenv.load(fileName: "chiavi.env");
-
-  // --- NESSUNA CONFIGURAZIONE MAPBOX QUI ---
-
   await initializeDateFormatting('it_IT', null);
 
-  runApp(const HeavyRouteApp());
+  runApp(
+    DevicePreview(
+      builder: (context) => const HeavyRouteApp(),
+    ),
+  );
 }
 
 class HeavyRouteApp extends StatelessWidget {
@@ -56,6 +53,7 @@ class HeavyRouteApp extends StatelessWidget {
         '/account_manager': (context) => const AccountManagerScreen(),
         '/planner_dashboard': (context) => const PlannerDashboardScreen(),
         '/customer_dashboard': (context) => const CustomerDashboardScreen(),
+        '/driver_dashboard': (context) => const DriverDashboardScreen()
       },
     );
   }
