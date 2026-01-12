@@ -38,7 +38,7 @@ class AuthControllerIntegrationTest {
      * Verifica che il backend risponda 400 e con la struttura JSON corretta (RFC 7807 + errors map).
      */
     @Test
-    @DisplayName("Should return 400 and ProblemDetail when Customer input is invalid (Validation Check)")
+    @DisplayName("TC-AUTH-02: Sicurezza - Rifiuto Dati Invalidi")
     void whenRegisterInvalidCustomer_thenReturns400AndErrorMap() throws Exception {
         // 1. Arrange: DTO invalido
         CustomerRegistrationDTO invalidDto = new CustomerRegistrationDTO();
@@ -64,7 +64,7 @@ class AuthControllerIntegrationTest {
      * Verifica che i dati corretti vengano salvati e il server risponda 201.
      */
     @Test
-    @DisplayName("Should return 201 Created when Customer registration is valid")
+    @DisplayName("TC-AUTH-01: Sicurezza - Registrazione Dati Validi")
     void whenRegisterValidCustomer_thenReturnsSuccess() throws Exception {
         // 1. Arrange
         CustomerRegistrationDTO validDto = new CustomerRegistrationDTO();

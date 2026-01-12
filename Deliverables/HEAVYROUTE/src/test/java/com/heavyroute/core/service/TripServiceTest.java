@@ -6,20 +6,23 @@ import com.heavyroute.core.dto.TripResponseDTO;
 import com.heavyroute.core.mapper.TripMapper;
 import com.heavyroute.core.enums.RequestStatus;
 import com.heavyroute.core.enums.TripStatus;
+import com.heavyroute.core.model.Route;
 import com.heavyroute.core.model.TransportRequest;
 import com.heavyroute.core.model.Trip;
+import com.heavyroute.core.repository.RouteRepository;
 import com.heavyroute.core.repository.TransportRequestRepository;
 import com.heavyroute.core.repository.TripRepository;
 import com.heavyroute.core.service.impl.TripServiceImpl;
+import com.heavyroute.notification.service.NotificationService;
 import com.heavyroute.resources.enums.VehicleStatus;
 import com.heavyroute.resources.model.Vehicle;
 import com.heavyroute.resources.repository.VehicleRepository;
 import com.heavyroute.users.enums.DriverStatus;
 import com.heavyroute.users.model.Driver;
 import com.heavyroute.users.repository.DriverRepository;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -30,33 +33,23 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-/**
- * Unit Test per la classe {@link TripServiceImpl}.
- * <p>
- * Utilizza Mockito per isolare la logica di business dalle dipendenze esterne (Database, Mapper).
- * Segue il pattern AAA: Arrange (prepara i dati), Act (chiama il metodo), Assert (verifica i risultati).
- * </p>
- */
 @ExtendWith(MockitoExtension.class)
 class TripServiceTest {
 
-    // --- DIPENDENZE MOCKATE ---
     @Mock private TripRepository tripRepository;
     @Mock private TransportRequestRepository requestRepository;
     @Mock private DriverRepository driverRepository;
     @Mock private VehicleRepository vehicleRepository;
+    @Mock private RouteRepository routeRepository;
+    @Mock private NotificationService notificationService; // Aggiunto
     @Mock private TripMapper tripMapper;
 
-    // --- SOGGETTO DEL TEST ---
     @InjectMocks
     private TripServiceImpl tripService;
 
-    /**
-     * Test dello scenario positivo (Happy Path) per l'approvazione.
-     * Verifica che una richiesta PENDING diventi APPROVED e generi un nuovo Trip.
-     */
     @Test
-    void approveRequest_ShouldCreateTrip_WhenRequestIsPending() {
+    @DisplayName("TC-CORE-03: Approvazione Richiesta - Creazione Viaggio (UC3)")
+    void approveRequest_ShouldCreateTrip() {
         // ARRANGE
         Long reqId = 1L;
         TransportRequest req = new TransportRequest();
@@ -64,62 +57,36 @@ class TripServiceTest {
         req.setRequestStatus(RequestStatus.PENDING);
 
         when(requestRepository.findById(reqId)).thenReturn(Optional.of(req));
-
-        // Quando salva, simuliamo che il DB assegni un ID e ritorni l'oggetto
+        when(routeRepository.save(any(Route.class))).thenAnswer(i -> i.getArgument(0));
         when(tripRepository.save(any(Trip.class))).thenAnswer(i -> {
             Trip t = i.getArgument(0);
             t.setId(100L);
-            t.setTripCode("TRP-TEST");
             return t;
         });
-
-        // Mockiamo il mapper per evitare NullPointerException
         when(tripMapper.toDTO(any(Trip.class))).thenReturn(new TripResponseDTO());
 
         // ACT
         tripService.approveRequest(reqId);
 
         // ASSERT
-        verify(requestRepository).save(req); // Verifica salvataggio richiesta
-        assertEquals(RequestStatus.APPROVED, req.getRequestStatus()); // Verifica cambio stato
-        verify(tripRepository).save(any(Trip.class)); // Verifica salvataggio viaggio
+        assertEquals(RequestStatus.APPROVED, req.getRequestStatus()); // Side Effect: Stato aggiornato
+        verify(tripRepository).save(argThat(trip ->
+                trip.getStatus() == TripStatus.WAITING_VALIDATION && // Stato: IN_PIANIFICAZIONE
+                        trip.getTripCode().startsWith("T-2026")
+        ));
     }
 
-    /**
-     * Test dell'assegnazione risorse con validazione di capacità.
-     * Verifica che il sistema accetti un veicolo capiente e un autista libero.
-     */
     @Test
+    @DisplayName("TC-CORE-04: Assegnazione Risorse - Successo (Happy Path)")
     void planTrip_ShouldAssignResources_WhenValid() {
-        // ARRANGE
-        Long tripId = 100L;
+        Long tripId = 50L;
         Long driverId = 200L;
-        String plate = "AB123CD";
+        String plate = "VE-001-AB";
 
-        // Setup Viaggio
-        Trip trip = new Trip();
-        trip.setId(tripId);
-        trip.setStatus(TripStatus.IN_PLANNING);
+        Trip trip = createMockTrip(tripId, 1500.0, TripStatus.IN_PLANNING);
+        Driver driver = createMockDriver(driverId, DriverStatus.FREE);
+        Vehicle vehicle = createMockVehicle(plate, 5000.0, VehicleStatus.AVAILABLE);
 
-        // Setup Richiesta (per controllo peso)
-        TransportRequest req = new TransportRequest();
-        var load = new com.heavyroute.core.model.LoadDetails();
-        load.setWeightKg(5000.0);
-        req.setLoad(load);
-        trip.setRequest(req);
-
-        // Setup Driver (LIBERO)
-        Driver driver = new Driver();
-        driver.setId(driverId);
-        driver.setStatus(DriverStatus.FREE);
-
-        // Setup Vehicle (DISPONIBILE e CAPIENTE)
-        Vehicle vehicle = new Vehicle();
-        vehicle.setLicensePlate(plate);
-        vehicle.setStatus(VehicleStatus.AVAILABLE);
-        vehicle.setMaxLoadCapacity(10000.0);
-
-        // Mocks
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
         when(driverRepository.findById(driverId)).thenReturn(Optional.of(driver));
         when(vehicleRepository.findByLicensePlate(plate)).thenReturn(Optional.of(vehicle));
@@ -128,32 +95,23 @@ class TripServiceTest {
         TripAssignmentDTO dto = new TripAssignmentDTO(tripId, driverId, plate);
         tripService.planTrip(tripId, dto);
 
-        // ASSERT
-        assertEquals(driver, trip.getDriver());
-        assertEquals(vehicle, trip.getVehicle());
-        verify(tripRepository).save(trip);
+        // ASSERT (Oracle dal LaTeX Sezione 4.4)
+        assertEquals(DriverStatus.ASSIGNED, driver.getDriverStatus());
+        assertEquals(VehicleStatus.IN_USE, vehicle.getStatus());
+        assertEquals(TripStatus.CONFIRMED, trip.getStatus());
+        verify(notificationService).send(eq(driverId), anyString(), anyString(), any(), any());
     }
 
-    /**
-     * Test negativo ("Sad Path"): Conflitto risorse.
-     * Verifica che venga lanciata un'eccezione se il veicolo è già in uso.
-     */
     @Test
-    void planTrip_ShouldThrowException_WhenVehicleNotAvailable() {
-        // ARRANGE
-        Long tripId = 100L;
+    @DisplayName("TC-CORE-05: Assegnazione Risorse - Errore Capacità Insufficiente")
+    void planTrip_ShouldThrowException_WhenWeightExceedsCapacity() {
+        Long tripId = 50L;
         Long driverId = 200L;
-        String plate = "AB123CD";
+        String plate = "VE-SMALL";
 
-        Trip trip = new Trip();
-        trip.setStatus(TripStatus.IN_PLANNING);
-
-        Driver driver = new Driver();
-        driver.setStatus(DriverStatus.FREE);
-
-        // Veicolo OCCUPATO
-        Vehicle vehicle = new Vehicle();
-        vehicle.setStatus(VehicleStatus.IN_USE);
+        Trip trip = createMockTrip(tripId, 15000.0, TripStatus.IN_PLANNING);
+        Driver driver = createMockDriver(driverId, DriverStatus.FREE);
+        Vehicle vehicle = createMockVehicle(plate, 10000.0, VehicleStatus.AVAILABLE);
 
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
         when(driverRepository.findById(driverId)).thenReturn(Optional.of(driver));
@@ -161,39 +119,59 @@ class TripServiceTest {
 
         // ACT & ASSERT
         TripAssignmentDTO dto = new TripAssignmentDTO(tripId, driverId, plate);
+        BusinessRuleException ex = assertThrows(BusinessRuleException.class, () -> tripService.planTrip(tripId, dto));
 
-        BusinessRuleException exception = assertThrows(BusinessRuleException.class, () -> {
-            tripService.planTrip(tripId, dto);
-        });
-
-        assertTrue(exception.getMessage().contains("non è disponibile"));
-        verify(tripRepository, never()).save(trip);
+        assertTrue(ex.getMessage().contains("portata insufficiente"));
+        verify(tripRepository, times(0)).save(any());
     }
 
-    /**
-     * Test dell'integrazione del routing.
-     * Usa ArgumentCaptor per ispezionare l'oggetto passato al metodo save().
-     */
     @Test
-    void calculateRoute_ShouldAttachRouteToTrip() {
+    @DisplayName("TC-CORE-07: Validazione Rotta - Aggiornamento Coerenza Stati")
+    void validateRoute_ShouldUpdateBothTripAndRequest() {
         // ARRANGE
-        Long tripId = 100L;
+        Long tripId = 1L;
+        TransportRequest req = new TransportRequest();
+        req.setRequestStatus(RequestStatus.APPROVED);
+
         Trip trip = new Trip();
-        trip.setId(tripId);
+        trip.setStatus(TripStatus.WAITING_VALIDATION);
+        trip.setRequest(req);
 
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
 
         // ACT
-        tripService.calculateRoute(tripId);
+        tripService.validateRoute(tripId);
 
         // ASSERT
-        // Usiamo un Captor per vedere cosa è stato passato al metodo save
-        ArgumentCaptor<Trip> tripCaptor = ArgumentCaptor.forClass(Trip.class);
-        verify(tripRepository).save(tripCaptor.capture());
+        assertEquals(TripStatus.VALIDATED, trip.getStatus());
+        assertEquals(RequestStatus.PLANNED, req.getRequestStatus());
+    }
 
-        Trip savedTrip = tripCaptor.getValue();
-        assertNotNull(savedTrip.getRoute()); // Verifica che la rotta sia stata creata
-        assertEquals(150.5, savedTrip.getRoute().getRouteDistance()); // Verifica dati finti
-        assertEquals(trip, savedTrip.getRoute().getTrip()); // Verifica relazione inversa
+    // --- HELPER METHODS ---
+    private Trip createMockTrip(Long id, Double weight, TripStatus status) {
+        Trip trip = new Trip();
+        trip.setId(id);
+        trip.setStatus(status);
+        TransportRequest req = new TransportRequest();
+        var load = new com.heavyroute.core.model.LoadDetails();
+        load.setWeightKg(weight);
+        req.setLoad(load);
+        trip.setRequest(req);
+        return trip;
+    }
+
+    private Driver createMockDriver(Long id, DriverStatus status) {
+        Driver d = new Driver();
+        d.setId(id);
+        d.setDriverStatus(status);
+        return d;
+    }
+
+    private Vehicle createMockVehicle(String plate, Double capacity, VehicleStatus status) {
+        Vehicle v = new Vehicle();
+        v.setLicensePlate(plate);
+        v.setMaxLoadCapacity(capacity);
+        v.setStatus(status);
+        return v;
     }
 }
