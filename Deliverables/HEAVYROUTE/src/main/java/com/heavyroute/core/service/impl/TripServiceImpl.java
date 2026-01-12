@@ -230,4 +230,18 @@ public class TripServiceImpl implements TripService {
                 .map(tripMapper::toDTO)
                 .toList();
     }
+
+    @Override
+    @Transactional
+    public void validateRoute(Long tripId) {
+        Trip trip = tripRepository.findById(tripId)
+                .orElseThrow(() -> new ResourceNotFoundException("Viaggio non trovato con ID: " + tripId));
+
+        if (trip.getStatus() != TripStatus.WAITING_VALIDATION) {
+            throw new BusinessRuleException("Impossibile validare: il viaggio non è in attesa di validazione.");
+        }
+
+        trip.setStatus(TripStatus.VALIDATED);
+        tripRepository.save(trip);
+    }
 }

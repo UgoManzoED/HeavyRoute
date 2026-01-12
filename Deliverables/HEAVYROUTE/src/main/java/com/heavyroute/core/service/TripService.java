@@ -74,4 +74,6 @@ public interface TripService {
     void calculateRoute(Long tripId);
 
     List<TripResponseDTO> getAllTrips();
+
+    void validateRoute(Long tripId);
 }

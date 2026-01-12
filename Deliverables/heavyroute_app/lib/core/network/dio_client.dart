@@ -10,8 +10,8 @@ import 'auth_interceptor.dart';
 /// </p>
 class DioClient {
   static final String _baseUrl = kIsWeb
-      ? 'http://localhost:8080/api'
-      : 'http://10.0.2.2:8080/api';
+      ? 'http://localhost:8080'
+      : 'http://10.0.2.2:8080';
 
   static final Dio _dio = Dio(
     BaseOptions(

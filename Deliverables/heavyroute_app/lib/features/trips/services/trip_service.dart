@@ -16,7 +16,6 @@ class TripService {
   /// <p>
   /// <b>Backend Endpoint:</b> GET /api/trips
   /// </p>
-  /// Include logica di DEBUG avanzata per individuare errori di parsing JSON.
   Future<List<TripModel>> getAllTrips() async {
     const String endpoint = '/api/trips';
 
@@ -24,27 +23,21 @@ class TripService {
       debugPrint("🚀 Chiamata GET: $endpoint");
       final response = await _dio.get(endpoint);
 
-      // --- INIZIO BLOCCO DEBUGGING ---
-      developer.log("📦 JSON RICEVUTO:", name: "TRIP_SERVICE");
-      developer.log(response.data.toString(), name: "JSON_DATA");
+      developer.log("📦 JSON RICEVUTO:", name: "TRIP_SERVICE"); // Scommenta se serve
 
       final List<dynamic> rawList = response.data;
       List<TripModel> parsedTrips = [];
 
-      // Parsiamo un elemento alla volta
       for (var i = 0; i < rawList.length; i++) {
         final item = rawList[i];
         try {
           parsedTrips.add(TripModel.fromJson(item));
         } catch (e) {
           debugPrint("\n🔴 ERRORE DI PARSING all'elemento indice $i!");
-          debugPrint("💀 Dati dell'elemento corrotto: $item");
           _analyzeParsingError(item);
           debugPrint("Errore specifico Dart: $e\n");
         }
       }
-      // --- FINE BLOCCO DEBUGGING ---
-
       return parsedTrips;
 
     } on DioException catch (e) {
@@ -56,12 +49,12 @@ class TripService {
     }
   }
 
-  /// Approva una richiesta di trasporto.
+  /// Approva una richiesta di trasporto (Planner).
   Future<bool> approveRequest(int requestId) async {
     final String endpoint = '/api/trips/$requestId/approve';
 
     try {
-      debugPrint("🚀 Chiamata POST: $endpoint");
+      debugPrint("Chiamata POST: $endpoint");
       final response = await _dio.post(endpoint);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -70,6 +63,25 @@ class TripService {
       return false;
     } catch (e) {
       debugPrint("🛑 ERRORE approveRequest: $e");
+      return false;
+    }
+  }
+
+  Future<bool> validateRoute(int tripId) async {
+    final String endpoint = '/api/trips/$tripId/route/approve';
+
+    try {
+      debugPrint("Validazione Rotta: POST $endpoint");
+
+      final response = await _dio.post(endpoint);
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        debugPrint("✅ Rotta validata con successo!");
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint("🛑 ERRORE validateRoute: $e");
       return false;
     }
   }
@@ -117,31 +129,7 @@ class TripService {
   /// Funzione Helper per scovare i null
   void _analyzeParsingError(Map<String, dynamic> json) {
     debugPrint("🔍 ANALISI CAMPI CRITICI:");
-
-    void check(String field, bool isRequired) {
-      final val = json[field];
-      if (val == null) {
-        debugPrint("   ⚠️ $field è NULL -> ${isRequired ? 'CRITICO (Richiesto)' : 'Ok (Opzionale)'}");
-      } else {
-        debugPrint("   ✅ $field = $val (${val.runtimeType})");
-      }
-    }
-
-    check('id', true);
-    check('driverId', false);
-    check('request', true);
-
-    // Controlla campi annidati se esistono
-    if (json['request'] != null) {
-      final req = json['request'];
-      debugPrint("   Checking Request Load:");
-      if (req['load'] != null) {
-        final load = req['load'];
-        if (load['weightKg'] == null) debugPrint("      ❌ weightKg è NULL!");
-        if (load['type'] == null) debugPrint("      ❌ type è NULL!");
-      } else {
-        debugPrint("      ⚠️ load è NULL");
-      }
-    }
+    if (json['id'] == null) debugPrint("ID MANCANTE");
+    if (json['driverId'] == null) debugPrint("driverId è NULL (Ok se nullable)");
   }
 }
