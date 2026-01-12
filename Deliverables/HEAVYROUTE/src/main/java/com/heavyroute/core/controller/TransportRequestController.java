@@ -4,6 +4,7 @@ import com.heavyroute.core.dto.RequestCreationDTO;
 import com.heavyroute.core.dto.TransportRequestResponseDTO;
 import com.heavyroute.core.service.TransportRequestService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -57,7 +58,9 @@ public class TransportRequestController {
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<TransportRequestResponseDTO> createRequest(@Valid @RequestBody RequestCreationDTO dto) {
         String username = getCurrentUsername();
-        return ResponseEntity.ok(requestService.createRequest(dto, username));
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(requestService.createRequest(dto, username));
     }
 
     /**
