@@ -7,31 +7,32 @@ class LandingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      // 1. La cornice universale va qui.
-      // isDashboard: false attiva il tasto "Area Personale"
-      appBar: const HeavyRouteAppBar(
-        subtitle: "Soluzioni per la Logistica",
-        isDashboard: false,
-      ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isMobile = constraints.maxWidth < 800;
+    // 1. Blocchiamo il tasto indietro e lo swipe (freccia fantasma)
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: const HeavyRouteAppBar(
+          subtitle: "Soluzioni per la Logistica",
+          isLanding: true,
+        ),
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            final isMobile = constraints.maxWidth < 800;
 
-          return SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // 2. _buildHeader è stato rimosso da qui perché ora è nell'appBar dello Scaffold
-                _buildHeroSection(context, isMobile),
-                _buildFeaturesSection(context, isMobile),
-                _buildInfoSection(context, isMobile),
-                _buildFooter(context, isMobile),
-              ],
-            ),
-          );
-        },
+            return SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildHeroSection(context, isMobile),
+                  _buildFeaturesSection(context, isMobile),
+                  _buildInfoSection(context, isMobile),
+                  _buildFooter(context, isMobile),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }

@@ -1,99 +1,120 @@
 import 'package:flutter/material.dart';
-import '../../../features/auth/services/auth_service.dart';
+import '../core/storage/token_storage.dart';
 
 class HeavyRouteAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String subtitle;
-  final bool isDashboard; // true: mostra Logout e Icona Profilo, false: mostra "Area Personale"
+
+  // UNICO CAMBIAMENTO: Da isDashboard a isLanding
+  final bool isLanding;
+
   final VoidCallback? onProfileTap;
 
   const HeavyRouteAppBar({
     super.key,
-    required this.subtitle,
-    this.isDashboard = true, // Di default la usiamo per le dashboard
+    this.subtitle = "Gestione Trasporti Eccezionali",
+    this.isLanding = false, // false = Dashboard (Loggato), true = Landing
     this.onProfileTap,
   });
-
-  @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
-
-  void _handleLogout(BuildContext context) {
-    final AuthService authService = AuthService();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Conferma Logout"),
-        content: const Text("Sei sicuro di voler uscire?"),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Annulla")),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await authService.logout();
-              if (context.mounted) Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text("Esci", style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
     return AppBar(
       backgroundColor: Colors.white,
       elevation: 0,
-      // 1. SINISTRA: Freccia Logout solo se siamo in Dashboard
-      leading: isDashboard
-          ? IconButton(
-        icon: const Icon(Icons.exit_to_app, color: Colors.red),
-        onPressed: () => _handleLogout(context),
-      )
-          : null,
-      title: Row(
+
+      // SINISTRA: ICONA CAMION + TITOLO (INVARIATO)
+      leadingWidth: 50,
+      leading: const Icon(
+        Icons.local_shipping,
+        color: Colors.black,
+        size: 28,
+      ),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.local_shipping_rounded, color: Color(0xFF0D0D1A)),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text("HeavyRoute", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
-              Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-            ],
+          const Text(
+            "HEAVYROUTE",
+            style: TextStyle(
+                color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          Text(
+            subtitle,
+            style: const TextStyle(color: Colors.grey, fontSize: 12),
           ),
         ],
       ),
+
+      // DESTRA: LOGICA AGGIORNATA SU isLanding
       actions: [
-        if (isDashboard)
+        if (isLanding) ...[
+          // CASO LANDING PAGE (Prima era !isDashboard)
           Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: onProfileTap, // Ora il tocco è collegato direttamente qui
-                customBorder: const CircleBorder(), // Rende l'area di click circolare
-                child: const CircleAvatar(
-                  backgroundColor: Color(0xFF0D0D1A),
-                  radius: 18,
-                  child: Icon(Icons.person, color: Colors.white, size: 20),
-                ),
+            padding: const EdgeInsets.only(right: 16.0),
+            child: OutlinedButton.icon(
+              onPressed: () {
+                Navigator.pushNamed(context, '/login');
+              },
+              icon: const Icon(Icons.login, size: 18),
+              label: const Text("Accedi"),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.black,
+                side: const BorderSide(color: Colors.black),
               ),
             ),
           )
-        else
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: TextButton(
-              onPressed: () => Navigator.pushNamed(context, '/login'),
-              style: TextButton.styleFrom(
-                backgroundColor: const Color(0xFF0D0D1A),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              child: const Text("Area Personale", style: TextStyle(color: Colors.white, fontSize: 13)),
-            ),
+        ] else ...[
+          // CASO DASHBOARD (Prima era isDashboard)
+
+          // 1. TASTO LOGOUT CON DIALOG (INVARIATO)
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.redAccent),
+            tooltip: "Esci",
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (BuildContext ctx) {
+                  return AlertDialog(
+                    title: const Text("Logout"),
+                    content: const Text("Sei sicuro di voler uscire?"),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text("Annulla"),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          Navigator.pop(ctx);
+                          await TokenStorage.deleteAll();
+                          if (context.mounted) {
+                            Navigator.pushNamedAndRemoveUntil(
+                                context, '/', (route) => false);
+                          }
+                        },
+                        style: TextButton.styleFrom(foregroundColor: Colors.red),
+                        child: const Text("Esci"),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
           ),
+
+          const SizedBox(width: 8),
+
+          // 2. TASTO PROFILO (INVARIATO)
+          IconButton(
+            icon: const Icon(Icons.account_circle, color: Colors.black87, size: 28),
+            tooltip: "Area Personale",
+            onPressed: onProfileTap,
+          ),
+
+          const SizedBox(width: 16),
+        ],
       ],
     );
   }
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }

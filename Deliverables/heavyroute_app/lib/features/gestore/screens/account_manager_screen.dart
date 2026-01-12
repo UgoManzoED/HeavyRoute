@@ -61,22 +61,26 @@ class _AccountManagerScreenState extends State<AccountManagerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      appBar: HeavyRouteAppBar(
-        subtitle: 'Dashboard Gestore Account',
-        isDashboard: true,
-        onProfileTap: _openProfilePopup,
-      ),
-      body: Column(
-        children: [
-          _buildCustomTabBar(),
-          Expanded(
-            child: _activeSectionIndex == 0
-                ? const InternalUserListSection()
-                : const CreateUserSection(),
-          ),
-        ],
+    // 1. PopScope disabilita il tasto indietro e lo swipe laterale
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8F9FA),
+        appBar: HeavyRouteAppBar(
+          subtitle: 'Dashboard Gestore Account',
+          // isDashboard: true, <--- RIMOSSO
+          onProfileTap: _openProfilePopup,
+        ),
+        body: Column(
+          children: [
+            _buildCustomTabBar(),
+            Expanded(
+              child: _activeSectionIndex == 0
+                  ? const InternalUserListSection()
+                  : const CreateUserSection(),
+            ),
+          ],
+        ),
       ),
     );
   }
