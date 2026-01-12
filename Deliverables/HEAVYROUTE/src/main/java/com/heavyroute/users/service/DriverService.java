@@ -1,6 +1,8 @@
 package com.heavyroute.users.service;
 
 import com.heavyroute.users.dto.UserResponseDTO;
+import com.heavyroute.users.enums.DriverStatus;
+import com.heavyroute.users.model.Driver;
 
 import java.util.List;
 
@@ -15,4 +17,9 @@ public interface DriverService {
      * * @return Lista di UserResponseDTO contenenti anagrafica e ID degli autisti liberi.
      */
     List<UserResponseDTO> findAvailableDrivers();
+
+    /**
+     * Recupera gli autisti in base al loro stato operativo (FREE, BUSY, etc.)
+     */
+    List<Driver> findByDriverStatus(DriverStatus status);
 }
