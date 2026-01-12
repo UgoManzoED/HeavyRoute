@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../core/storage/token_storage.dart';
+import '../../core/storage/token_storage.dart';
 
 class HeavyRouteAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String subtitle;
 
-  // UNICO CAMBIAMENTO: Da isDashboard a isLanding
+  // UNICO CAMBIAMENTO: Da isDashboard heavy_route_map.dart isLanding
   final bool isLanding;
 
   final VoidCallback? onProfileTap;
