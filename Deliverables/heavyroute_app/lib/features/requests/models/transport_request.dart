@@ -4,7 +4,7 @@ import 'load_details.dart';
 
 part 'transport_request.g.dart';
 
-@JsonSerializable()
+@JsonSerializable(explicitToJson: true)
 class TransportRequest {
   final int id;
 

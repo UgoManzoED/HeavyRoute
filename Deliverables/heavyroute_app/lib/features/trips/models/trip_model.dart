@@ -5,7 +5,7 @@ import 'route_model.dart';
 
 part 'trip_model.g.dart';
 
-@JsonSerializable()
+@JsonSerializable(explicitToJson: true)
 class TripModel {
   final int id;
 
