@@ -38,10 +38,10 @@ import java.util.stream.Collectors;
  * <p>
  * Questa classe agisce come "Operational Core" del sistema, gestendo:
  * <ul>
- * <li>La creazione del Viaggio (Trip) a partire da una Richiesta (TransportRequest).</li>
- * <li>Il calcolo e la persistenza della Rotta geografica (Route).</li>
+ * <li>La creazione del Viaggio (Trip) a partire da una Richiesta.</li>
+ * <li>Il calcolo e la persistenza della Rotta geografica.</li>
  * <li>L'assegnazione delle risorse (Autista e Veicolo).</li>
- * <li>Le transizioni di stato guidate da Planner, Coordinator e Driver.</li>
+ * <li>Le transizioni di stato del ciclo di vita del viaggio.</li>
  * </ul>
  * </p>
  */
@@ -54,7 +54,7 @@ public class TripServiceImpl implements TripService {
     private final TransportRequestRepository requestRepository;
     private final DriverRepository driverRepository;
     private final VehicleRepository vehicleRepository;
-    private final RouteRepository routeRepository; // Aggiunto per gestire la persistenza della rotta
+    private final RouteRepository routeRepository;
     private final TripMapper tripMapper;
     private final NotificationService notificationService;
     private final ExternalMapService externalMapService;
@@ -65,11 +65,10 @@ public class TripServiceImpl implements TripService {
      * <b>Logica di Creazione:</b>
      * <ol>
      * <li>Recupera la richiesta di trasporto.</li>
-     * <li>Invoca il servizio cartografico esterno per calcolare la rotta reale (distanza, durata, polilinea).</li>
-     * <li>Salva la rotta nel database (`RouteRepository`).</li>
-     * <li>Crea il nuovo Trip associandolo alla richiesta e alla rotta appena create.</li>
+     * <li>Invoca il servizio cartografico per calcolare la rotta reale.</li>
+     * <li>Salva la rotta.</li>
+     * <li>Crea il Trip in stato {@code WAITING_VALIDATION}.</li>
      * </ol>
-     * Lo stato iniziale è {@code WAITING_VALIDATION}.
      * </p>
      */
     @Override
@@ -78,41 +77,45 @@ public class TripServiceImpl implements TripService {
         // 1. CHECK IDEMPOTENZA
         Optional<Trip> existingTrip = tripRepository.findByRequestId(requestId);
         if (existingTrip.isPresent()) {
-            log.info("Viaggio già esistente per Request ID {}. Restituisco esistente.", requestId);
+            log.info("✅ Viaggio già esistente per Request ID {}. Restituisco esistente.", requestId);
             return mapToDTOWithDriverInfo(existingTrip.get());
         }
-
-        // --- SE NON ESISTE, PROCEDI CON LA CREAZIONE ---
 
         TransportRequest request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Richiesta non trovata con ID: " + requestId));
 
-        // Calcolo della rotta reale tramite servizio esterno
+        log.info("📡 Creazione nuovo viaggio per Richiesta #{}", requestId);
+
+        // 2. Calcolo Rotta
         Route realRoute = externalMapService.calculateFullRoute(
                 request.getOriginAddress(),
                 request.getDestinationAddress()
         );
 
-        // Persistenza della rotta
-        routeRepository.save(realRoute);
-
-        // Creazione del Viaggio
+        // 3. Creazione Entità Trip
         Trip trip = new Trip();
         trip.setRequest(request);
+
+        // Associazione bidirezionale
         trip.setRoute(realRoute);
+        realRoute.setTrip(trip);
+
         trip.setStatus(TripStatus.WAITING_VALIDATION);
         trip.setTripCode("T-" + LocalDateTime.now().getYear() + "-" + String.format("%04d", requestId));
 
+        // 4. Salvataggio a cascata (Trip -> Route)
+        routeRepository.save(realRoute);
         Trip savedTrip = tripRepository.save(trip);
 
+        log.info("✅ Viaggio creato: {}", savedTrip.getTripCode());
         return mapToDTOWithDriverInfo(savedTrip);
     }
 
     /**
      * {@inheritDoc}
      * <p>
-     * Assegna autista e veicolo a un viaggio, eseguendo validazioni "Fail Fast".
-     * Verifica la disponibilità delle risorse e la congruenza del carico.
+     * Assegna autista e veicolo a un viaggio.
+     * Gestisce la logica di cambio risorse (libera le vecchie se presenti).
      * </p>
      */
     @Override
@@ -121,52 +124,67 @@ public class TripServiceImpl implements TripService {
         Trip trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new ResourceNotFoundException("Viaggio non trovato con ID: " + tripId));
 
-        // Validazione Stato
-        if (trip.getStatus() != TripStatus.IN_PLANNING) {
-            throw new BusinessRuleException("Il viaggio non è in fase di pianificazione. Stato attuale: " + trip.getStatus());
+        if (trip.getStatus() != TripStatus.IN_PLANNING &&
+                trip.getStatus() != TripStatus.WAITING_VALIDATION &&
+                trip.getStatus() != TripStatus.CONFIRMED) {
+
+            throw new BusinessRuleException("Stato non valido per pianificazione: " + trip.getStatus());
         }
 
-        // Recupero e Validazione Autista
+        // 2. GESTIONE RISORSE PRECEDENTI
+        if (trip.getDriver() != null) {
+            log.info("✅ Rilascio autista precedente: {}", trip.getDriver().getUsername());
+            trip.getDriver().setDriverStatus(DriverStatus.FREE);
+            driverRepository.save(trip.getDriver());
+        }
+        if (trip.getVehicle() != null) {
+            log.info("✅ Rilascio veicolo precedente: {}", trip.getVehicle().getLicensePlate());
+            trip.getVehicle().setStatus(VehicleStatus.AVAILABLE);
+            vehicleRepository.save(trip.getVehicle());
+        }
+
+        // 3. RECUPERO E VALIDAZIONE NUOVE RISORSE
         Driver driver = driverRepository.findById(dto.getDriverId())
                 .orElseThrow(() -> new ResourceNotFoundException("Autista non trovato"));
+
         if (driver.getDriverStatus() != DriverStatus.FREE) {
-            throw new BusinessRuleException("L'autista selezionato non è disponibile (Stato: " + driver.getDriverStatus() + ")");
+            throw new BusinessRuleException("L'autista " + driver.getLastName() + " è occupato.");
         }
 
-        // Recupero e Validazione Veicolo
         Vehicle vehicle = vehicleRepository.findByLicensePlate(dto.getVehiclePlate())
                 .orElseThrow(() -> new ResourceNotFoundException("Veicolo non trovato"));
+
         if (vehicle.getStatus() != VehicleStatus.AVAILABLE) {
-            throw new BusinessRuleException("Il veicolo selezionato non è disponibile (Stato: " + vehicle.getStatus() + ")");
+            throw new BusinessRuleException("Il veicolo " + vehicle.getLicensePlate() + " non è disponibile.");
         }
 
-        // Controllo Capacità di Carico
+        // Check Capacità di Carico
         Double pesoRichiesto = trip.getRequest().getLoad().getWeightKg();
         if (vehicle.getMaxLoadCapacity() < pesoRichiesto) {
-            throw new BusinessRuleException(String.format(
-                    "Portata veicolo insufficiente (%s kg) per il carico richiesto (%s kg)",
-                    vehicle.getMaxLoadCapacity(), pesoRichiesto));
+            throw new BusinessRuleException("Portata veicolo insufficiente (" + vehicle.getMaxLoadCapacity() + "kg < " + pesoRichiesto + "kg)");
         }
 
-        // Aggiornamento Relazioni
+        // 4. ASSEGNAZIONE
         trip.setDriver(driver);
         trip.setVehicle(vehicle);
+        trip.setStatus(TripStatus.WAITING_VALIDATION);
 
-        // Aggiornamento Stati
+        // Blocca le risorse
         driver.setDriverStatus(DriverStatus.ASSIGNED);
         vehicle.setStatus(VehicleStatus.IN_USE);
-        trip.setStatus(TripStatus.CONFIRMED); // Pronto per la partenza
 
-        // Salvataggio
+        // Persistenza
         driverRepository.save(driver);
         vehicleRepository.save(vehicle);
         tripRepository.save(trip);
 
-        // Notifica
+        log.info("✅ Risorse assegnate al viaggio {}: Autista {}, Veicolo {}", tripId, driver.getLastName(), vehicle.getLicensePlate());
+
+        // 5. NOTIFICA
         notificationService.send(
                 driver.getId(),
-                "Nuovo Incarico Assegnato",
-                "Ti è stato assegnato il viaggio " + trip.getTripCode() + ". Controlla l'app per i dettagli.",
+                "Nuovo Incarico",
+                "Assegnato viaggio " + trip.getTripCode() + " per " + trip.getRequest().getDestinationAddress(),
                 NotificationType.ASSIGNMENT,
                 trip.getId()
         );
@@ -174,10 +192,6 @@ public class TripServiceImpl implements TripService {
 
     /**
      * {@inheritDoc}
-     * <p>
-     * Ricalcola forzatamente la rotta (es. in caso di deviazioni).
-     * Nota: Questo metodo sovrascrive la rotta calcolata in fase di approvazione.
-     * </p>
      */
     @Override
     @Transactional
@@ -185,23 +199,20 @@ public class TripServiceImpl implements TripService {
         Trip trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new ResourceNotFoundException("Viaggio non trovato con ID: " + tripId));
 
-        // Simulazione ricalcolo (potrebbe chiamare nuovamente externalMapService)
-        Route newRoute = new Route();
-        newRoute.setRouteDistance(150.5);
-        newRoute.setRouteDuration(120.0);
-        newRoute.setPolyline("u{~vFvyys@fGe}A");
+        // Esempio: Ricalcolo forzato (in futuro userà externalMapService con parametri diversi)
+        Route newRoute = externalMapService.calculateFullRoute(
+                trip.getRequest().getOriginAddress(),
+                trip.getRequest().getDestinationAddress()
+        );
         newRoute.setTrip(trip);
 
         trip.setRoute(newRoute);
+        routeRepository.save(newRoute);
         tripRepository.save(trip);
     }
 
-    /**
-     * {@inheritDoc}
-     * <p>
-     * Recupera un viaggio per ID, arricchendo il DTO con i dati anagrafici dell'autista.
-     * </p>
-     */
+    // --- METODI DI LETTURA ---
+
     @Override
     @Transactional(readOnly = true)
     public TripResponseDTO getTripById(Long id) {
@@ -219,8 +230,7 @@ public class TripServiceImpl implements TripService {
     @Override
     @Transactional(readOnly = true)
     public List<TripResponseDTO> getTripsByStatus(TripStatus status) {
-        List<Trip> trips = tripRepository.findByStatus(status);
-        return trips.stream()
+        return tripRepository.findByStatus(status).stream()
                 .map(this::mapToDTOWithDriverInfo)
                 .collect(Collectors.toList());
     }
@@ -236,7 +246,7 @@ public class TripServiceImpl implements TripService {
     public List<TripResponseDTO> getAllTrips() {
         return tripRepository.findAll().stream()
                 .map(this::mapToDTOWithDriverInfo)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     /**
@@ -256,7 +266,7 @@ public class TripServiceImpl implements TripService {
             TripStatus statusEnum = TripStatus.valueOf(newStatus);
             trip.setStatus(statusEnum);
 
-            // Logica di rilascio risorse al completamento
+            // Se il viaggio è finito, libera le risorse
             if (statusEnum == TripStatus.COMPLETED) {
                 if (trip.getDriver() != null) {
                     trip.getDriver().setDriverStatus(DriverStatus.FREE);
@@ -266,12 +276,10 @@ public class TripServiceImpl implements TripService {
                     trip.getVehicle().setStatus(VehicleStatus.AVAILABLE);
                     vehicleRepository.save(trip.getVehicle());
                 }
-                log.info("Viaggio {} completato. Risorse liberate.", tripId);
+                log.info("✅ Viaggio {} completato. Risorse liberate.", tripId);
             }
 
             tripRepository.save(trip);
-            log.info("Stato aggiornato per Trip {}: {}", tripId, statusEnum);
-
         } catch (IllegalArgumentException e) {
             throw new BusinessRuleException("Stato non valido: " + newStatus);
         }
@@ -294,64 +302,48 @@ public class TripServiceImpl implements TripService {
                 .orElseThrow(() -> new ResourceNotFoundException("Viaggio non trovato"));
 
         if (isApproved) {
-            // Coordinator APPROVA -> Passa alla pianificazione risorse
-            trip.setStatus(TripStatus.IN_PLANNING);
+            trip.setStatus(TripStatus.CONFIRMED);
             trip.getRequest().setRequestStatus(RequestStatus.APPROVED);
-            log.info("✅ Rotta approvata dal Coordinator per viaggio {}", tripId);
+            log.info("✅ Rotta approvata dal Coordinator. Viaggio CONFIRMED.");
             tripRepository.save(trip);
         } else {
-            // Coordinator RIFIUTA -> Rollback logico
-            Long plannerId = 1L; // In un caso reale, si recupera l'ID dal contesto di sicurezza o dalla request
-
-            notificationService.send(
-                    plannerId,
-                    "Rotta Rifiutata - Azione Richiesta",
-                    "Il Coordinator ha rifiutato il piano per il viaggio " + trip.getTripCode() + ". Motivo: " + feedback,
-                    NotificationType.ALERT,
-                    trip.getRequest().getId()
-            );
-
-            // Rendi la richiesta nuovamente disponibile per essere processata
-            requestRepository.save(trip.getRequest());
-            // Elimina il tentativo di viaggio fallito
-            tripRepository.delete(trip);
-
-            log.info("❌ Rotta rifiutata. Trip eliminato e notifica inviata al Planner.");
+            log.info("❌ Rotta rifiutata: {}", feedback);
+            // In un sistema reale, qui invieremmo una notifica al Planner
         }
     }
 
-    // --- HELPER PRIVATI ---
+    // --- MAPPER HELPER ---
 
     /**
      * Converte Entity in DTO assicurandosi di copiare i dati anagrafici dell'autista.
      * Utile per visualizzare "Chi sta guidando cosa" nelle liste.
      */
     private TripResponseDTO mapToDTOWithDriverInfo(Trip trip) {
-        // 1. Mapping automatico base
         TripResponseDTO tripDTO = tripMapper.toDTO(trip);
 
-        // 2. Driver info
+        // Arricchimento dati Autista
         if (trip.getDriver() != null) {
             tripDTO.setDriverId(trip.getDriver().getId());
             tripDTO.setDriverName(trip.getDriver().getFirstName());
             tripDTO.setDriverSurname(trip.getDriver().getLastName());
         }
 
-        // 3. MAPPING ROTTA
+        // Arricchimento dati Veicolo
+        if (trip.getVehicle() != null) {
+            tripDTO.setVehiclePlate(trip.getVehicle().getLicensePlate());
+            tripDTO.setVehicleModel(trip.getVehicle().getModel());
+        }
+
+        // Arricchimento dati Rotta
         if (trip.getRoute() != null) {
             Route r = trip.getRoute();
-
-            // Creiamo il DTO della rotta
             com.heavyroute.core.dto.RouteResponseDTO routeDTO = new com.heavyroute.core.dto.RouteResponseDTO();
-
-            // Copia i dati semplici
             routeDTO.setId(r.getId());
             routeDTO.setRouteDescription(r.getDescription());
             routeDTO.setDistance(r.getRouteDistance());
             routeDTO.setDuration(r.getRouteDuration());
             routeDTO.setPolyline(r.getPolyline());
 
-            // ESTRAZIONE COORDINAT
             if (r.getStartLocation() != null) {
                 routeDTO.setStartLat(r.getStartLocation().getLatitude());
                 routeDTO.setStartLon(r.getStartLocation().getLongitude());
@@ -360,7 +352,6 @@ public class TripServiceImpl implements TripService {
                 routeDTO.setEndLat(r.getEndLocation().getLatitude());
                 routeDTO.setEndLon(r.getEndLocation().getLongitude());
             }
-
             tripDTO.setRoute(routeDTO);
         }
 

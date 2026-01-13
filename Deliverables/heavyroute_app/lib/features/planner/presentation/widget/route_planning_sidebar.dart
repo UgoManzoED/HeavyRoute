@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import '../../../requests/models/transport_request.dart';
 import '../../../trips/models/route_model.dart';
+import '../service/planner_service.dart';
+import 'request_info_card.dart';
+import 'resource_selectors.dart';
+import 'route_metrics_card.dart';
 
-class RoutePlanningSidebar extends StatelessWidget {
+class RoutePlanningSidebar extends StatefulWidget {
   final TransportRequest request;
   final RouteModel? route;
   final bool isLoading;
   final VoidCallback onCalculate;
+  final Function(int driverId, String vehiclePlate) onResourcesSelected;
 
   const RoutePlanningSidebar({
     super.key,
@@ -14,174 +19,194 @@ class RoutePlanningSidebar extends StatelessWidget {
     required this.route,
     required this.isLoading,
     required this.onCalculate,
+    required this.onResourcesSelected,
   });
 
   @override
+  State<RoutePlanningSidebar> createState() => _RoutePlanningSidebarState();
+}
+
+class _RoutePlanningSidebarState extends State<RoutePlanningSidebar> {
+  final PlannerService _plannerService = PlannerService();
+
+  List<dynamic> _drivers = [];
+  List<dynamic> _vehicles = [];
+  bool _loadingResources = true;
+
+  int? _selectedDriverId;
+  String? _selectedVehiclePlate;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadResources();
+  }
+
+  Future<void> _loadResources() async {
+    try {
+      final results = await Future.wait([
+        _plannerService.getAvailableDrivers(),
+        _plannerService.getAvailableVehicles(),
+      ]);
+
+      if (mounted) {
+        setState(() {
+          _drivers = results[0];
+          _vehicles = results[1];
+          _loadingResources = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Errore risorse: $e");
+      if (mounted) setState(() => _loadingResources = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Rilevamento Trasporto Eccezionale
+    final double loadLen = widget.request.load?.length ?? 0.0;
+    final double loadWid = widget.request.load?.width ?? 0.0;
+    final bool isExceptional = loadLen > 16.5 || loadWid > 2.55;
+
     return Container(
-      width: 320,
-      padding: const EdgeInsets.all(24),
+      width: 350,
       color: Colors.grey[50],
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildRequestInfoCard(),
-          const SizedBox(height: 24),
-          const Text("OPZIONI PERCORSO",
-              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12)),
-          const SizedBox(height: 16),
+          // PARTE SCROLLABILE
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  RequestInfoCard(request: widget.request),
+                  const SizedBox(height: 16),
 
-          // LOGICA VISUALIZZAZIONE
-          if (route == null) ...[
-            // STATO 1: Nessuna rotta calcolata
-            _buildRouteOptionPlaceholder(),
-            const Spacer(),
-            ElevatedButton.icon(
-              onPressed: isLoading ? null : onCalculate,
-              icon: isLoading
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Icon(Icons.calculate_outlined),
-              label: Text(isLoading ? "Elaborazione..." : "CALCOLA ITINERARIO"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.indigo,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  if (isExceptional)
+                    _buildExceptionalAlert(),
+
+                  const SizedBox(height: 16),
+                  const Text("ASSEGNAZIONE RISORSE",
+                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12)),
+                  const SizedBox(height: 12),
+
+                  ResourceSelectors(
+                    isLoading: _loadingResources,
+                    drivers: _drivers,
+                    vehicles: _vehicles,
+                    selectedDriverId: _selectedDriverId,
+                    selectedVehiclePlate: _selectedVehiclePlate,
+                    onDriverChanged: (val) => setState(() => _selectedDriverId = val),
+                    onVehicleChanged: (val) => setState(() => _selectedVehiclePlate = val),
+                  ),
+
+                  const SizedBox(height: 24),
+                  const Divider(),
+                  const SizedBox(height: 16),
+
+                  const Text("PIANIFICAZIONE PERCORSO",
+                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12)),
+                  const SizedBox(height: 16),
+
+                  RouteMetricsCard(route: widget.route),
+
+                  if (widget.route != null) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.green[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.green.shade200),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.check_circle, color: Colors.green),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              "Percorso pronto per validazione.",
+                              style: TextStyle(fontSize: 12, color: Colors.green),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ]
+                ],
               ),
             ),
-            const SizedBox(height: 12),
-            const Text(
-              "Il sistema calcolerà il percorso ottimale per mezzi pesanti usando Mapbox Navigation AI.",
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ] else ...[
-            // STATO 2: Rotta calcolata e visibile
-            _buildResultCard(route!),
-            const Spacer(),
-            const Card(
-              color: Color(0xFFE8F5E9),
-              child: Padding(
-                padding: EdgeInsets.all(12.0),
-                child: Row(
-                  children: [
-                    Icon(Icons.check_circle, color: Colors.green),
-                    SizedBox(width: 12),
-                    Expanded(child: Text("Rotta generata. Verifica sulla mappa.", style: TextStyle(fontSize: 12))),
-                  ],
-                ),
+          ),
+
+          // PARTE FISSA IN BASSO
+          if (widget.route == null)
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(top: BorderSide(color: Colors.grey.shade200)),
+              ),
+              child: Column(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: (widget.isLoading || _selectedDriverId == null || _selectedVehiclePlate == null)
+                        ? null
+                        : () {
+                      widget.onResourcesSelected(_selectedDriverId!, _selectedVehiclePlate!);
+                      widget.onCalculate();
+                    },
+                    icon: widget.isLoading
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.calculate_outlined),
+                    label: Text(widget.isLoading ? "Elaborazione..." : "GENERA PERCORSO PRELIMINARE"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.indigo,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      minimumSize: const Size(double.infinity, 50),
+                      disabledBackgroundColor: Colors.grey[300],
+                    ),
+                  ),
+                  if (_selectedDriverId == null || _selectedVehiclePlate == null)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        "Seleziona risorse per procedere.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 11, color: Colors.redAccent),
+                      ),
+                    ),
+                ],
               ),
             ),
-          ]
         ],
       ),
     );
   }
 
-  // --- WIDGETS INTERNI ALLA SIDEBAR ---
-
-  Widget _buildRequestInfoCard() {
+  Widget _buildExceptionalAlert() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2))],
-      ),
-      child: Column(
-        children: [
-          _buildLocRow(Icons.circle_outlined, request.originAddress, Colors.green),
-          Padding(
-            padding: const EdgeInsets.only(left: 11.0),
-            child: Align(
-                alignment: Alignment.centerLeft,
-                child: Container(width: 2, height: 16, color: Colors.grey.shade300)
-            ),
-          ),
-          _buildLocRow(Icons.location_on, request.destinationAddress, Colors.red),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLocRow(IconData icon, String text, Color color) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 18, color: color),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(text,
-              style: const TextStyle(fontSize: 13, height: 1.3),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRouteOptionPlaceholder() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.orange[50],
+        border: Border.all(color: Colors.orange),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
       ),
-      child: Row(
+      child: const Row(
         children: [
-          const Icon(Icons.route, color: Colors.grey),
-          const SizedBox(width: 12),
-          const Expanded(child: Text("Nessuna rotta calcolata", style: TextStyle(color: Colors.grey))),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildResultCard(RouteModel route) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.indigo.withOpacity(0.3), width: 2),
-        boxShadow: [BoxShadow(color: Colors.indigo.withOpacity(0.1), blurRadius: 8)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text("Percorso Ottimale", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(4)),
-                child: const Text("FASTEST", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-              )
-            ],
+          Icon(Icons.warning_amber_rounded, color: Colors.orange),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              "TRASPORTO ECCEZIONALE\nRichiede scorta tecnica e validazione TC.",
+              style: TextStyle(color: Colors.deepOrange, fontSize: 12, fontWeight: FontWeight.bold),
+            ),
           ),
-          const Divider(height: 24),
-          _buildStatRow(Icons.timer_outlined, "Durata Stimata", route.formattedDuration),
-          const SizedBox(height: 12),
-          _buildStatRow(Icons.straighten, "Distanza Totale", "${route.distanceKm.toStringAsFixed(1)} km"),
-          const SizedBox(height: 12),
-          _buildStatRow(Icons.euro, "Pedaggio Stimato", "€${route.tollCost.toStringAsFixed(2)}"),
         ],
       ),
-    );
-  }
-
-  Widget _buildStatRow(IconData icon, String label, String value) {
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: Colors.grey[600]),
-        const SizedBox(width: 12),
-        Expanded(child: Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 13))),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-      ],
     );
   }
 }

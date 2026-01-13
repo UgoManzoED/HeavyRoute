@@ -30,6 +30,8 @@ public class ExternalMapService {
 
     static {
         // CAMPANIA
+        KNOWN_HUBS.put("HITACHI Napoli", new GeoLocation(40.8455, 14.2833));
+        KNOWN_HUBS.put("Via Galileo Ferraris 128, Napoli", new GeoLocation(40.8455, 14.2833));
         KNOWN_HUBS.put("Via Argine 425, Napoli", new GeoLocation(40.8576, 14.3056)); // Hitachi Napoli
         KNOWN_HUBS.put("Napoli Port", new GeoLocation(40.8433, 14.2625)); // Porto Varco Pisacane
         KNOWN_HUBS.put("Napoli", new GeoLocation(40.8518, 14.2681));
@@ -49,7 +51,9 @@ public class ExternalMapService {
         KNOWN_HUBS.put("Bologna", new GeoLocation(44.4949, 11.3426));
 
         // TOSCANA
-        KNOWN_HUBS.put("Hitachi Pistoia", new GeoLocation(43.9231, 10.9272)); // Hitachi Rail
+        KNOWN_HUBS.put("HITACHI Pistoia", new GeoLocation(43.9245, 10.9280));
+        KNOWN_HUBS.put("Via Ciliegiole 77, Pistoia", new GeoLocation(43.9245, 10.9280));
+        KNOWN_HUBS.put("Hitachi Pistoia", new GeoLocation(43.9231, 10.9272));
         KNOWN_HUBS.put("Pistoia", new GeoLocation(43.9308, 10.9180));
         KNOWN_HUBS.put("Piazza della Stazione, Firenze", new GeoLocation(43.7765, 11.2479));
         KNOWN_HUBS.put("Firenze", new GeoLocation(43.7696, 11.2558));
@@ -66,13 +70,13 @@ public class ExternalMapService {
      * Calcola la rotta completa tra due indirizzi.
      */
     public Route calculateFullRoute(String originAddress, String destinationAddress) {
-        System.out.println("🛣️ [MapService] Inizio calcolo rotta: '" + originAddress + "' -> '" + destinationAddress + "'");
+        System.out.println("📡 [MapService] Inizio calcolo rotta: '" + originAddress + "' -> '" + destinationAddress + "'");
 
         // 1. Risoluzione Geocoding (Dizionario -> API)
         GeoLocation start = resolveLocation(originAddress);
         GeoLocation end = resolveLocation(destinationAddress);
 
-        System.out.println("📍 [MapService] Coordinate definitive:");
+        System.out.println("✅ [MapService] Coordinate definitive:");
         System.out.println("   Start: " + start.getLatitude() + ", " + start.getLongitude());
         System.out.println("   End:   " + end.getLatitude() + ", " + end.getLongitude());
 
@@ -117,7 +121,7 @@ public class ExternalMapService {
         } catch (BusinessRuleException e) {
             throw e;
         } catch (Exception e) {
-            System.err.println("🔥 [MapService] Errore Directions API: " + e.getMessage());
+            System.err.println("❌ [MapService] Errore Directions API: " + e.getMessage());
             throw new RuntimeException("Errore calcolo rotta: " + e.getMessage());
         }
     }
@@ -130,7 +134,7 @@ public class ExternalMapService {
 
         // STEP 1: Controllo Luoghi Noti (Database statico)
         if (KNOWN_HUBS.containsKey(cleanAddr)) {
-            System.out.println("💎 [MapService] Trovato HUB noto: " + cleanAddr);
+            System.out.println("✅ [MapService] Trovato HUB noto: " + cleanAddr);
             return KNOWN_HUBS.get(cleanAddr);
         }
 
@@ -146,7 +150,7 @@ public class ExternalMapService {
         try {
             return executeMapboxGeocoding(address);
         } catch (BusinessRuleException e) {
-            System.out.println("⚠️ [MapService] Tentativo 1 fallito per: '" + address + "'. Provo solo con la città...");
+            System.out.println("❌ [MapService] Tentativo 1 fallito per: '" + address + "'. Provo solo con la città...");
 
             // Tentativo 2: Estrazione e ricerca solo Città (es. "Via xyz, Milano" -> "Milano")
             if (address.contains(",")) {
@@ -182,7 +186,7 @@ public class ExternalMapService {
                     .build(true)
                     .toUriString();
 
-            System.out.println("🔍 [MapService] API Query: " + cleanAddress);
+            System.out.println("📡 [MapService] API Query: " + cleanAddress);
 
             JsonNode response = restTemplate.getForObject(geocodingUrl, JsonNode.class);
 
