@@ -15,7 +15,6 @@ import java.util.Optional;
  * sui campi di business e sulle relazioni logiche.
  * </p>
  */
-
 @Repository
 public interface TripRepository extends JpaRepository<Trip, Long> {
 
@@ -34,10 +33,6 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
     /**
      * Recupera la lista dei viaggi assegnati a un autista specifico che si trovano
      * in un determinato stato.
-     * <p>
-     * <b>Nota:</b> Questa query filtra su due colonne.
-     * Assicurarsi che esista un indice composito driver_id, status.
-     * </p>
      *
      * @param driverId L'identificativo dell'autista.
      * @param status Lo stato del viaggio richiesto (es. {@code TripStatus.ACCEPTED}).
@@ -46,9 +41,23 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
     List<Trip> findByDriverIdAndStatus(Long driverId, TripStatus status);
 
     /**
+     * Recupera tutti i viaggi assegnati a uno specifico autista, ordinati per data di creazione.
+     * <p>
+     * <b>UTILIZZO:</b> Dashboard Autista (Mobile App).
+     * </p>
+     *
+     * @param driverId ID dell'autista loggato.
+     * @return Lista cronologica dei viaggi.
+     */
+    List<Trip> findByDriverIdOrderByCreatedAtDesc(Long driverId);
+
+    /**
      * Recupera tutti i viaggi che si trovano in uno specifico stato operativo.
      */
     List<Trip> findByStatus(TripStatus status);
 
+    /**
+     * Trova il viaggio associato a una specifica richiesta di trasporto.
+     */
     Optional<Trip> findByRequestId(Long requestId);
 }

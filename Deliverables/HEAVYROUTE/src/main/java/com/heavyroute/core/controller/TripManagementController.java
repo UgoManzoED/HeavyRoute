@@ -41,10 +41,6 @@ public class TripManagementController {
 
     /**
      * Recupera TUTTI i viaggi presenti a sistema.
-     * <p>
-     * Endpoint utilizzato dalle dashboard principali di Planner e Coordinator
-     * per avere una visione d'insieme.
-     * </p>
      *
      * @return Lista completa dei DTO dei viaggi.
      */
@@ -57,10 +53,6 @@ public class TripManagementController {
 
     /**
      * Recupera solo i viaggi in stato {@code IN_PLANNING}.
-     * <p>
-     * Endpoint specifico per la dashboard operativa del Planner, per mostrare
-     * solo i viaggi che necessitano di assegnazione risorse.
-     * </p>
      *
      * @return Lista dei viaggi in attesa di pianificazione.
      */
@@ -71,9 +63,23 @@ public class TripManagementController {
     }
 
     /**
-     * Endpoint di servizio per testare la connettività.
+     * Recupera i viaggi assegnati a uno specifico Autista.
+     * <p>
+     * Endpoint dedicato all'App Mobile dell'Autista.
+     * </p>
      *
-     * @return Stringa di conferma "Pong".
+     * @param driverId ID dell'autista loggato.
+     * @return Lista dei viaggi assegnati.
+     */
+    @GetMapping("/driver/{driverId}")
+    @PreAuthorize("hasAnyRole('DRIVER', 'LOGISTIC_PLANNER')")
+    public ResponseEntity<List<TripResponseDTO>> getDriverTrips(@PathVariable Long driverId) {
+        log.info("GET /api/trips/driver/{} - Recupero viaggi per autista", driverId);
+        return ResponseEntity.ok(tripService.getTripsByDriver(driverId));
+    }
+
+    /**
+     * Endpoint di servizio per testare la connettività.
      */
     @GetMapping("/ping")
     public String ping() {
@@ -84,10 +90,6 @@ public class TripManagementController {
 
     /**
      * Aggiorna lo stato operativo di un viaggio.
-     * <p>
-     * Endpoint invocato principalmente dall'App Mobile dell'Autista per segnalare
-     * l'avanzamento (es. {@code IN_VIAGGIO}, {@code SCARICO_COMPLETATO}).
-     * </p>
      *
      * @param tripId    ID del viaggio.
      * @param newStatus Nuovo stato (Stringa che deve corrispondere a un enum valido).
@@ -107,9 +109,6 @@ public class TripManagementController {
 
     /**
      * Approva una richiesta di trasporto trasformandola in un Viaggio.
-     *
-     * @param requestId ID della richiesta originale.
-     * @return Il DTO del nuovo viaggio creato con stato {@code WAITING_VALIDATION}.
      */
     @PostMapping("/{requestId}/approve")
     @PreAuthorize("hasRole('LOGISTIC_PLANNER')")
@@ -119,14 +118,6 @@ public class TripManagementController {
 
     /**
      * Assegna le risorse (Autista e Veicolo) a un viaggio.
-     * <p>
-     * Richiede un DTO valido contenente ID autista e Targa veicolo.
-     * Se l'operazione ha successo, il viaggio passa allo stato {@code CONFIRMED}.
-     * </p>
-     *
-     * @param tripId        ID del viaggio da pianificare.
-     * @param assignmentDTO DTO con i dettagli dell'assegnazione.
-     * @return 200 OK.
      */
     @PutMapping("/{tripId}/plan")
     @PreAuthorize("hasRole('LOGISTIC_PLANNER')")
@@ -144,10 +135,6 @@ public class TripManagementController {
 
     /**
      * Permette al Coordinator di approvare o rifiutare una rotta.
-     *
-     * @param tripId  ID del viaggio.
-     * @param request Oggetto contenente l'esito (booleano) e il feedback testuale.
-     * @return 200 OK.
      */
     @PostMapping("/{tripId}/route/approve")
     @PreAuthorize("hasRole('TRAFFIC_COORDINATOR')")

@@ -35,15 +35,6 @@ import java.util.stream.Collectors;
 
 /**
  * Implementazione concreta della logica di business per i viaggi.
- * <p>
- * Questa classe agisce come "Operational Core" del sistema, gestendo:
- * <ul>
- * <li>La creazione del Viaggio (Trip) a partire da una Richiesta.</li>
- * <li>Il calcolo e la persistenza della Rotta geografica.</li>
- * <li>L'assegnazione delle risorse (Autista e Veicolo).</li>
- * <li>Le transizioni di stato del ciclo di vita del viaggio.</li>
- * </ul>
- * </p>
  */
 @Slf4j
 @Service
@@ -59,18 +50,6 @@ public class TripServiceImpl implements TripService {
     private final NotificationService notificationService;
     private final ExternalMapService externalMapService;
 
-    /**
-     * {@inheritDoc}
-     * <p>
-     * <b>Logica di Creazione:</b>
-     * <ol>
-     * <li>Recupera la richiesta di trasporto.</li>
-     * <li>Invoca il servizio cartografico per calcolare la rotta reale.</li>
-     * <li>Salva la rotta.</li>
-     * <li>Crea il Trip in stato {@code WAITING_VALIDATION}.</li>
-     * </ol>
-     * </p>
-     */
     @Override
     @Transactional
     public TripResponseDTO approveRequest(Long requestId) {
@@ -111,13 +90,6 @@ public class TripServiceImpl implements TripService {
         return mapToDTOWithDriverInfo(savedTrip);
     }
 
-    /**
-     * {@inheritDoc}
-     * <p>
-     * Assegna autista e veicolo a un viaggio.
-     * Gestisce la logica di cambio risorse (libera le vecchie se presenti).
-     * </p>
-     */
     @Override
     @Transactional
     public void planTrip(Long tripId, TripAssignmentDTO dto) {
@@ -167,7 +139,7 @@ public class TripServiceImpl implements TripService {
         // 4. ASSEGNAZIONE
         trip.setDriver(driver);
         trip.setVehicle(vehicle);
-        trip.setStatus(TripStatus.WAITING_VALIDATION);
+        trip.setStatus(TripStatus.WAITING_VALIDATION); // Torna in validazione dopo cambio risorse
 
         // Blocca le risorse
         driver.setDriverStatus(DriverStatus.ASSIGNED);
@@ -190,16 +162,12 @@ public class TripServiceImpl implements TripService {
         );
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     @Transactional
     public void calculateRoute(Long tripId) {
         Trip trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new ResourceNotFoundException("Viaggio non trovato con ID: " + tripId));
 
-        // Esempio: Ricalcolo forzato (in futuro userà externalMapService con parametri diversi)
         Route newRoute = externalMapService.calculateFullRoute(
                 trip.getRequest().getOriginAddress(),
                 trip.getRequest().getDestinationAddress()
@@ -221,12 +189,6 @@ public class TripServiceImpl implements TripService {
         return mapToDTOWithDriverInfo(trip);
     }
 
-    /**
-     * {@inheritDoc}
-     * <p>
-     * Filtra i viaggi per stato, restituendo DTO arricchiti.
-     * </p>
-     */
     @Override
     @Transactional(readOnly = true)
     public List<TripResponseDTO> getTripsByStatus(TripStatus status) {
@@ -235,12 +197,6 @@ public class TripServiceImpl implements TripService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * {@inheritDoc}
-     * <p>
-     * Recupera tutti i viaggi per la Dashboard globale.
-     * </p>
-     */
     @Override
     @Transactional(readOnly = true)
     public List<TripResponseDTO> getAllTrips() {
@@ -250,12 +206,18 @@ public class TripServiceImpl implements TripService {
     }
 
     /**
-     * {@inheritDoc}
-     * <p>
-     * Aggiorna lo stato operativo (chiamato dall'App Autista).
-     * Gestisce la liberazione delle risorse (Autista/Veicolo) quando il viaggio è {@code COMPLETED}.
-     * </p>
+     * Implementazione del recupero viaggi per autista.
+     * Utilizzato dalla Dashboard Mobile.
      */
+    @Override
+    @Transactional(readOnly = true)
+    public List<TripResponseDTO> getTripsByDriver(Long driverId) {
+        return tripRepository.findByDriverIdOrderByCreatedAtDesc(driverId)
+                .stream()
+                .map(this::mapToDTOWithDriverInfo)
+                .collect(Collectors.toList());
+    }
+
     @Override
     @Transactional
     public void updateStatus(Long tripId, String newStatus) {
@@ -285,16 +247,6 @@ public class TripServiceImpl implements TripService {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     * <p>
-     * Gestisce il workflow di approvazione della rotta da parte del Coordinator.
-     * <ul>
-     * <li><b>Approvato:</b> Avanza lo stato a {@code IN_PLANNING}.</li>
-     * <li><b>Rifiutato:</b> Cancella il Trip, resetta la Request e notifica il Planner.</li>
-     * </ul>
-     * </p>
-     */
     @Override
     @Transactional
     public void validateRoute(Long tripId, boolean isApproved, String feedback) {
@@ -314,10 +266,6 @@ public class TripServiceImpl implements TripService {
 
     // --- MAPPER HELPER ---
 
-    /**
-     * Converte Entity in DTO assicurandosi di copiare i dati anagrafici dell'autista.
-     * Utile per visualizzare "Chi sta guidando cosa" nelle liste.
-     */
     private TripResponseDTO mapToDTOWithDriverInfo(Trip trip) {
         TripResponseDTO tripDTO = tripMapper.toDTO(trip);
 
