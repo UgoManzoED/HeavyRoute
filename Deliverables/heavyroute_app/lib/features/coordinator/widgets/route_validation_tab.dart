@@ -35,6 +35,8 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
     try {
       List<String> statusesToFetch = [];
 
+      debugPrint("🔍 [DEBUG] Filtro Corrente Index: $_filterIndex");
+
       if (_filterIndex == 0) {
         statusesToFetch = ["WAITING_VALIDATION"];
       } else if (_filterIndex == 1) {
@@ -43,7 +45,11 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
         statusesToFetch = ["COMPLETED", "CANCELLED", "MODIFICATION_REQUESTED"];
       }
 
+      debugPrint("🔍 [DEBUG] Richiedo stati: $statusesToFetch");
+
       final data = await _service.getTripsByStatuses(statusesToFetch);
+
+      debugPrint("🔍 [DEBUG] Ricevuti ${data.length} viaggi dal server.");
 
       if (mounted) {
         setState(() {
@@ -115,7 +121,11 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
                   // TOGGLE BUTTONS
                   ToggleButtons(
                     borderRadius: BorderRadius.circular(8),
-                    isSelected: [_filterIndex == 0, _filterIndex == 1],
+                    isSelected: [
+                      _filterIndex == 0,
+                      _filterIndex == 1,
+                      _filterIndex == 2
+                    ],
                     onPressed: (index) {
                       if (_filterIndex != index) {
                         setState(() => _filterIndex = index);
@@ -123,8 +133,18 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
                       }
                     },
                     children: const [
-                      Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text("Da Validare")),
-                      Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text("Storico Approvati")),
+                      Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16),
+                          child: Text("Da Validare") // Indice 0
+                      ),
+                      Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16),
+                          child: Text("Attivi")      // Indice 1
+                      ),
+                      Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16),
+                          child: Text("Storico")     // Indice 2
+                      ),
                     ],
                   ),
                   const SizedBox(width: 16),
