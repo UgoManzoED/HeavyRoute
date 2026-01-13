@@ -40,7 +40,7 @@ Map<String, dynamic> _$TransportRequestToJson(TransportRequest instance) =>
       'pickupDate': instance.pickupDate.toIso8601String(),
       'deliveryDate': instance.deliveryDate?.toIso8601String(),
       'requestStatus': _$RequestStatusEnumMap[instance.requestStatus]!,
-      'load': instance.load,
+      'load': instance.load?.toJson(),
     };
 
 const _$RequestStatusEnumMap = {

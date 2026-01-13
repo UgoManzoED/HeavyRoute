@@ -6,10 +6,10 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../../../common/widgets/heavy_route_app_bar.dart';
 import '../../../../common/models/enums.dart';
 import '../../../trips/models/trip_model.dart';
-import '../../service/drive_trip_service.dart';
-import '../widget/driver_trip_detail_screen.dart'; // Assicurati di avere questo widget
-import '../widget/driver_status_sheet.dart';      // Assicurati di avere questo widget
-import '../widget/driver_report_sheet.dart';      // Assicurati di avere questo widget
+import '../../service/drive_trip_service.dart'; // Import corretto
+import '../widget/driver_trip_detail_screen.dart';
+import '../widget/driver_status_sheet.dart';
+import '../widget/driver_report_sheet.dart';
 
 class DriverDashboardScreen extends StatefulWidget {
   const DriverDashboardScreen({super.key});
@@ -68,7 +68,6 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
               children: [
                 const Text("Prossime Destinazioni", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
-                // Mappa la lista dei dati reali nelle Card
                 ...trips.map((trip) => _buildTripCard(trip)).toList(),
               ],
             ),
@@ -96,13 +95,24 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     // Logica colori stato
     bool isActive = trip.status == TripStatus.IN_TRANSIT;
 
-    // Coordinate Mock per la mappa (usare quelle reali se presenti nel DTO)
-    // Se trip.route è null, mettiamo coordinate di default per evitare crash
-    final start = LatLng(41.9028, 12.4964); // Roma (Fallback)
-    final end = LatLng(45.4642, 9.1900);   // Milano (Fallback)
+    // --- GESTIONE COORDINATE REALI ---
+    // Default Fallback: Roma -> Milano (evita crash se route è null)
+    LatLng start = const LatLng(41.9028, 12.4964);
+    LatLng end = const LatLng(45.4642, 9.1900);
 
-    // TODO: Se il DTO ha le coordinate reali, usale qui:
-    // final start = LatLng(trip.route!.startLat, trip.route!.startLon);
+    // Caso in cui 'trip' è un JSON Map
+    // Se il Backend ha inviato la rotta, usiamo quella!
+    if (trip.route != null) {
+      start = LatLng(
+          trip.route!.startLat ?? 41.9028, // Se null, usa Roma (o 0.0)
+          trip.route!.startLon ?? 12.4964
+      );
+
+      end = LatLng(
+          trip.route!.endLat ?? 45.4642,   // Se null, usa Milano (o 0.0)
+          trip.route!.endLon ?? 9.1900
+      );
+    }
 
     return Card(
       margin: const EdgeInsets.only(bottom: 24),
@@ -124,7 +134,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                       borderRadius: BorderRadius.circular(8)
                   ),
                   child: Text(
-                      trip.status.name.replaceAll('_', ' '), // Fix per visualizzazione Enum
+                      trip.status.name.replaceAll('_', ' '),
                       style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: isActive ? Colors.green.shade800 : Colors.blue.shade800
@@ -168,7 +178,11 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                   urlTemplate: "https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token={accessToken}",
                   additionalOptions: { 'accessToken': dotenv.maybeGet('MAPBOX_ACCESS_TOKEN') ?? '' },
                 ),
-                PolylineLayer(polylines: [Polyline(points: [start, end], color: Colors.blue, strokeWidth: 3)]),
+                PolylineLayer(
+                    polylines: [
+                      Polyline(points: [start, end], color: Colors.blue, strokeWidth: 3)
+                    ]
+                ),
                 MarkerLayer(markers: [
                   Marker(point: start, child: const Icon(Icons.circle, size: 15)),
                   Marker(point: end, child: const Icon(Icons.location_on, color: Colors.red, size: 30)),
@@ -184,7 +198,13 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
               children: [
                 Expanded(
                     child: OutlinedButton(
-                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DriverTripDetailScreen(trip: trip.toJson()))),
+                        onPressed: () {
+                          // Grazie a explicitToJson: true, questo oggetto ora contiene anche Route e Request!
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => DriverTripDetailScreen(trip: trip.toJson()))
+                          );
+                        },
                         child: const Text("DETTAGLI")
                     )
                 ),
@@ -192,7 +212,6 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                 Expanded(
                     child: ElevatedButton(
                         style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D0D1A), foregroundColor: Colors.white),
-                        // Apre il foglio per cambiare stato
                         onPressed: () => _showStatusSheet(trip),
                         child: const Text("AGGIORNA")
                     )
@@ -232,7 +251,6 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
         builder: (_) => DriverStatusSheet(
             currentStatus: trip.status.name,
             onStatusChanged: (val) async {
-              // Chiama il service per aggiornare
               bool ok = await _driverService.updateTripStatus(trip.id, val);
               if(ok) _loadTrips(); // Ricarica la lista se successo
             }
