@@ -20,6 +20,7 @@ TripModel _$TripModelFromJson(Map<String, dynamic> json) => TripModel(
       : RouteModel.fromJson(json['route'] as Map<String, dynamic>),
   driverId: (json['driverId'] as num?)?.toInt(),
   driverName: json['driverName'] as String?,
+  driverSurname: json['driverSurname'] as String?,
   vehiclePlate: json['vehiclePlate'] as String?,
   vehicleModel: json['vehicleModel'] as String?,
 );
@@ -32,6 +33,7 @@ Map<String, dynamic> _$TripModelToJson(TripModel instance) => <String, dynamic>{
   'route': instance.route,
   'driverId': instance.driverId,
   'driverName': instance.driverName,
+  'driverSurname': instance.driverSurname,
   'vehiclePlate': instance.vehiclePlate,
   'vehicleModel': instance.vehicleModel,
 };
