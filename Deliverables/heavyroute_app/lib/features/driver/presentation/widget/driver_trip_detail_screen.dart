@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../common/widgets/heavy_route_app_bar.dart';
-import 'driver_navigation_screen.dart'; // Assicurati che questo file esista (dallo step precedente)
+import 'driver_navigation_screen.dart';
 
 class DriverTripDetailScreen extends StatelessWidget {
   final Map<String, dynamic> trip; // JSON completo del viaggio
@@ -9,23 +9,23 @@ class DriverTripDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // --- 1. ESTRAZIONE DATI SICURA (Anti-Crash) ---
+    // --- 1. ESTRAZIONE DATI SICURA (Allineata al Backend) ---
 
-    // Request & Load
-    final request = trip['request'] ?? {};
-    final load = request['load'] ?? {};
+    // Estrai sotto-oggetti in modo sicuro
+    final request = trip['request'] as Map<String, dynamic>? ?? {};
+    final load = request['load'] as Map<String, dynamic>? ?? {};
 
     // Dati Testuali
     final code = trip['tripCode'] ?? "N/D";
     final statusRaw = trip['status']?.toString() ?? "UNK";
-    final statusClean = statusRaw.replaceAll('_', ' '); // Es: IN_TRANSIT -> IN TRANSIT
-
-    final customerName = request['customerName'] ?? "Cliente Standard";
+    final statusClean = statusRaw.replaceAll('_', ' ');
+    final customerName = request['clientFullName'] ?? request['customerName'] ?? "Cliente Standard";
     final origin = request['originAddress'] ?? "Indirizzo Ritiro non disp.";
     final destination = request['destinationAddress'] ?? "Indirizzo Consegna non disp.";
 
     // Dati Numerici (Gestione Load)
-    final loadType = request['loadType'] ?? "Merce Generale";
+    final loadType = load['type'] ?? request['loadType'] ?? "Merce Generale";
+
     final weight = load['weightKg']?.toString() ?? "-";
     final length = load['length']?.toString() ?? "-";
     final width = load['width']?.toString() ?? "-";
@@ -36,9 +36,10 @@ class DriverTripDetailScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F5F9),
-      appBar: const HeavyRouteAppBar(
+      appBar: HeavyRouteAppBar(
         subtitle: "Dettaglio Viaggio",
         isLanding: false,
+        onProfileTap: () {},
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
