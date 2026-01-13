@@ -40,26 +40,22 @@ class LandingPage extends StatelessWidget {
   // --- 2. HERO SECTION (Titolo + Camion) ---
   Widget _buildHeroSection(BuildContext context, bool isMobile) {
     return Container(
+      width: double.infinity, // <--- FORZA LARGHEZZA TOTALE
       padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24),
       color: const Color(0xFFF8FAFC),
       child: Column(
+        // <--- FORZA ALLINEAMENTO CENTRALE --->
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        // --------------------------------------
         children: [
-          Icon(
-            Icons.local_shipping_outlined,
-            size: isMobile ? 100 : 150,
-            color: Theme.of(context).primaryColor,
+          Image.asset(
+            'assets/images/logo_progetto.png',
+            width: isMobile ? 200 : 350,
+            height: isMobile ? 200 : 350,
+            fit: BoxFit.contain, // Mantiene le proporzioni senza tagliare l'immagine
           ),
           const SizedBox(height: 20),
-          Text(
-            "HEAVY\nROUTE",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: isMobile ? 40 : 64,
-              fontWeight: FontWeight.w900,
-              color: Theme.of(context).primaryColor,
-              height: 0.9,
-            ),
-          ),
           const SizedBox(height: 30),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 700),
@@ -72,7 +68,7 @@ class LandingPage extends StatelessWidget {
           const SizedBox(height: 40),
           ElevatedButton(
             onPressed: () {
-              Navigator.pushNamed(context, '/login');
+              Navigator.pushReplacementNamed(context, '/login');
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).primaryColor,
@@ -207,6 +203,7 @@ class LandingPage extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 32),
       child: Column(
         children: [
+          // --- PARTE SUPERIORE (Rimasta identica) ---
           Wrap(
             spacing: 40,
             runSpacing: 40,
@@ -244,16 +241,22 @@ class LandingPage extends StatelessWidget {
               ], icons: [Icons.access_time, null, null]),
             ],
           ),
+
           const SizedBox(height: 60),
           const Divider(color: Color(0xFF1E293B)),
           const SizedBox(height: 20),
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
+
+          Wrap(
+            spacing: 20,     // Distanza orizzontale se sono affiancati
+            runSpacing: 10,  // Distanza verticale se vanno a capo
+            alignment: WrapAlignment.spaceBetween, // Spinge agli estremi (sinistra/destra)
+            crossAxisAlignment: WrapCrossAlignment.center,
+
+            children: const [
               Text("© 2025 HeavyRoute. Tutti i diritti riservati.", style: TextStyle(color: Color(0xFF64748B), fontSize: 12)),
               Text("Privacy Policy   Termini", style: TextStyle(color: Color(0xFF64748B), fontSize: 12)),
             ],
-          )
+          ),
         ],
       ),
     );
