@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class RouteValidationRequest {
+public class RouteValidationRequestDTO {
 
     /**
      * True se la rotta è approvata, False se deve essere rigenerata.

@@ -1,6 +1,6 @@
 package com.heavyroute.core.controller;
 
-import com.heavyroute.core.dto.RouteValidationRequest;
+import com.heavyroute.core.dto.RouteValidationRequestDTO;
 import com.heavyroute.core.dto.TripAssignmentDTO;
 import com.heavyroute.core.dto.TripResponseDTO;
 import com.heavyroute.core.service.TripService;
@@ -182,7 +182,7 @@ public class TripManagementController {
     @PreAuthorize("hasRole('TRAFFIC_COORDINATOR')")
     public ResponseEntity<Void> validateRoute(
             @PathVariable Long tripId,
-            @RequestBody RouteValidationRequest request) {
+            @RequestBody RouteValidationRequestDTO request) {
 
         log.info("Decisione Coordinator per viaggio ID {}: Approved = {}, Feedback = {}",
                 tripId, request.getApproved(), request.getFeedback());
