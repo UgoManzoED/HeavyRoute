@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:heavyroute_app/features/gestore/screens/account_manager_screen.dart';
+import '../../../../common/widgets/heavy_route_app_bar.dart';
 import '../../services/auth_service.dart';
 import 'package:heavyroute_app/core/storage/token_storage.dart';
 import 'package:heavyroute_app/features/requests/presentation/screens/customer_dashboard_screen.dart';
@@ -30,7 +31,9 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Inserisci email e password"), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Inserisci email e password"),
+          backgroundColor: Colors.red));
       return;
     }
 
@@ -56,23 +59,23 @@ class _LoginScreenState extends State<LoginScreen> {
           routeName = '/driver_dashboard';
         }
         // ----------------------------------------
-        else if (role == 'LOGISTIC_PLANNER' || role == 'ROLE_LOGISTIC_PLANNER') {
+        else if (role == 'LOGISTIC_PLANNER' ||
+            role == 'ROLE_LOGISTIC_PLANNER') {
           routeName = '/planner_dashboard';
         } else if (role == 'CUSTOMER' || role == 'ROLE_CUSTOMER') {
           routeName = '/customer_dashboard';
-        } else if (role == 'ACCOUNT_MANAGER' || role == 'ROLE_ACCOUNT_MANAGER') {
+        } else if (role == 'ACCOUNT_MANAGER' ||
+            role == 'ROLE_ACCOUNT_MANAGER') {
           routeName = '/account_manager';
-        } else if (role == 'TRAFFIC_COORDINATOR' || role == 'ROLE_TRAFFIC_COORDINATOR') {
+        } else if (role == 'TRAFFIC_COORDINATOR' ||
+            role == 'ROLE_TRAFFIC_COORDINATOR') {
           routeName = '/traffic_dashboard';
         }
 
         if (routeName != null) {
           print("🚀 Navigazione verso: $routeName");
           Navigator.pushNamedAndRemoveUntil(
-              context,
-              routeName,
-                  (route) => false
-          );
+              context, routeName, (route) => false);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("Ruolo non riconosciuto: $role")),
@@ -81,7 +84,9 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Login Fallito: Credenziali errate"), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text("Login Fallito: Credenziali errate"),
+            backgroundColor: Colors.red),
       );
     }
   }
@@ -91,6 +96,7 @@ class _LoginScreenState extends State<LoginScreen> {
     // Sfondo generale della pagina (Grigio chiaro/bluastro come da foto)
     return Scaffold(
       backgroundColor: const Color(0xFFF3F5F9),
+      appBar: null, // Nessuna AppBar qui, come richiesto
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -107,19 +113,28 @@ class _LoginScreenState extends State<LoginScreen> {
                       // Tasto "Torna alla Home"
                       TextButton.icon(
                         onPressed: () {
-                          // Sostituisce il Login con la Landing. Nessun "Indietro" possibile.
+                          // USIAMO pushReplacementNamed:
+                          // Questo distrugge la pagina Login e mette la Landing.
+                          // Risultato: Nessuna freccia "Indietro" sulla Landing.
                           Navigator.pushReplacementNamed(context, '/');
                         },
-                        icon: const Icon(Icons.arrow_back, size: 20, color: Colors.black87),
-                        label: const Text("Torna alla Home", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w500)),
-                        style: TextButton.styleFrom(padding: EdgeInsets.zero, alignment: Alignment.centerLeft),
+                        icon: const Icon(Icons.arrow_back,
+                            size: 20, color: Colors.black87),
+                        label: const Text("Torna alla Home",
+                            style: TextStyle(
+                                color: Colors.black87,
+                                fontWeight: FontWeight.w500)),
+                        style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            alignment: Alignment.centerLeft),
                       ),
 
                       const SizedBox(height: 20),
 
                       // Card Bianca Centrale
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 48),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 40, vertical: 48),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
@@ -136,7 +151,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             // Logo (Ricostruito per essere simile alla foto)
                             Column(
                               children: [
-                                Icon(Icons.local_shipping_rounded, size: 48, color: const Color(0xFF0D0D1A)),
+                                Icon(Icons.local_shipping_rounded,
+                                    size: 48, color: const Color(0xFF0D0D1A)),
                                 const SizedBox(height: 4),
                                 const Text(
                                   "HEAVY\nROUTE",
@@ -146,8 +162,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       fontWeight: FontWeight.w900,
                                       height: 0.9,
                                       color: Color(0xFF0D0D1A),
-                                      letterSpacing: 1.0
-                                  ),
+                                      letterSpacing: 1.0),
                                 ),
                               ],
                             ),
@@ -157,13 +172,17 @@ class _LoginScreenState extends State<LoginScreen> {
                             // Titoli
                             const Text(
                               "Accedi a HeavyRoute",
-                              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF111827)),
+                              style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF111827)),
                             ),
                             const SizedBox(height: 8),
                             const Text(
                               "Inserisci le tue credenziali per accedere al tuo account",
                               textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+                              style: TextStyle(
+                                  fontSize: 14, color: Color(0xFF6B7280)),
                             ),
 
                             const SizedBox(height: 32),
@@ -188,7 +207,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                   onTap: () {}, // TODO: Implementare recupero psw
                                   child: const Text(
                                     "Password dimenticata?",
-                                    style: TextStyle(fontSize: 13, color: Color(0xFF4B5563), fontWeight: FontWeight.w500),
+                                    style: TextStyle(
+                                        fontSize: 13,
+                                        color: Color(0xFF4B5563),
+                                        fontWeight: FontWeight.w500),
                                   ),
                                 ),
                               ],
@@ -209,14 +231,23 @@ class _LoginScreenState extends State<LoginScreen> {
                               child: ElevatedButton(
                                 onPressed: _isLoading ? null : _handleLogin,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF0D0D1A), // Dark Navy
+                                  backgroundColor: const Color(0xFF0D0D1A),
                                   foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8)),
                                   elevation: 0,
                                 ),
                                 child: _isLoading
-                                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                    : const Text("Accedi", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                                    ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2))
+                                    : const Text("Accedi",
+                                    style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600)),
                               ),
                             ),
 
@@ -225,25 +256,33 @@ class _LoginScreenState extends State<LoginScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Text("Non hai un account? ", style: TextStyle(color: Color(0xFF6B7280))),
+                                const Text("Non hai un account? ",
+                                    style: TextStyle(color: Color(0xFF6B7280))),
                                 MouseRegion(
-                                  onEnter: (_) => setState(() => _isHoveringRegister = true),
-                                  onExit: (_) => setState(() => _isHoveringRegister = false),
+                                  onEnter: (_) =>
+                                      setState(() => _isHoveringRegister = true),
+                                  onExit: (_) => setState(
+                                          () => _isHoveringRegister = false),
                                   cursor: SystemMouseCursors.click,
                                   child: GestureDetector(
                                     onTap: () {
                                       Navigator.push(
                                         context,
-                                        MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                            const RegisterScreen()),
                                       );
                                     },
                                     child: AnimatedDefaultTextStyle(
-                                      duration: const Duration(milliseconds: 200),
+                                      duration:
+                                      const Duration(milliseconds: 200),
                                       style: TextStyle(
                                         color: const Color(0xFF0D0D1A),
                                         fontWeight: FontWeight.bold,
-                                        // Aggiunge la sottolineatura se il mouse è sopra (_isHoveringRegister è true)
-                                        decoration: _isHoveringRegister ? TextDecoration.underline : TextDecoration.none,
+                                        // Aggiunge la sottolineatura se il mouse è sopra
+                                        decoration: _isHoveringRegister
+                                            ? TextDecoration.underline
+                                            : TextDecoration.none,
                                       ),
                                       child: const Text("Registrati"),
                                     ),
@@ -261,8 +300,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       const Center(
                         child: Column(
                           children: [
-                            Text("Problemi con l'accesso? Contattaci al +39 02 1234 5678",
-                                style: TextStyle(color: Color(0xFF6B7280), fontSize: 13)),
+                            Text(
+                                "Problemi con l'accesso? Contattaci al +39 02 1234 5678",
+                                style: TextStyle(
+                                    color: Color(0xFF6B7280), fontSize: 13)),
                             SizedBox(height: 4),
                           ],
                         ),
@@ -284,12 +325,15 @@ class _LoginScreenState extends State<LoginScreen> {
       alignment: Alignment.centerLeft,
       child: Text(
         label,
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF374151)),
+        style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+            color: Color(0xFF374151)),
       ),
     );
   }
 
-  // Widget Helper per Input Fields (Sfondo grigio, no bordi visibili)
+  // Widget Helper per Input Fields
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,
@@ -305,16 +349,23 @@ class _LoginScreenState extends State<LoginScreen> {
         hintText: hint,
         hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
         filled: true,
-        fillColor: const Color(0xFFF3F4F6), // Grigio chiaro input
+        fillColor: const Color(0xFFF3F4F6),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide.none, // Nessun bordo
+          borderSide: BorderSide.none,
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         suffixIcon: isPassword
             ? IconButton(
-          icon: Icon(_obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 20, color: Colors.grey),
-          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+          icon: Icon(
+              _obscurePassword
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined,
+              size: 20,
+              color: Colors.grey),
+          onPressed: () =>
+              setState(() => _obscurePassword = !_obscurePassword),
         )
             : null,
       ),
