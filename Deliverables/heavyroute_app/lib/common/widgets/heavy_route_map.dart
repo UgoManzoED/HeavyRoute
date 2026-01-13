@@ -1,4 +1,4 @@
-import 'dart:async'; // Serve per il Timer
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -19,14 +19,21 @@ class _HeavyRouteMapState extends State<HeavyRouteMap> {
   final MapController _mapController = MapController();
   List<LatLng> _cachedPoints = [];
   String? _lastPolyline;
+  Timer? _zoomTimer;
 
   @override
   void didUpdateWidget(covariant HeavyRouteMap oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Se la rotta cambia, ricalcoliamo
     if (widget.route?.polyline != _lastPolyline) {
       _processRoute();
     }
+  }
+
+  @override
+  void dispose() {
+    _zoomTimer?.cancel();
+    _mapController.dispose();
+    super.dispose();
   }
 
   @override
@@ -36,7 +43,6 @@ class _HeavyRouteMapState extends State<HeavyRouteMap> {
   }
 
   void _processRoute() {
-    // 1. Reset se vuoto
     if (widget.route == null || widget.route!.polyline.isEmpty) {
       if (mounted) {
         setState(() {
@@ -50,10 +56,13 @@ class _HeavyRouteMapState extends State<HeavyRouteMap> {
     _lastPolyline = widget.route!.polyline;
 
     try {
-      // 2. Decodifica Punti (Precisione 5 standard)
       PolylinePoints polylinePoints = PolylinePoints();
       List<PointLatLng> result = polylinePoints.decodePolyline(widget.route!.polyline);
-      final points = result.map((p) => LatLng(p.latitude, p.longitude)).toList();
+
+      final points = result
+          .map((p) => LatLng(p.latitude, p.longitude))
+          .where((p) => !p.latitude.isNaN && !p.longitude.isNaN)
+          .toList();
 
       if (mounted) {
         setState(() {
@@ -62,9 +71,10 @@ class _HeavyRouteMapState extends State<HeavyRouteMap> {
       }
 
       if (points.isNotEmpty) {
-        Timer(const Duration(milliseconds: 500), () {
+        _zoomTimer?.cancel();
+        _zoomTimer = Timer(const Duration(milliseconds: 800), () {
           if (mounted) {
-            _zoomToFit(points);
+            _safeZoomToFit(points);
           }
         });
       }
@@ -73,8 +83,11 @@ class _HeavyRouteMapState extends State<HeavyRouteMap> {
     }
   }
 
-  void _zoomToFit(List<LatLng> points) {
+  /// Metodo per lo zoom
+  void _safeZoomToFit(List<LatLng> points) {
     try {
+      if (points.isEmpty) return;
+
       double minLat = 90.0, maxLat = -90.0, minLon = 180.0, maxLon = -180.0;
       for (var p in points) {
         if (p.latitude < minLat) minLat = p.latitude;
@@ -85,14 +98,22 @@ class _HeavyRouteMapState extends State<HeavyRouteMap> {
 
       if (minLat == 90.0) return;
 
-      _mapController.fitCamera(
-        CameraFit.bounds(
-          bounds: LatLngBounds(LatLng(minLat, minLon), LatLng(maxLat, maxLon)),
-          padding: const EdgeInsets.all(50),
-        ),
-      );
+      final double latDiff = (maxLat - minLat).abs();
+      final double lonDiff = (maxLon - minLon).abs();
+
+      if (latDiff < 0.0001 && lonDiff < 0.0001) {
+        _mapController.move(LatLng(minLat, minLon), 14.0);
+      } else {
+        _mapController.fitCamera(
+          CameraFit.bounds(
+            bounds: LatLngBounds(LatLng(minLat, minLon), LatLng(maxLat, maxLon)),
+            padding: const EdgeInsets.all(60),
+            maxZoom: 14.0,
+          ),
+        );
+      }
     } catch (e) {
-      debugPrint("⚠️ Errore Zoom: $e");
+      debugPrint("⚠️ Errore Zoom Safe: $e");
     }
   }
 
@@ -100,7 +121,6 @@ class _HeavyRouteMapState extends State<HeavyRouteMap> {
   Widget build(BuildContext context) {
     final String accessToken = dotenv.get('MAPBOX_ACCESS_TOKEN');
 
-    // Centro iniziale
     LatLng initialCenter = _cachedPoints.isNotEmpty
         ? _cachedPoints.first
         : const LatLng(41.8719, 12.5674);
@@ -110,18 +130,23 @@ class _HeavyRouteMapState extends State<HeavyRouteMap> {
       options: MapOptions(
         initialCenter: initialCenter,
         initialZoom: 6.0,
-        // interactionOptions: const InteractionOptions(flags: InteractiveFlag.all),
+        interactionOptions: const InteractionOptions(
+          flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+        ),
       ),
       children: [
-        // LAYER 1: SFONDO
         TileLayer(
-          urlTemplate: "https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}@2x?access_token=$accessToken",
+          urlTemplate: "https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}?access_token=$accessToken",
           userAgentPackageName: 'com.heavyroute.app',
-          // tileProvider: NetworkTileProvider(), // Default standard, più stabile
-          retinaMode: true,
+
+          tileProvider: NetworkTileProvider(),
+
+          retinaMode: false,
+
+          evictErrorTileStrategy: EvictErrorTileStrategy.none,
+          errorImage: const NetworkImage('https://placehold.co/256x256/png?text=Mappa'),
         ),
 
-        // LAYER 2: LINEA
         if (_cachedPoints.isNotEmpty)
           PolylineLayer(
             polylines: [
@@ -129,36 +154,25 @@ class _HeavyRouteMapState extends State<HeavyRouteMap> {
                 points: _cachedPoints,
                 color: Colors.blueAccent,
                 strokeWidth: 5.0,
-                borderColor: Colors.blue[900]!, // Bordo scuro per contrasto
+                borderColor: Colors.blue[900]!,
                 borderStrokeWidth: 1.0,
               ),
             ],
           ),
 
-        // LAYER 3: MARKER (Start/End)
         if (widget.route != null && widget.route!.startLat != null)
           MarkerLayer(
             markers: [
-              // PARTENZA (Verde)
               Marker(
                 point: LatLng(widget.route!.startLat!, widget.route!.startLon!),
                 width: 60, height: 60,
-                child: const Column(
-                  children: [
-                    Icon(Icons.trip_origin, color: Colors.green, size: 40),
-                  ],
-                ),
+                child: const Icon(Icons.trip_origin, color: Colors.green, size: 40),
               ),
-              // ARRIVO (Rosso)
-              if (widget.route!.endLat != null && widget.route!.endLon != null)
+              if (widget.route!.endLat != null)
                 Marker(
                   point: LatLng(widget.route!.endLat!, widget.route!.endLon!),
                   width: 60, height: 60,
-                  child: const Column(
-                    children: [
-                      Icon(Icons.location_on, color: Colors.red, size: 40),
-                    ],
-                  ),
+                  child: const Icon(Icons.location_on, color: Colors.red, size: 40),
                 ),
             ],
           ),
