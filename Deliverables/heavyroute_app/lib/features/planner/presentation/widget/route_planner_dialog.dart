@@ -26,11 +26,16 @@ class _RoutePlanningDialogState extends State<RoutePlanningDialog> {
   bool _isLoading = false;
   TripModel? _previewTrip;
 
-  // --- LOGICA ---
+  // STATO SELEZIONI UTENTE
+  int? _selectedDriverId;
+  String? _selectedVehiclePlate;
+
+  // --- STEP 1: CALCOLO ROTTA PRELIMINARE ---
   Future<void> _calculateRoute() async {
     setState(() => _isLoading = true);
 
     try {
+      // Chiama il backend per generare il Trip (bozza) e la Rotta
       final TripModel? trip = await _service.approveRequestAndGetTrip(
         widget.request.id,
       );
@@ -46,7 +51,7 @@ class _RoutePlanningDialogState extends State<RoutePlanningDialog> {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Errore: ${e.toString()}"),
+            content: Text("Errore Calcolo: ${e.toString()}"),
             backgroundColor: Colors.red,
           ),
         );
@@ -54,10 +59,46 @@ class _RoutePlanningDialogState extends State<RoutePlanningDialog> {
     }
   }
 
-  void _confirmAndSend() {
-    if (_previewTrip != null) {
-      Navigator.pop(context);
-      widget.onSuccess(_previewTrip);
+  // --- STEP 2: CONFERMA E ASSEGNAZIONE RISORSE ---
+  Future<void> _confirmAndSend() async {
+    // Validazione finale
+    if (_previewTrip == null || _selectedDriverId == null || _selectedVehiclePlate == null) {
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Chiamata al backend per assegnare Autista e Veicolo al Trip creato
+      bool success = await _service.assignResources(
+          _previewTrip!.id,
+          _selectedDriverId!,
+          _selectedVehiclePlate!
+      );
+
+      if (success) {
+        if (mounted) {
+          Navigator.pop(context); // Chiude il dialog
+          widget.onSuccess(_previewTrip); // Aggiorna la dashboard
+
+          // Feedback visivo positivo
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Viaggio pianificato e risorse assegnate con successo!"),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        throw Exception("Il server ha rifiutato l'assegnazione.");
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Errore Assegnazione: $e"), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -65,13 +106,13 @@ class _RoutePlanningDialogState extends State<RoutePlanningDialog> {
   Widget build(BuildContext context) {
     final RouteModel? routeToShow = _previewTrip?.route;
 
-    // Generiamo una chiave unica per forzare il refresh della Mappa quando cambia la rotta
+    // Key per forzare il refresh della mappa se cambia la rotta
     final String mapKey = routeToShow?.polyline ?? "empty";
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: SizedBox(
-        width: 1200, // Larghezza fissa per stabilità
+        width: 1200,
         height: 850,
         child: Column(
           children: [
@@ -82,12 +123,17 @@ class _RoutePlanningDialogState extends State<RoutePlanningDialog> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // --- 1. SIDEBAR ---
+                  // --- 1. SIDEBAR INTELLIGENTE ---
                   RoutePlanningSidebar(
                     request: widget.request,
                     route: routeToShow,
                     isLoading: _isLoading,
                     onCalculate: _calculateRoute,
+                    // Catturiamo le scelte dell'utente dalla sidebar
+                    onResourcesSelected: (driverId, plate) {
+                      _selectedDriverId = driverId;
+                      _selectedVehiclePlate = plate;
+                    },
                   ),
 
                   const VerticalDivider(width: 1),
@@ -103,10 +149,8 @@ class _RoutePlanningDialogState extends State<RoutePlanningDialog> {
                           ),
                         ),
 
-                        // Overlay Info Mappa
                         _buildMapOverlay(),
 
-                        // Overlay Caricamento
                         if (_isLoading)
                           Container(
                             color: Colors.black.withOpacity(0.3),
@@ -116,7 +160,7 @@ class _RoutePlanningDialogState extends State<RoutePlanningDialog> {
                                 children: [
                                   CircularProgressIndicator(color: Colors.white),
                                   SizedBox(height: 16),
-                                  Text("Mapbox sta calcolando il percorso...",
+                                  Text("Elaborazione in corso...",
                                       style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                                 ],
                               ),
@@ -187,6 +231,11 @@ class _RoutePlanningDialogState extends State<RoutePlanningDialog> {
   }
 
   Widget _buildFooter() {
+    // Il pulsante di conferma è attivo SOLO se abbiamo tutto: rotta, autista e veicolo.
+    final bool canConfirm = _previewTrip != null &&
+        _selectedDriverId != null &&
+        _selectedVehiclePlate != null;
+
     return Padding(
       padding: const EdgeInsets.all(20.0),
       child: Row(
@@ -198,15 +247,15 @@ class _RoutePlanningDialogState extends State<RoutePlanningDialog> {
           ),
           const SizedBox(width: 16),
           ElevatedButton.icon(
-            onPressed: _previewTrip != null ? _confirmAndSend : null,
+            onPressed: canConfirm ? _confirmAndSend : null,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green[600],
+              backgroundColor: Colors.green[700],
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               disabledBackgroundColor: Colors.grey[300],
             ),
-            icon: const Icon(Icons.check_circle_outline),
-            label: const Text("CONFERMA E INVIA AL COORDINATOR"),
+            icon: const Icon(Icons.send),
+            label: const Text("INVIA AL TRAFFIC COORDINATOR"),
           ),
         ],
       ),
