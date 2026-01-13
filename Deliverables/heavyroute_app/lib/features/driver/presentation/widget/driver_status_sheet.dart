@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class DriverStatusSheet extends StatefulWidget {
+class DriverStatusSheet extends StatelessWidget {
   final String currentStatus;
   final Function(String) onStatusChanged;
 
@@ -10,107 +10,51 @@ class DriverStatusSheet extends StatefulWidget {
     required this.onStatusChanged,
   });
 
-  @override
-  State<DriverStatusSheet> createState() => _DriverStatusSheetState();
-}
-
-class _DriverStatusSheetState extends State<DriverStatusSheet> {
-  // Lista degli stati possibili in ordine logico
-  final List<String> _steps = [
-    "Assegnato",
-    "Inizio Viaggio",
-    "Arrivo al Carico",
-    "Carico Completato",
-    "In Viaggio",
-    "Arrivo allo Scarico",
-    "Scarico Completato",
-    "Fine Viaggio"
-  ];
+  // Mappa: Testo Visibile -> Valore Enum Backend
+  final Map<String, String> _statusOptions = const {
+    'Presa in Carico': 'ASSIGNED',
+    'Al Ritiro': 'ARRIVED_PICKUP',
+    'Carico Completato': 'LOADED',
+    'In Viaggio': 'IN_TRANSIT',
+    'Alla Consegna': 'ARRIVED_DESTINATION',
+    'Consegnato': 'COMPLETED',
+  };
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
-      height: MediaQuery.of(context).size.height * 0.75, // Occupa 75% dello schermo
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text("Aggiorna Stato", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.pop(context),
+          const Text("Aggiorna Stato", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+
+          // Genera la lista delle opzioni
+          ..._statusOptions.entries.map((entry) {
+            final label = entry.key;
+            final enumValue = entry.value;
+            final isSelected = currentStatus == enumValue;
+
+            return ListTile(
+              title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+              leading: Icon(
+                isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                color: isSelected ? Colors.blue : Colors.grey,
               ),
-            ],
-          ),
-          const Text("Seleziona lo stato attuale della spedizione", style: TextStyle(color: Colors.grey)),
-          const SizedBox(height: 24),
-
-          // Timeline Stati
-          Expanded(
-            child: ListView.builder(
-              itemCount: _steps.length,
-              itemBuilder: (context, index) {
-                final step = _steps[index];
-                final bool isSelected = step == widget.currentStatus;
-                final bool isPast = _steps.indexOf(widget.currentStatus) > index;
-
-                return InkWell(
-                  onTap: () {
-                    widget.onStatusChanged(step);
-                    Navigator.pop(context); // Chiude dopo la selezione
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFF0D0D1A) : Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isSelected ? Colors.transparent : Colors.grey.shade200,
-                      ),
-                      boxShadow: isSelected
-                          ? [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))]
-                          : [],
-                    ),
-                    child: Row(
-                      children: [
-                        // Icona indicatore
-                        Icon(
-                          isSelected ? Icons.radio_button_checked : (isPast ? Icons.check_circle : Icons.radio_button_unchecked),
-                          color: isSelected ? Colors.white : (isPast ? Colors.green : Colors.grey),
-                        ),
-                        const SizedBox(width: 16),
-                        // Testo
-                        Text(
-                          step,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                            color: isSelected ? Colors.white : Colors.black87,
-                          ),
-                        ),
-                        const Spacer(),
-                        if (isSelected)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(4)),
-                            child: const Text("ATTUALE", style: TextStyle(color: Colors.white, fontSize: 10)),
-                          )
-                      ],
-                    ),
-                  ),
-                );
+              onTap: () {
+                Navigator.pop(context); // Chiude il foglio
+                if (!isSelected) {
+                  onStatusChanged(enumValue); // Passa il valore ENUM (es. IN_TRANSIT)
+                }
               },
-            ),
-          ),
+            );
+          }),
         ],
       ),
     );

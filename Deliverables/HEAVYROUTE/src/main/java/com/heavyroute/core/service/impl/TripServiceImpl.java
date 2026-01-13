@@ -34,7 +34,17 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * Implementazione concreta della logica di business per i viaggi.
+ * Implementazione concreta della logica di business per la gestione dei viaggi (Trip).
+ * <p>
+ * Questa classe gestisce l'intero ciclo di vita di un viaggio:
+ * <ul>
+ * <li>Creazione da una richiesta di trasporto approvata.</li>
+ * <li>Pianificazione e assegnazione delle risorse (Autista e Veicolo).</li>
+ * <li>Calcolo delle rotte tramite servizi esterni.</li>
+ * <li>Gestione degli stati operativi e aggiornamenti dall'app mobile.</li>
+ * <li>Rilascio delle risorse al completamento del viaggio.</li>
+ * </ul>
+ * </p>
  */
 @Slf4j
 @Service
@@ -50,6 +60,18 @@ public class TripServiceImpl implements TripService {
     private final NotificationService notificationService;
     private final ExternalMapService externalMapService;
 
+    /**
+     * Approva una richiesta di trasporto e genera il relativo viaggio.
+     * <p>
+     * Verifica l'idempotenza (se il viaggio esiste già, lo restituisce).
+     * Calcola la rotta ottimale tramite il servizio cartografico e salva il nuovo viaggio
+     * in stato {@code WAITING_VALIDATION}.
+     * </p>
+     *
+     * @param requestId ID della {@link TransportRequest} da approvare.
+     * @return {@link TripResponseDTO} contenente i dettagli del viaggio creato.
+     * @throws ResourceNotFoundException se la richiesta non viene trovata.
+     */
     @Override
     @Transactional
     public TripResponseDTO approveRequest(Long requestId) {
@@ -90,6 +112,19 @@ public class TripServiceImpl implements TripService {
         return mapToDTOWithDriverInfo(savedTrip);
     }
 
+    /**
+     * Pianifica un viaggio assegnando le risorse necessarie (Autista e Veicolo).
+     * <p>
+     * Esegue controlli di validità sullo stato del viaggio, sulla disponibilità dell'autista
+     * e sulla capacità di carico del veicolo. Gestisce inoltre il rilascio di risorse
+     * precedentemente assegnate in caso di ri-pianificazione.
+     * </p>
+     *
+     * @param tripId ID del viaggio da pianificare.
+     * @param dto DTO contenente gli ID delle risorse da assegnare.
+     * @throws ResourceNotFoundException se il viaggio o le risorse non vengono trovate.
+     * @throws BusinessRuleException se lo stato del viaggio non è valido, se le risorse sono occupate o se la capacità del veicolo è insufficiente.
+     */
     @Override
     @Transactional
     public void planTrip(Long tripId, TripAssignmentDTO dto) {
@@ -162,6 +197,15 @@ public class TripServiceImpl implements TripService {
         );
     }
 
+    /**
+     * Ricalcola la rotta per un viaggio esistente.
+     * <p>
+     * Utile in caso di modifiche agli indirizzi o aggiornamenti del percorso.
+     * </p>
+     *
+     * @param tripId ID del viaggio.
+     * @throws ResourceNotFoundException se il viaggio non viene trovato.
+     */
     @Override
     @Transactional
     public void calculateRoute(Long tripId) {
@@ -181,6 +225,12 @@ public class TripServiceImpl implements TripService {
 
     // --- METODI DI LETTURA ---
 
+    /**
+     * Recupera un viaggio tramite ID.
+     *
+     * @param id ID del viaggio.
+     * @return DTO del viaggio.
+     */
     @Override
     @Transactional(readOnly = true)
     public TripResponseDTO getTripById(Long id) {
@@ -189,6 +239,12 @@ public class TripServiceImpl implements TripService {
         return mapToDTOWithDriverInfo(trip);
     }
 
+    /**
+     * Recupera la lista dei viaggi filtrata per stato.
+     *
+     * @param status Stato dei viaggi da recuperare.
+     * @return Lista di DTO.
+     */
     @Override
     @Transactional(readOnly = true)
     public List<TripResponseDTO> getTripsByStatus(TripStatus status) {
@@ -197,6 +253,11 @@ public class TripServiceImpl implements TripService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Recupera tutti i viaggi presenti nel sistema.
+     *
+     * @return Lista completa di DTO.
+     */
     @Override
     @Transactional(readOnly = true)
     public List<TripResponseDTO> getAllTrips() {
@@ -206,8 +267,13 @@ public class TripServiceImpl implements TripService {
     }
 
     /**
-     * Implementazione del recupero viaggi per autista.
-     * Utilizzato dalla Dashboard Mobile.
+     * Recupera i viaggi assegnati a uno specifico autista.
+     * <p>
+     * Utilizzato dalla dashboard mobile dell'autista per visualizzare le proprie assegnazioni.
+     * </p>
+     *
+     * @param driverId ID dell'autista.
+     * @return Lista di viaggi ordinati per data di creazione decrescente.
      */
     @Override
     @Transactional(readOnly = true)
@@ -218,35 +284,69 @@ public class TripServiceImpl implements TripService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Aggiorna lo stato operativo di un viaggio.
+     * <p>
+     * Questo metodo include una logica di sanitizzazione dell'input per gestire stringhe "sporche"
+     * (es. con virgolette o spazi) provenienti da client esterni.
+     * Gestisce inoltre il rilascio automatico delle risorse (Autista = FREE, Veicolo = AVAILABLE)
+     * quando lo stato diventa {@code COMPLETED}.
+     * </p>
+     *
+     * @param tripId ID del viaggio da aggiornare.
+     * @param newStatus Nuovo stato sotto forma di stringa (corrispondente a {@link TripStatus}).
+     * @throws ResourceNotFoundException se il viaggio non esiste.
+     * @throws BusinessRuleException se la stringa di stato non è valida.
+     */
     @Override
     @Transactional
     public void updateStatus(Long tripId, String newStatus) {
+        // 1. Logghiamo COSA arriva esattamente (tra parentesi per vedere spazi occulti)
+        log.info("🔍 DEBUG UPDATE - ID: {}, Raw Input: [{}]", tripId, newStatus);
+
         Trip trip = tripRepository.findById(tripId)
-                .orElseThrow(() -> new ResourceNotFoundException("Viaggio non trovato: " + tripId));
+                .orElseThrow(() -> new ResourceNotFoundException("Viaggio non trovato"));
 
         try {
-            TripStatus statusEnum = TripStatus.valueOf(newStatus);
+            if (newStatus == null) throw new IllegalArgumentException("Stato nullo");
+
+            // 2. Pulizia aggressiva (Rimuove tutto ciò che non è lettera o underscore)
+            // Toglie virgolette, spazi, a capo (\n), caratteri strani.
+            String cleanStatus = newStatus.replaceAll("[^A-Z_]", "");
+
+            log.info("🧹 DEBUG CLEAN - Clean Input: [{}]", cleanStatus);
+
+            // 3. Conversione
+            TripStatus statusEnum = TripStatus.valueOf(cleanStatus);
+
+            // ... logica standard ...
             trip.setStatus(statusEnum);
 
-            // Se il viaggio è finito, libera le risorse
+            // Gestione risorse (copia la tua logica di prima qui)
             if (statusEnum == TripStatus.COMPLETED) {
-                if (trip.getDriver() != null) {
-                    trip.getDriver().setDriverStatus(DriverStatus.FREE);
-                    driverRepository.save(trip.getDriver());
-                }
-                if (trip.getVehicle() != null) {
-                    trip.getVehicle().setStatus(VehicleStatus.AVAILABLE);
-                    vehicleRepository.save(trip.getVehicle());
-                }
-                log.info("✅ Viaggio {} completato. Risorse liberate.", tripId);
+                if (trip.getDriver() != null) trip.getDriver().setDriverStatus(DriverStatus.FREE);
+                if (trip.getVehicle() != null) trip.getVehicle().setStatus(VehicleStatus.AVAILABLE);
             }
 
             tripRepository.save(trip);
+
         } catch (IllegalArgumentException e) {
-            throw new BusinessRuleException("Stato non valido: " + newStatus);
+            // 4. Se fallisce, stampiamo QUALI enum sono validi
+            log.error("❌ ERRORE CONVERSIONE! Input pulito: '{}'", newStatus);
+            log.error("✅ Valori Enum accettati: {}", java.util.Arrays.toString(TripStatus.values()));
+
+            throw new BusinessRuleException("Stato non valido: '" + newStatus + "'");
         }
     }
 
+    /**
+     * Gestisce la validazione della rotta da parte del Traffic Coordinator.
+     *
+     * @param tripId ID del viaggio.
+     * @param isApproved true se la rotta è approvata, false altrimenti.
+     * @param feedback Messaggio opzionale di feedback (in caso di rifiuto).
+     * @throws ResourceNotFoundException se il viaggio non esiste.
+     */
     @Override
     @Transactional
     public void validateRoute(Long tripId, boolean isApproved, String feedback) {
@@ -266,6 +366,16 @@ public class TripServiceImpl implements TripService {
 
     // --- MAPPER HELPER ---
 
+    /**
+     * Metodo di utilità per convertire un'entità Trip in DTO.
+     * <p>
+     * Arricchisce il DTO base con informazioni aggiuntive su Autista, Veicolo e Rotta
+     * se presenti e associate al viaggio.
+     * </p>
+     *
+     * @param trip Entità Trip da convertire.
+     * @return DTO completo pronto per la risposta API.
+     */
     private TripResponseDTO mapToDTOWithDriverInfo(Trip trip) {
         TripResponseDTO tripDTO = tripMapper.toDTO(trip);
 

@@ -6,10 +6,11 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../../../common/widgets/heavy_route_app_bar.dart';
 import '../../../../common/models/enums.dart';
 import '../../../trips/models/trip_model.dart';
-import '../../service/drive_trip_service.dart'; // Import corretto
+import '../../service/drive_trip_service.dart';
 import '../widget/driver_trip_detail_screen.dart';
 import '../widget/driver_status_sheet.dart';
-import '../widget/driver_report_sheet.dart';
+// Se hai messo DriverReportSheet in un altro file, decommente l'import qui sotto:
+// import '../widget/driver_report_sheet.dart';
 
 class DriverDashboardScreen extends StatefulWidget {
   const DriverDashboardScreen({super.key});
@@ -46,20 +47,14 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
       body: FutureBuilder<List<TripModel>>(
         future: _tripsFuture,
         builder: (context, snapshot) {
-          // 1. Caricamento
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
-          }
-          // 2. Errore
-          else if (snapshot.hasError) {
+          } else if (snapshot.hasError) {
             return Center(child: Text("Errore: ${snapshot.error}"));
-          }
-          // 3. Nessun Viaggio Trovato
-          else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return _buildEmptyState();
           }
 
-          // 4. Lista Viaggi Reale
           final trips = snapshot.data!;
           return RefreshIndicator(
             onRefresh: () async => _loadTrips(),
@@ -92,24 +87,18 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   }
 
   Widget _buildTripCard(TripModel trip) {
-    // Logica colori stato
     bool isActive = trip.status == TripStatus.IN_TRANSIT;
 
-    // --- GESTIONE COORDINATE REALI ---
-    // Default Fallback: Roma -> Milano (evita crash se route è null)
     LatLng start = const LatLng(41.9028, 12.4964);
     LatLng end = const LatLng(45.4642, 9.1900);
 
-    // Caso in cui 'trip' è un JSON Map
-    // Se il Backend ha inviato la rotta, usiamo quella!
     if (trip.route != null) {
       start = LatLng(
-          trip.route!.startLat ?? 41.9028, // Se null, usa Roma (o 0.0)
+          trip.route!.startLat ?? 41.9028,
           trip.route!.startLon ?? 12.4964
       );
-
       end = LatLng(
-          trip.route!.endLat ?? 45.4642,   // Se null, usa Milano (o 0.0)
+          trip.route!.endLat ?? 45.4642,
           trip.route!.endLon ?? 9.1900
       );
     }
@@ -146,7 +135,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
             ),
           ),
 
-          // Dettagli Cliente
+          // Cliente
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(trip.request.customerName ?? "Cliente Privato", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
@@ -154,7 +143,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
 
           const SizedBox(height: 16),
 
-          // Timeline Indirizzi
+          // Indirizzi
           _buildAddressRow(Icons.circle, Colors.black, "Ritiro", trip.request.originAddress),
           Padding(
               padding: const EdgeInsets.only(left: 24),
@@ -164,14 +153,14 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
 
           const SizedBox(height: 16),
 
-          // Mappa (Miniatura)
+          // Mappa
           SizedBox(
             height: 150,
             child: FlutterMap(
               options: MapOptions(
                 initialCenter: start,
                 initialZoom: 5,
-                interactionOptions: const InteractionOptions(flags: InteractiveFlag.none), // Mappa statica
+                interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
               ),
               children: [
                 TileLayer(
@@ -191,31 +180,70 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
             ),
           ),
 
-          // Pulsantiera
+          // --- PULSANTIERA AGGIORNATA ---
           Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
+                // Tasto DETTAGLI
                 Expanded(
+                    flex: 2,
                     child: OutlinedButton(
                         onPressed: () {
-                          // Grazie a explicitToJson: true, questo oggetto ora contiene anche Route e Request!
                           Navigator.push(
                               context,
                               MaterialPageRoute(builder: (_) => DriverTripDetailScreen(trip: trip.toJson()))
                           );
                         },
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
                         child: const Text("DETTAGLI")
                     )
                 ),
                 const SizedBox(width: 8),
+
+                // Tasto AGGIORNA
                 Expanded(
+                    flex: 2,
                     child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D0D1A), foregroundColor: Colors.white),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0D0D1A),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
                         onPressed: () => _showStatusSheet(trip),
                         child: const Text("AGGIORNA")
                     )
-                )
+                ),
+
+                const SizedBox(width: 8),
+
+                // Tasto REPORT (NUOVO)
+                Expanded(
+                  flex: 1, // Più piccolo
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // Apre il foglio di segnalazione
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true, // Importante per la tastiera
+                        backgroundColor: Colors.transparent,
+                        builder: (context) => const DriverReportSheet(),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red.shade50,
+                      foregroundColor: Colors.red,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: const Icon(Icons.warning_amber_rounded, size: 24),
+                  ),
+                ),
               ],
             ),
           )
@@ -252,9 +280,136 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
             currentStatus: trip.status.name,
             onStatusChanged: (val) async {
               bool ok = await _driverService.updateTripStatus(trip.id, val);
-              if(ok) _loadTrips(); // Ricarica la lista se successo
+              if(ok) _loadTrips();
             }
         )
+    );
+  }
+}
+
+// ---------------------------------------------------------
+// CLASSE DRIVER REPORT SHEET (Mockup UI per Segnalazioni)
+// ---------------------------------------------------------
+
+class DriverReportSheet extends StatefulWidget {
+  const DriverReportSheet({super.key});
+
+  @override
+  State<DriverReportSheet> createState() => _DriverReportSheetState();
+}
+
+class _DriverReportSheetState extends State<DriverReportSheet> {
+  String? _selectedIssue;
+  final TextEditingController _notesController = TextEditingController();
+
+  final List<String> _issues = [
+    "Traffico Intenso / Coda",
+    "Incidente Stradale",
+    "Guasto al Mezzo",
+    "Problemi con il Carico",
+    "Ritardo Cliente",
+    "Meteo Avverso",
+    "Altro"
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    // Padding dinamico per evitare che la tastiera copra i campi
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.red.shade50, shape: BoxShape.circle),
+                  child: Icon(Icons.warning_amber_rounded, color: Colors.red.shade700, size: 28),
+                ),
+                const SizedBox(width: 16),
+                const Text("Segnala Problema", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const Spacer(),
+                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Dropdown
+            const Text("Tipologia *", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _selectedIssue,
+                  hint: const Text("Seleziona il tipo di problema"),
+                  isExpanded: true,
+                  icon: const Icon(Icons.keyboard_arrow_down),
+                  items: _issues.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                  onChanged: (val) => setState(() => _selectedIssue = val),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Note
+            const Text("Descrizione / Note", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _notesController,
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText: "Scrivi qui maggiori dettagli...",
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Bottone Invia
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  // MOCK: Chiude e mostra conferma
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text("Segnalazione inviata al coordinatore"),
+                        backgroundColor: Colors.red
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.send),
+                label: const Text("INVIA SEGNALAZIONE", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFD32F2F),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

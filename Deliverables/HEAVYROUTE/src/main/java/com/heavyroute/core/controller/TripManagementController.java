@@ -18,13 +18,12 @@ import java.util.List;
 /**
  * Controller REST per la gestione operativa dei viaggi.
  * <p>
- * Espone endpoint per:
+ * Questa classe espone gli endpoint API necessari per gestire il ciclo di vita dei viaggi,
+ * servendo diversi attori del sistema:
  * <ul>
- * <li>Lettura dei viaggi (Dashboard Planner e Coordinator)</li>
- * <li>Approvazione delle richieste di trasporto</li>
- * <li>Pianificazione delle risorse (Autista/Veicolo)</li>
- * <li>Validazione delle rotte</li>
- * <li>Aggiornamento stato operativo (App Autista)</li>
+ * <li><b>Logistic Planner:</b> Visualizzazione globale, pianificazione risorse, approvazione richieste.</li>
+ * <li><b>Traffic Coordinator:</b> Validazione delle rotte e monitoraggio.</li>
+ * <li><b>Driver (App Mobile):</b> Visualizzazione assegnazioni e aggiornamento stato.</li>
  * </ul>
  * Base URL: {@code /api/trips}
  * </p>
@@ -33,6 +32,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/trips")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PATCH, RequestMethod.PUT})
 public class TripManagementController {
 
     private final TripService tripService;
@@ -41,8 +41,12 @@ public class TripManagementController {
 
     /**
      * Recupera TUTTI i viaggi presenti a sistema.
+     * <p>
+     * Utilizzato dalle dashboard amministrative (Planner e Coordinator) per avere
+     * una visione d'insieme di tutte le operazioni.
+     * </p>
      *
-     * @return Lista completa dei DTO dei viaggi.
+     * @return {@link ResponseEntity} contenente la lista completa dei {@link TripResponseDTO}.
      */
     @GetMapping
     @PreAuthorize("hasAnyRole('LOGISTIC_PLANNER', 'TRAFFIC_COORDINATOR')")
@@ -53,6 +57,10 @@ public class TripManagementController {
 
     /**
      * Recupera solo i viaggi in stato {@code IN_PLANNING}.
+     * <p>
+     * Endpoint specifico per la "Worklist" del Planner, mostra solo i viaggi
+     * che richiedono un intervento manuale per l'assegnazione delle risorse.
+     * </p>
      *
      * @return Lista dei viaggi in attesa di pianificazione.
      */
@@ -65,11 +73,12 @@ public class TripManagementController {
     /**
      * Recupera i viaggi assegnati a uno specifico Autista.
      * <p>
-     * Endpoint dedicato all'App Mobile dell'Autista.
+     * <b>Endpoint Mobile:</b> Utilizzato dall'applicazione Android/Flutter per mostrare
+     * all'autista loggato solo le sue consegne pertinenti.
      * </p>
      *
      * @param driverId ID dell'autista loggato.
-     * @return Lista dei viaggi assegnati.
+     * @return Lista cronologica dei viaggi assegnati a quell'autista.
      */
     @GetMapping("/driver/{driverId}")
     @PreAuthorize("hasAnyRole('DRIVER', 'LOGISTIC_PLANNER')")
@@ -79,7 +88,9 @@ public class TripManagementController {
     }
 
     /**
-     * Endpoint di servizio per testare la connettività.
+     * Endpoint di servizio per testare la connettività e lo stato del controller.
+     *
+     * @return Messaggio di conferma "Pong".
      */
     @GetMapping("/ping")
     public String ping() {
@@ -90,10 +101,14 @@ public class TripManagementController {
 
     /**
      * Aggiorna lo stato operativo di un viaggio.
+     * <p>
+     * <b>Endpoint Mobile:</b> Invocato dall'app autista per segnalare avanzamenti
+     * (es. IN_TRANSIT, DELIVERED).
+     * </p>
      *
-     * @param tripId    ID del viaggio.
-     * @param newStatus Nuovo stato (Stringa che deve corrispondere a un enum valido).
-     * @return 200 OK se l'aggiornamento ha successo.
+     * @param tripId    ID del viaggio da aggiornare.
+     * @param newStatus Nuovo stato come Stringa (es. "IN_TRANSIT").
+     * @return 200 OK se l'operazione ha successo.
      */
     @PatchMapping("/{tripId}/status")
     @PreAuthorize("hasAnyRole('DRIVER', 'LOGISTIC_PLANNER')")
@@ -108,7 +123,13 @@ public class TripManagementController {
     }
 
     /**
-     * Approva una richiesta di trasporto trasformandola in un Viaggio.
+     * Approva una richiesta di trasporto trasformandola in un Viaggio effettivo.
+     * <p>
+     * Questo endpoint innesca il calcolo della rotta e la creazione del record Trip.
+     * </p>
+     *
+     * @param requestId ID della richiesta di trasporto originale.
+     * @return 201 Created con il DTO del nuovo viaggio.
      */
     @PostMapping("/{requestId}/approve")
     @PreAuthorize("hasRole('LOGISTIC_PLANNER')")
@@ -118,6 +139,14 @@ public class TripManagementController {
 
     /**
      * Assegna le risorse (Autista e Veicolo) a un viaggio.
+     * <p>
+     * Esegue la validazione dei vincoli (disponibilità autista, capacità veicolo)
+     * e aggiorna lo stato del viaggio.
+     * </p>
+     *
+     * @param tripId        ID del viaggio da pianificare.
+     * @param assignmentDTO DTO contenente ID Autista e Targa Veicolo.
+     * @return 200 OK se l'assegnazione va a buon fine.
      */
     @PutMapping("/{tripId}/plan")
     @PreAuthorize("hasRole('LOGISTIC_PLANNER')")
@@ -134,7 +163,14 @@ public class TripManagementController {
     }
 
     /**
-     * Permette al Coordinator di approvare o rifiutare una rotta.
+     * Permette al Traffic Coordinator di approvare o rifiutare una rotta calcolata.
+     * <p>
+     * Se approvata, il viaggio diventa confermato. Se rifiutata, viene richiesto un ricalcolo.
+     * </p>
+     *
+     * @param tripId  ID del viaggio.
+     * @param request Oggetto contenente l'esito (booleano) e il feedback testuale.
+     * @return 200 OK.
      */
     @PostMapping("/{tripId}/route/approve")
     @PreAuthorize("hasRole('TRAFFIC_COORDINATOR')")

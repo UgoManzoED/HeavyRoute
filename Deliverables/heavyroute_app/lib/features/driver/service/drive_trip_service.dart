@@ -47,13 +47,21 @@ class DriverTripService {
 
   Future<bool> updateTripStatus(int tripId, String newStatus) async {
     try {
-      // Nota: Per l'update non serve l'ID driver, basta l'ID viaggio
+      debugPrint("📡 Invio aggiornamento stato: $newStatus per Trip $tripId");
+
       final response = await _dio.patch(
         '/api/trips/$tripId/status',
-        data: newStatus,
-        options: Options(contentType: Headers.textPlainContentType),
+        data: newStatus, // Manda la stringa cruda (es. "IN_TRANSIT")
+        options: Options(
+          contentType: Headers.textPlainContentType, // FONDAMENTALE: text/plain
+        ),
       );
-      return response.statusCode == 200;
+
+      if (response.statusCode == 200) {
+        debugPrint("✅ Stato aggiornato con successo!");
+        return true;
+      }
+      return false;
     } catch (e) {
       debugPrint("🛑 Errore updateTripStatus: $e");
       return false;
