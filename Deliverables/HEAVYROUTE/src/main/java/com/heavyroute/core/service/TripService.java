@@ -78,4 +78,6 @@ public interface TripService {
      * Aggiorna lo stato del viaggio (es. da IN_TRANSIT a DELIVERED).
      */
     void updateStatus(Long tripId, String newStatus);
+
+    List<TripResponseDTO> getTripsByStatuses(List<TripStatus> statuses);
 }

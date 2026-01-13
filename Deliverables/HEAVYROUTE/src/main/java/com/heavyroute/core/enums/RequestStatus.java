@@ -12,6 +12,9 @@ public enum RequestStatus {
 
     PLANNED,
 
+    /** Il trasporto è fisicamente in corso (TripStatus = IN_TRANSIT). */
+    IN_PROGRESS,
+
     /** La richiesta è stata annullata dall'utente prima dell'approvazione. */
     CANCELLED,
 

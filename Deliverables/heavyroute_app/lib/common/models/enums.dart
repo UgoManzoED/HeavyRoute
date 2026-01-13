@@ -14,6 +14,8 @@ enum RequestStatus {
   APPROVED,
   @JsonValue("PLANNED")
   PLANNED,
+  @JsonValue("IN_PROGRESS")
+  IN_PROGRESS,
   @JsonValue("REJECTED")
   REJECTED,
   @JsonValue("CANCELLED")

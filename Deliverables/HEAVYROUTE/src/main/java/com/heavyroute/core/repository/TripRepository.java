@@ -60,4 +60,6 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
      * Trova il viaggio associato a una specifica richiesta di trasporto.
      */
     Optional<Trip> findByRequestId(Long requestId);
+
+    List<Trip> findByStatusIn(List<TripStatus> statuses);
 }

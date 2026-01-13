@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import '../../../../core/network/dio_client.dart';
+import '../../../common/models/enums.dart';
 import '../models/transport_request.dart';
 import '../models/dto/create_request_model.dart';
 
@@ -16,7 +17,12 @@ class RequestService {
 
   /// Recupera tutte le richieste (Admin/Planner).
   Future<List<TransportRequest>> getAllRequests() async {
-    return _fetchRequests('/api/requests');
+    final allRequests = await _fetchRequests('/api/requests');
+
+    return allRequests.where((r) {
+      final s = r.requestStatus;
+      return s == RequestStatus.PENDING || s == RequestStatus.APPROVED;
+    }).toList();
   }
 
   /// Metodo helper privato per evitare codice duplicato

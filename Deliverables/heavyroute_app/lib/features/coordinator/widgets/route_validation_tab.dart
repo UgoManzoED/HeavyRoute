@@ -17,7 +17,7 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
   List<TripModel> _trips = [];
   bool _isLoading = true;
 
-  // 0 = Da Validare (WAITING_VALIDATION), 1 = Storico (CONFIRMED)
+  // 0 = Da Validare, 1 = Storico
   int _filterIndex = 0;
 
   @override
@@ -27,13 +27,23 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
   }
 
   Future<void> _loadData() async {
-    setState(() => _isLoading = true);
-    try {
-      // Se filtro è 0 -> WAITING_VALIDATION
-      // Se filtro è 1 -> CONFIRMED (Viaggi già approvati e pronti)
-      String statusToFetch = _filterIndex == 0 ? "WAITING_VALIDATION" : "CONFIRMED";
+    setState(() {
+      _isLoading = true;
+      _trips = [];
+    });
 
-      final data = await _service.getTripsByStatus(statusToFetch);
+    try {
+      List<String> statusesToFetch = [];
+
+      if (_filterIndex == 0) {
+        statusesToFetch = ["WAITING_VALIDATION"];
+      } else if (_filterIndex == 1) {
+        statusesToFetch = ["CONFIRMED", "ACCEPTED", "IN_TRANSIT", "PAUSED", "DELIVERING"];
+      } else {
+        statusesToFetch = ["COMPLETED", "CANCELLED", "MODIFICATION_REQUESTED"];
+      }
+
+      final data = await _service.getTripsByStatuses(statusesToFetch);
 
       if (mounted) {
         setState(() {
@@ -54,12 +64,11 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(approved ? "Percorso validato con successo!" : "Richiesta respinta."),
+          content: Text(approved ? "Percorso validato! Spostato nello Storico." : "Richiesta respinta."),
           backgroundColor: approved ? Colors.green : Colors.orange,
-          behavior: SnackBarBehavior.floating,
         ),
       );
-      _loadData(); // Ricarica la lista per riflettere il cambio di stato
+      _loadData();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Errore durante l'operazione"), backgroundColor: Colors.red),
@@ -68,12 +77,16 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
   }
 
   void _openDialog(TripModel trip) {
+    // Determina se siamo in modalità sola lettura
+    bool isHistory = _filterIndex == 1;
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => RouteValidationDialog(
         trip: trip,
-        onValidation: _filterIndex == 0 ? _processValidation : (id, app) async {},
+        isReadOnly: isHistory,
+        onValidation: isHistory ? (id, app) async {} : _processValidation, // Callback vuota se storico
       ),
     );
   }
@@ -94,7 +107,8 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Gestione Percorsi", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              Text(_filterIndex == 0 ? "Validazione Percorsi" : "Storico Viaggi",
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
 
               Row(
                 children: [
@@ -103,8 +117,10 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
                     borderRadius: BorderRadius.circular(8),
                     isSelected: [_filterIndex == 0, _filterIndex == 1],
                     onPressed: (index) {
-                      setState(() => _filterIndex = index);
-                      _loadData();
+                      if (_filterIndex != index) {
+                        setState(() => _filterIndex = index);
+                        _loadData();
+                      }
                     },
                     children: const [
                       Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text("Da Validare")),
@@ -153,10 +169,8 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
         children: [
           Icon(Icons.check_circle_outline, size: 64, color: Colors.grey[300]),
           const SizedBox(height: 16),
-          Text(
-              _filterIndex == 0 ? "Nessun percorso in attesa." : "Nessun viaggio nello storico.",
-              style: TextStyle(color: Colors.grey[500], fontSize: 16)
-          ),
+          Text("Nessun elemento da mostrare.",
+              style: TextStyle(color: Colors.grey[500], fontSize: 16)),
         ],
       ),
     );
@@ -177,6 +191,8 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
   }
 
   Widget _buildRouteRow(TripModel trip) {
+    bool isHistory = _filterIndex == 1;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Row(
@@ -208,7 +224,8 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
           Expanded(flex: 2, child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              if (_filterIndex == 0)
+              if (!isHistory)
+              // BOTTONE DA VALIDARE
                 ElevatedButton.icon(
                   onPressed: () => _openDialog(trip),
                   icon: const Icon(Icons.map, size: 14),
@@ -220,11 +237,14 @@ class _RouteValidationTabState extends State<RouteValidationTab> {
                   ),
                 )
               else
-              // Per lo storico mostriamo un bottone di sola visualizzazione o stato
-                TextButton.icon(
-                  onPressed: null, // Disabilitato
-                  icon: const Icon(Icons.check_circle, size: 16, color: Colors.green),
-                  label: const Text("APPROVATO", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+              // BOTTONE STORICO
+                OutlinedButton.icon(
+                  onPressed: () => _openDialog(trip), // Apre il dialog in modalità ReadOnly
+                  icon: const Icon(Icons.visibility, size: 14, color: Colors.blueGrey),
+                  label: const Text("DETTAGLI", style: TextStyle(color: Colors.blueGrey)),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
                 )
             ],
           )),

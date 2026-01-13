@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart'; // Per debugPrint
+import 'package:flutter/foundation.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../trips/models/trip_model.dart';
 
@@ -28,6 +28,29 @@ class TrafficCoordinatorService {
       return [];
     } catch (e) {
       debugPrint("🛑 [CoordinatorService] Errore getTripsByStatus: $e");
+      return [];
+    }
+  }
+
+  Future<List<TripModel>> getTripsByStatuses(List<String> statuses) async {
+    const String endpoint = '/api/trips';
+
+    try {
+      String statusParam = statuses.join(',');
+
+      final response = await _dio.get(
+        endpoint,
+        queryParameters: {'status': statusParam},
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final List<dynamic> data = response.data;
+        debugPrint("📡 [CoordinatorService] Scaricati ${data.length} viaggi per stati: $statuses");
+        return data.map((json) => TripModel.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      debugPrint("🛑 [CoordinatorService] Errore getTripsByStatuses: $e");
       return [];
     }
   }

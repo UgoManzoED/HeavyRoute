@@ -13,9 +13,7 @@ class RequestCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final String formattedDate = DateFormat('dd MMM yyyy', 'it_IT').format(request.pickupDate);
 
-    // Gestione status
-    final statusColor = _getStatusColor(request.requestStatus);
-    final statusText = _getStatusText(request.requestStatus);
+    final statusConfig = _getStatusConfig(request.requestStatus);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -52,7 +50,7 @@ class RequestCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      request.formattedId,
+                      "#${request.id}", // ID semplice
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0D0D1A)),
                     ),
                   ],
@@ -61,13 +59,19 @@ class RequestCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
+                    color: statusConfig.color.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: statusColor.withOpacity(0.2)),
+                    border: Border.all(color: statusConfig.color.withOpacity(0.2)),
                   ),
-                  child: Text(
-                    statusText,
-                    style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.bold),
+                  child: Row(
+                    children: [
+                      Icon(statusConfig.icon, size: 12, color: statusConfig.color),
+                      const SizedBox(width: 6),
+                      Text(
+                        statusConfig.label,
+                        style: TextStyle(color: statusConfig.color, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -81,12 +85,8 @@ class RequestCard extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                // TIMELINE (Origine -> Destinazione)
                 _buildTimeline(),
-
                 const SizedBox(height: 20),
-
-                // DETTAGLI CARICO & DATA (Griglia 2x1)
                 Row(
                   children: [
                     Expanded(
@@ -109,7 +109,7 @@ class RequestCard extends StatelessWidget {
             ),
           ),
 
-          // FOOTER: Bottone Azione
+          // FOOTER: Bottone Azione (Solo se PENDING)
           if (request.requestStatus == RequestStatus.PENDING)
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -133,16 +133,11 @@ class RequestCard extends StatelessWidget {
   }
 
   // --- WIDGET HELPER ---
-
   Widget _buildTimeline() {
-    final origin = request.originAddress ?? "Origine non disp.";
-    final dest = request.destinationAddress ?? "Destinazione non disp.";
-
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Linea grafica
           Column(
             children: [
               const Icon(Icons.circle, size: 12, color: Color(0xFF0D0D1A)),
@@ -151,7 +146,6 @@ class RequestCard extends StatelessWidget {
             ],
           ),
           const SizedBox(width: 16),
-          // Testi
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,7 +155,7 @@ class RequestCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text("RITIRO", style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.bold)),
-                    Text(origin, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(request.originAddress, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -169,7 +163,7 @@ class RequestCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text("CONSEGNA", style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.bold)),
-                    Text(dest, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(request.destinationAddress, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
                   ],
                 ),
               ],
@@ -200,33 +194,28 @@ class RequestCard extends StatelessWidget {
   // --- LOGICA DATI ---
 
   String _getLoadDetailsString() {
-    if (request.load == null) return "Non specificato";
-
-    final type = request.load!.loadType;
-    final weight = request.load!.weightKg > 1000
-        ? "${(request.load!.weightKg / 1000).toStringAsFixed(1)}t"
-        : "${request.load!.weightKg.toInt()}kg";
-
-    return "$type • $weight";
+    if (request.load == null) return "N/A";
+    final w = request.load!.weightKg;
+    final wStr = w > 1000 ? "${(w / 1000).toStringAsFixed(1)}t" : "${w.toInt()}kg";
+    return "${request.load!.loadType} • $wStr";
   }
 
-  Color _getStatusColor(RequestStatus status) {
+  _StatusConfig _getStatusConfig(RequestStatus status) {
     switch (status) {
-      case RequestStatus.PENDING: return Colors.orange.shade700;
-      case RequestStatus.APPROVED: return Colors.blue.shade700;
-      case RequestStatus.COMPLETED: return Colors.green.shade700;
-      case RequestStatus.REJECTED: return Colors.red.shade700;
-      default: return Colors.grey.shade700;
-    }
-  }
-
-  String _getStatusText(RequestStatus status) {
-    switch (status) {
-      case RequestStatus.PENDING: return "IN ATTESA";
-      case RequestStatus.APPROVED: return "APPROVATO";
-      case RequestStatus.COMPLETED: return "COMPLETATO";
-      case RequestStatus.REJECTED: return "RIFIUTATO";
-      default: return status.name;
+      case RequestStatus.PENDING:
+        return _StatusConfig("IN ATTESA", Colors.orange.shade700, Icons.hourglass_empty);
+      case RequestStatus.APPROVED:
+        return _StatusConfig("IN LAVORAZIONE", Colors.blue.shade700, Icons.settings);
+      case RequestStatus.PLANNED:
+        return _StatusConfig("CONFERMATA", Colors.green.shade700, Icons.check_circle_outline);
+      case RequestStatus.IN_PROGRESS:
+        return _StatusConfig("IN VIAGGIO", Colors.purple.shade700, Icons.local_shipping);
+      case RequestStatus.COMPLETED:
+        return _StatusConfig("CONSEGNATA", Colors.grey.shade700, Icons.flag);
+      case RequestStatus.REJECTED:
+        return _StatusConfig("RIFIUTATA", Colors.red.shade700, Icons.cancel_outlined);
+      case RequestStatus.CANCELLED:
+        return _StatusConfig("ANNULLATA", Colors.red.shade300, Icons.block);
     }
   }
 
@@ -237,4 +226,13 @@ class RequestCard extends StatelessWidget {
       builder: (context) => RequestActionPopup(request: request),
     );
   }
+}
+
+// Helper class per configurazione stato
+class _StatusConfig {
+  final String label;
+  final Color color;
+  final IconData icon;
+
+  _StatusConfig(this.label, this.color, this.icon);
 }
