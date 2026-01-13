@@ -51,11 +51,10 @@ public class TripManagementController {
     @GetMapping
     @PreAuthorize("hasAnyRole('LOGISTIC_PLANNER', 'TRAFFIC_COORDINATOR')")
     public ResponseEntity<List<TripResponseDTO>> getTrips(
-            @RequestParam(required = false) List<TripStatus> status
+            @RequestParam(required = false) TripStatus[] status
     ) {
-        if (status != null && !status.isEmpty()) {
-            log.info("GET /api/trips invocato con filtri stati: {}", status);
-            return ResponseEntity.ok(tripService.getTripsByStatuses(status));
+        if (status != null && status.length > 0) {
+            return ResponseEntity.ok(tripService.getTripsByStatuses(List.of(status)));
         }
 
         log.info("GET /api/trips invocato - Recupero lista completa");

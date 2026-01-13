@@ -36,21 +36,28 @@ class TrafficCoordinatorService {
     const String endpoint = '/api/trips';
 
     try {
-      String statusParam = statuses.join(',');
+      debugPrint("📡 Richiedo stati: $statuses");
+      final String queryParams = statuses.map((s) => "status=$s").join("&");
 
       final response = await _dio.get(
         endpoint,
-        queryParameters: {'status': statusParam},
+        queryParameters: {
+          'status': statuses.join(',')
+        },
       );
 
       if (response.statusCode == 200 && response.data != null) {
         final List<dynamic> data = response.data;
-        debugPrint("📡 [CoordinatorService] Scaricati ${data.length} viaggi per stati: $statuses");
+        debugPrint("✅ Trovati ${data.length} viaggi.");
         return data.map((json) => TripModel.fromJson(json)).toList();
       }
       return [];
     } catch (e) {
-      debugPrint("🛑 [CoordinatorService] Errore getTripsByStatuses: $e");
+      if (e is DioException) {
+        debugPrint("🛑 ERRORE API (${e.response?.statusCode}): ${e.response?.data}");
+      } else {
+        debugPrint("🛑 ERRORE GENERICO: $e");
+      }
       return [];
     }
   }
