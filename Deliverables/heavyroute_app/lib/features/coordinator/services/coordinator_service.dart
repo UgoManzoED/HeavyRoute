@@ -1,49 +1,56 @@
 import 'package:dio/dio.dart';
-import 'dart:developer' as developer; // Aggiungi questo per i log
+import 'package:flutter/foundation.dart'; // Per debugPrint
 import '../../../../core/network/dio_client.dart';
 import '../../trips/models/trip_model.dart';
 
 class TrafficCoordinatorService {
   final Dio _dio = DioClient.instance;
 
-  // Endpoint: GET /api/trips
-  Future<List<TripModel>> getProposedRoutes() async {
+  /// Recupera i viaggi filtrati per stato (es. "WAITING_VALIDATION")
+  /// Sostituisce il vecchio 'getProposedRoutes' per essere più flessibile
+  Future<List<TripModel>> getTripsByStatus(String status) async {
     const String endpoint = '/api/trips';
 
     try {
-      final response = await _dio.get(endpoint, queryParameters: {'status': 'WAITING_VALIDATION'});
+      // Passiamo lo status come parametro query
+      final response = await _dio.get(
+          endpoint,
+          queryParameters: {'status': status}
+      );
 
       if (response.statusCode == 200 && response.data != null) {
         final List<dynamic> data = response.data;
 
-        developer.log("Rotta scaricata: ${data.length} elementi", name: "CoordinatorService");
+        debugPrint("📡 [CoordinatorService] Scaricati ${data.length} viaggi con stato $status");
 
         return data.map((json) => TripModel.fromJson(json)).toList();
       }
       return [];
     } catch (e) {
-      print("Errore getProposedRoutes: $e");
+      debugPrint("🛑 [CoordinatorService] Errore getTripsByStatus: $e");
       return [];
     }
   }
 
-  /**
-   * Approva o Rifiuta il percorso.
-   */
-  Future<bool> validateRoute(int tripId, bool approved) async {
+  /// Approva o Rifiuta il percorso inviando il payload corretto al backend
+  Future<bool> validateRoute(int tripId, bool approved, {String feedback = ""}) async {
     try {
-      // Se approved è true -> azione = 'approve'
-      // Se approved è false -> azione = 'reject'
-      final String action = approved ? 'approve' : 'reject';
+      // L'endpoint nel backend è unico: /approve
+      final String endpoint = '/api/trips/$tripId/route/approve';
 
-      final String endpoint = '/api/trips/$tripId/route/$action';
-      developer.log("Tentativo validazione: $endpoint", name: "CoordinatorService");
+      debugPrint("📡 [CoordinatorService] Invio validazione: Trip $tripId -> Approved: $approved");
 
-      final response = await _dio.post(endpoint);
+      final response = await _dio.post(
+        endpoint,
+        data: {
+          "approved": approved,
+          "feedback": feedback
+        },
+      );
 
       return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
-      print("Errore validateRoute: $e");
+      debugPrint("🛑 [CoordinatorService] Errore validateRoute: $e");
       return false;
     }
   }

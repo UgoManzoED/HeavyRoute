@@ -61,15 +61,20 @@ class _RoutePlanningDialogState extends State<RoutePlanningDialog> {
 
   // --- STEP 2: CONFERMA E ASSEGNAZIONE RISORSE ---
   Future<void> _confirmAndSend() async {
-    // Validazione finale
-    if (_previewTrip == null || _selectedDriverId == null || _selectedVehiclePlate == null) {
+    // 1. Validazione Frontend Pre-Chiamata
+    if (_previewTrip == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Errore: Nessun percorso calcolato.")));
+      return;
+    }
+    if (_selectedDriverId == null || _selectedVehiclePlate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Errore: Seleziona Autista e Veicolo prima di confermare.")));
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      // Chiamata al backend per assegnare Autista e Veicolo al Trip creato
+      // 2. Chiamata al Backend
       bool success = await _service.assignResources(
           _previewTrip!.id,
           _selectedDriverId!,
@@ -78,25 +83,36 @@ class _RoutePlanningDialogState extends State<RoutePlanningDialog> {
 
       if (success) {
         if (mounted) {
-          Navigator.pop(context); // Chiude il dialog
-          widget.onSuccess(_previewTrip); // Aggiorna la dashboard
+          Navigator.pop(context);
+          widget.onSuccess(_previewTrip);
 
-          // Feedback visivo positivo
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text("Viaggio pianificato e risorse assegnate con successo!"),
+              content: Text("Viaggio inviato al Traffic Coordinator!"),
               backgroundColor: Colors.green,
             ),
           );
         }
       } else {
-        throw Exception("Il server ha rifiutato l'assegnazione.");
+        // Fallimento generico
+        throw Exception("Assegnazione non riuscita.");
       }
     } catch (e) {
+      // 3. GESTIONE ERRORE
       if (mounted) {
         setState(() => _isLoading = false);
+
+        // Puliamo il messaggio d'errore
+        String errorMsg = e.toString().replaceAll("Exception:", "").trim();
+
+        // Mostriamo l'errore e NON chiudiamo il dialog
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Errore Assegnazione: $e"), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text("ERRORE: $errorMsg"),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(label: "OK", onPressed: () {}, textColor: Colors.white),
+          ),
         );
       }
     }

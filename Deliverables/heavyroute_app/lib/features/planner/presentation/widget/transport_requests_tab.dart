@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../features/requests/models/transport_request.dart';
 import '../../../../features/requests/services/request_service.dart';
-import '../../../../features/trips/models/route_model.dart'; // Importante per la callback
+import '../../../../features/trips/models/route_model.dart';
 import '../../../../features/trips/models/trip_model.dart';
 import 'transport_requests_table.dart';
 import 'route_planner_dialog.dart';
@@ -35,8 +35,8 @@ class _TransportRequestsTabState extends State<TransportRequestsTab> {
   }
 
   /// Apre il dialog di pianificazione e gestisce il ritorno della rotta
-  void _openPlanningDialog(TransportRequest request) {
-    showDialog(
+  void _openPlanningDialog(TransportRequest request) async{
+    await showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => RoutePlanningDialog(
@@ -61,6 +61,9 @@ class _TransportRequestsTabState extends State<TransportRequestsTab> {
         },
       ),
     );
+    if (mounted) {
+      _loadData();
+    }
   }
 
   @override

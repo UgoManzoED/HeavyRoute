@@ -26,6 +26,8 @@ class TripModel {
   // --- DATI PIATTI ---
   final int? driverId;
   final String? driverName;
+  final String? driverSurname;
+
   final String? vehiclePlate;
   final String? vehicleModel;
 
@@ -37,14 +39,21 @@ class TripModel {
     this.route,
     this.driverId,
     this.driverName,
+    this.driverSurname,
     this.vehiclePlate,
     this.vehicleModel,
   });
 
   // --- GETTERS PER LA UI ---
 
-  String get formattedDriverName => driverName ?? "Non Assegnato";
-  String get formattedVehicle => vehiclePlate != null ? "$vehicleModel ($vehiclePlate)" : "Non Assegnato";
+  String get formattedDriverName {
+    if (driverName == null && driverSurname == null) return "Non Assegnato";
+    return "${driverName ?? ''} ${driverSurname ?? ''}".trim();
+  }
+
+  String get formattedVehicle => vehiclePlate != null
+      ? "$vehicleModel ($vehiclePlate)"
+      : "Non Assegnato";
 
   factory TripModel.fromJson(Map<String, dynamic> json) => _$TripModelFromJson(json);
   Map<String, dynamic> toJson() => _$TripModelToJson(this);
