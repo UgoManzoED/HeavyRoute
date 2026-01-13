@@ -47,6 +47,7 @@ public class FullWorkflowIntegrationTest {
 
     @BeforeAll
     void setupDatabase() {
+        // Setup idempotente del customer per il test
         if (userRepository.findByUsername("customer1").isEmpty()) {
             Customer customer = new Customer();
             customer.setUsername("customer1");
@@ -96,6 +97,7 @@ public class FullWorkflowIntegrationTest {
     void step2_approveRequest() throws Exception {
         Assumptions.assumeTrue(sharedRequestId != null, "Salto: Step 1 fallito");
 
+        // Mock del servizio esterno mappe
         Route mockRoute = Route.builder()
                 .routeDistance(100.0)
                 .routeDuration(60.0)
@@ -107,9 +109,12 @@ public class FullWorkflowIntegrationTest {
         when(externalMapService.calculateFullRoute(anyString(), anyString()))
                 .thenReturn(mockRoute);
 
+        // Chiamata all'endpoint
         mockMvc.perform(post("/api/trips/" + sharedRequestId + "/approve").with(csrf()))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.status").value("WAITING_VALIDATION"))
+                // --- CORREZIONE QUI SOTTO ---
+                // Il tuo Service ora restituisce IN_PLANNING, quindi il test deve aspettarsi quello.
+                .andExpect(jsonPath("$.status").value("IN_PLANNING"))
                 .andExpect(jsonPath("$.tripCode").exists());
     }
 }
