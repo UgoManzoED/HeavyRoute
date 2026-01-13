@@ -1,16 +1,26 @@
 import 'package:flutter/material.dart';
 import '../../../../common/widgets/heavy_route_app_bar.dart';
+import 'driver_navigation_screen.dart'; // Importa la schermata di navigazione
 
 class DriverTripDetailScreen extends StatelessWidget {
-  final Map<String, dynamic> trip;
+  final Map<String, dynamic> trip; // Questo è il JSON completo del TripModel
 
   const DriverTripDetailScreen({super.key, required this.trip});
 
   @override
   Widget build(BuildContext context) {
+    // Estrazione sicura dei dati annidati
+    final request = trip['request'] ?? {};
+    final load = request['load'] ?? {};
+    final customerName = request['customerName'] ?? "Cliente Standard";
+    final loadType = request['loadType'] ?? "Merce Generale";
+    final weight = load['weightKg']?.toString() ?? "N/D";
+
+    // Contatto Mock (se non presente nel backend, mettiamo un placeholder)
+    final contact = "Ufficio Logistica: +39 02 1234567";
+
     return Scaffold(
       backgroundColor: const Color(0xFFF3F5F9),
-      // RIUTILIZZO APP BAR COMUNE
       appBar: const HeavyRouteAppBar(
         subtitle: "Dettaglio Viaggio",
         isLanding: false,
@@ -20,11 +30,28 @@ class DriverTripDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Tasto Indietro
-            TextButton.icon(
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.arrow_back, color: Colors.black),
-              label: const Text("Torna alla lista", style: TextStyle(color: Colors.black)),
+            // Header con Navigazione
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.arrow_back, color: Colors.black),
+                  label: const Text("Torna alla lista", style: TextStyle(color: Colors.black)),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    // Naviga alla schermata mappa passando le coordinate reali
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => DriverNavigationScreen(trip: trip)));
+                  },
+                  icon: const Icon(Icons.navigation, size: 18),
+                  label: const Text("NAVIGA"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    foregroundColor: Colors.white,
+                  ),
+                )
+              ],
             ),
             const SizedBox(height: 16),
 
@@ -35,27 +62,44 @@ class DriverTripDetailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(trip['code'], style: const TextStyle(color: Colors.grey)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(trip['tripCode'] ?? "-", style: const TextStyle(color: Colors.grey)),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(4)),
+                        child: Text(trip['status'] ?? "", style: TextStyle(fontSize: 10, color: Colors.green.shade800, fontWeight: FontWeight.bold)),
+                      )
+                    ],
+                  ),
                   const SizedBox(height: 4),
-                  Text(trip['company'], style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text(customerName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 16),
                   const Divider(),
                   const SizedBox(height: 16),
-                  _buildDetailRow("Merce", "Bobine d'Acciaio (25t)"),
-                  _buildDetailRow("Note", "Attenzione al carico sporgente."),
-                  _buildDetailRow("Contatto", "+39 333 9998877 (Sig. Brambilla)"),
+
+                  _buildDetailRow("Indirizzo Ritiro", request['originAddress'] ?? "-"),
+                  _buildDetailRow("Indirizzo Consegna", request['destinationAddress'] ?? "-"),
+                  const SizedBox(height: 12),
+                  const Divider(),
+                  const SizedBox(height: 12),
+
+                  _buildDetailRow("Merce", "$loadType ($weight kg)"),
+                  _buildDetailRow("Dimensioni", "${load['length']}x${load['width']}x${load['height']} m"),
+                  _buildDetailRow("Contatto", contact),
                 ],
               ),
             ),
 
             const SizedBox(height: 24),
-            const Text("Documentazione", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text("Documentazione Digitale", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
 
-            // Widget Documenti Simile al mockup
-            _buildDocTile("DDT_2025_001.pdf", "Documento di Trasporto"),
+            // Documenti (Mock per ora, ma pronti per l'integrazione)
+            _buildDocTile("DDT_${trip['id']}.pdf", "Documento di Trasporto (Generato)"),
             const SizedBox(height: 8),
-            _buildDocTile("PERMESSO_TRANSITO.pdf", "Autorizzazione Eccezionale"),
+            _buildDocTile("AUTORIZZAZIONE_TRANSITO.pdf", "Permesso Eccezionale"),
           ],
         ),
       ),
@@ -79,12 +123,14 @@ class DriverTripDetailScreen extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
       child: ListTile(
-        leading: const Icon(Icons.description, color: Colors.redAccent),
+        leading: const Icon(Icons.picture_as_pdf, color: Colors.redAccent),
         title: Text(filename, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
         subtitle: Text(description, style: const TextStyle(fontSize: 12)),
         trailing: IconButton(
-          icon: const Icon(Icons.download),
-          onPressed: () {},
+          icon: const Icon(Icons.download_rounded),
+          onPressed: () {
+            // TODO: Implementare download reale
+          },
         ),
       ),
     );
