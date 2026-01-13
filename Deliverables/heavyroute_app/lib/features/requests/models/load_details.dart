@@ -35,6 +35,11 @@ class LoadDetails {
     required this.quantity,
   });
 
+  double get length => lengthMeters;
+  double get width => widthMeters;
+  double get height => heightMeters;
+  String get type => loadType;
+
   factory LoadDetails.fromJson(Map<String, dynamic> json) => _$LoadDetailsFromJson(json);
   Map<String, dynamic> toJson() => _$LoadDetailsToJson(this);
 }

@@ -1,6 +1,5 @@
 package com.heavyroute.common.config;
 
-import com.heavyroute.common.model.GeoLocation;
 import com.heavyroute.core.enums.RequestStatus;
 import com.heavyroute.core.model.*;
 import com.heavyroute.core.repository.*;
@@ -31,7 +30,6 @@ public class DataSeeder implements CommandLineRunner {
     private final CustomerRepository customerRepository;
     private final VehicleRepository vehicleRepository;
     private final TransportRequestRepository requestRepository;
-    // TripRepository e RouteRepository non servono più per il seeding iniziale pulito
     private final PasswordEncoder passwordEncoder;
 
     private static final String DEV_PASSWORD = "password";
@@ -44,7 +42,7 @@ public class DataSeeder implements CommandLineRunner {
             return;
         }
 
-        log.info("Inizio popolamento Database...");
+        log.info("📡 Inizio popolamento Database...");
         String encodedPwd = passwordEncoder.encode(DEV_PASSWORD);
 
         // --- 1. PERSONALE INTERNO ---
@@ -70,36 +68,47 @@ public class DataSeeder implements CommandLineRunner {
                 "Ansaldo Energia", "00725620150", "Via Lorenzi 8, Genova", encodedPwd);
 
         // --- 5. RICHIESTE PENDENTI ---
-        // Nota: Nessuna di queste ha un viaggio o una rotta associata.
 
         log.info("Creazione richieste pendenti...");
 
-        // Richiesta 1: Napoli -> Firenze (Treno)
-        createRequest(hitachi, "Via Argine 425, Napoli", "Piazza della Stazione, Firenze",
-                LocalDate.now().plusDays(10), RequestStatus.PENDING,
-                35000.0, 24.0, 2.8, 3.8, "Carrozza Metro");
+        // SCENARIO 1: Trasporto Eccezionale
+        createRequest(hitachi,
+                "Via Galileo Ferraris 128, Napoli",
+                "Via Ciliegiole 77, Pistoia",
+                LocalDate.of(2026, 1, 22),
+                RequestStatus.PENDING,
+                16000.0, // 16 Tonnellate
+                26.0,    // 26 Metri (Eccezionale)
+                2.8,     // 2.8 Metri (Eccezionale)
+                3.8,     // Altezza
+                "Fiancate carrozza ferroviaria (x2)"
+        );
 
-        // Richiesta 2: Genova -> Milano (Turbina)
+        // Caso 2: HUB -> Città
+        // Genova (Porto Traghetti) -> Milano (Via Torino)
         createRequest(ansaldo, "Piazzale Traghetti, Genova", "Via Torino, Milano",
                 LocalDate.now().plusDays(20), RequestStatus.PENDING,
                 280000.0, 12.0, 4.5, 4.2, "Turbina GT36");
 
-        // Richiesta 3: Bologna -> Pistoia (Prima era pre-approvata, ora è PENDING per testare)
+        // Caso 3: HUB -> HUB
+        // Bologna (Interporto) -> Pistoia (Hitachi)
         createRequest(hitachi, "Interporto Bologna", "Hitachi Pistoia",
                 LocalDate.now().plusDays(3), RequestStatus.PENDING,
                 5000.0, 6.0, 2.4, 2.5, "Casse Ricambi");
 
-        // Richiesta 4: Milano -> Torino (Generatore)
+        // Caso 4: Città -> Città
+        // Milano -> Torino
         createRequest(ansaldo, "Milano", "Torino",
                 LocalDate.now().plusDays(5), RequestStatus.PENDING,
                 15000.0, 13.6, 2.5, 4.0, "Generatore");
 
-        // Richiesta 5: Napoli -> Roma (Componenti)
+        // Caso 5: HUB -> HUB
+        // Napoli (Porto) -> Roma (Smistamento)
         createRequest(hitachi, "Napoli Port", "Roma Smistamento",
                 LocalDate.now().plusDays(7), RequestStatus.PENDING,
                 12000.0, 10.0, 2.5, 3.0, "Componenti Meccanici");
 
-        log.info("✅ DATABASE POPOLATO CON SUCCESSO.");
+        log.info("✅ DATABASE INIZIALIZZATO CON DATI DI TEST.");
     }
 
     // --- HELPER METHODS ---
