@@ -101,7 +101,8 @@ public class TripServiceImpl implements TripService {
         trip.setRoute(realRoute);
         realRoute.setTrip(trip);
 
-        trip.setStatus(TripStatus.WAITING_VALIDATION);
+        trip.setStatus(TripStatus.IN_PLANNING);
+        trip.getRequest().setRequestStatus(RequestStatus.APPROVED);
         trip.setTripCode("T-" + LocalDateTime.now().getYear() + "-" + String.format("%04d", requestId));
 
         // 4. Salvataggio a cascata (Trip -> Route)
@@ -180,6 +181,11 @@ public class TripServiceImpl implements TripService {
         driver.setDriverStatus(DriverStatus.ASSIGNED);
         vehicle.setStatus(VehicleStatus.IN_USE);
 
+        if (trip.getRequest().getRequestStatus() == RequestStatus.PENDING) {
+            trip.getRequest().setRequestStatus(RequestStatus.APPROVED);
+            requestRepository.save(trip.getRequest());
+        }
+
         // Persistenza
         driverRepository.save(driver);
         vehicleRepository.save(vehicle);
@@ -253,6 +259,14 @@ public class TripServiceImpl implements TripService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<TripResponseDTO> getTripsByStatuses(List<TripStatus> statuses) {
+        return tripRepository.findByStatusIn(statuses).stream()
+                .map(this::mapToDTOWithDriverInfo)
+                .collect(Collectors.toList());
+    }
+
     /**
      * Recupera tutti i viaggi presenti nel sistema.
      *
@@ -301,7 +315,6 @@ public class TripServiceImpl implements TripService {
     @Override
     @Transactional
     public void updateStatus(Long tripId, String newStatus) {
-        // 1. Logghiamo COSA arriva esattamente (tra parentesi per vedere spazi occulti)
         log.info("🔍 DEBUG UPDATE - ID: {}, Raw Input: [{}]", tripId, newStatus);
 
         Trip trip = tripRepository.findById(tripId)
@@ -310,20 +323,30 @@ public class TripServiceImpl implements TripService {
         try {
             if (newStatus == null) throw new IllegalArgumentException("Stato nullo");
 
-            // 2. Pulizia aggressiva (Rimuove tutto ciò che non è lettera o underscore)
-            // Toglie virgolette, spazi, a capo (\n), caratteri strani.
+            // 1. Pulizia stringa
             String cleanStatus = newStatus.replaceAll("[^A-Z_]", "");
 
-            log.info("🧹 DEBUG CLEAN - Clean Input: [{}]", cleanStatus);
+            // --- FIX PER L'ERRORE "ASSIGNED" ---
+            // Se il frontend manda "ASSIGNED", noi capiamo che intende "ACCEPTED"
+            if (cleanStatus.equals("ASSIGNED")) {
+                log.warn("⚠️ Mapping automatico stato: ASSIGNED -> ACCEPTED");
+                cleanStatus = "ACCEPTED";
+            }
+            // -----------------------------------
 
-            // 3. Conversione
+            // 2. Conversione
             TripStatus statusEnum = TripStatus.valueOf(cleanStatus);
 
-            // ... logica standard ...
             trip.setStatus(statusEnum);
 
-            // Se il viaggio è finito, libera le risorse
-            if (statusEnum == TripStatus.COMPLETED) {
+            // 3. Sincronizzazione stati Request
+            if (statusEnum == TripStatus.IN_TRANSIT) {
+                trip.getRequest().setRequestStatus(RequestStatus.IN_PROGRESS);
+                requestRepository.save(trip.getRequest());
+            } else if (statusEnum == TripStatus.COMPLETED) {
+                trip.getRequest().setRequestStatus(RequestStatus.COMPLETED);
+
+                // Rilascio risorse
                 if (trip.getDriver() != null) {
                     trip.getDriver().setDriverStatus(DriverStatus.FREE);
                     driverRepository.save(trip.getDriver());
@@ -332,16 +355,14 @@ public class TripServiceImpl implements TripService {
                     trip.getVehicle().setStatus(VehicleStatus.AVAILABLE);
                     vehicleRepository.save(trip.getVehicle());
                 }
-                log.info("✅ Viaggio {} completato. Risorse liberate.", tripId);
+                requestRepository.save(trip.getRequest());
+                log.info("✅ Viaggio e Richiesta completati.");
             }
 
             tripRepository.save(trip);
 
         } catch (IllegalArgumentException e) {
-            // 4. Se fallisce, stampiamo QUALI enum sono validi
             log.error("❌ ERRORE CONVERSIONE! Input pulito: '{}'", newStatus);
-            log.error("✅ Valori Enum accettati: {}", java.util.Arrays.toString(TripStatus.values()));
-
             throw new BusinessRuleException("Stato non valido: '" + newStatus + "'");
         }
     }
@@ -362,8 +383,9 @@ public class TripServiceImpl implements TripService {
 
         if (isApproved) {
             trip.setStatus(TripStatus.CONFIRMED);
-            trip.getRequest().setRequestStatus(RequestStatus.APPROVED);
-            log.info("✅ Rotta approvata dal Coordinator. Viaggio CONFIRMED.");
+            trip.getRequest().setRequestStatus(RequestStatus.PLANNED);
+            log.info("✅ Rotta approvata. Trip CONFIRMED, Request PLANNED.");
+            requestRepository.save(trip.getRequest());
             tripRepository.save(trip);
         } else {
             log.info("❌ Rotta rifiutata: {}", feedback);
