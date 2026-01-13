@@ -279,9 +279,14 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
         builder: (_) => DriverStatusSheet(
             currentStatus: trip.status.name,
             onStatusChanged: (val) async {
-              bool ok = await _driverService.updateTripStatus(trip.id, val);
-              if(ok) _loadTrips();
-            }
+
+              bool ok = await _driverService.updateTripStatus(
+                  trip.id,
+                  trip.status.name, // Passiamo lo stato attuale per il controllo
+                  val
+              );
+                if(ok) _loadTrips();
+              }
         )
     );
   }
