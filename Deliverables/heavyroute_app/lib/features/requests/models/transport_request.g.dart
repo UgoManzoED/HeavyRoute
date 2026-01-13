@@ -47,6 +47,7 @@ const _$RequestStatusEnumMap = {
   RequestStatus.PENDING: 'PENDING',
   RequestStatus.APPROVED: 'APPROVED',
   RequestStatus.PLANNED: 'PLANNED',
+  RequestStatus.IN_PROGRESS: 'IN_PROGRESS',
   RequestStatus.REJECTED: 'REJECTED',
   RequestStatus.CANCELLED: 'CANCELLED',
   RequestStatus.COMPLETED: 'COMPLETED',

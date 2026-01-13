@@ -2,35 +2,63 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 
 class DriverNavigationScreen extends StatelessWidget {
-  final Map<String, dynamic> trip; // Dati reali del viaggio
+  final Map<String, dynamic> trip;
 
   const DriverNavigationScreen({super.key, required this.trip});
 
   @override
   Widget build(BuildContext context) {
-    // 1. Estrazione Dati Rotta
+    // 1. Estrazione Dati Rotta e Coordinate Base
     final routeData = trip['route'];
+    final requestData = trip['request'];
 
-    // Default: Roma (se manca la rotta)
     LatLng start = const LatLng(41.9028, 12.4964);
     LatLng end = const LatLng(45.4642, 9.1900);
-    List<LatLng> polylinePoints = [start, end];
 
     if (routeData != null) {
-      if (routeData['startLat'] != null) {
-        start = LatLng(routeData['startLat'], routeData['startLon']);
-      }
-      if (routeData['endLat'] != null) {
-        end = LatLng(routeData['endLat'], routeData['endLon']);
-      }
+      if (routeData['startLat'] != null) start = LatLng(routeData['startLat'], routeData['startLon']);
+      if (routeData['endLat'] != null) end = LatLng(routeData['endLat'], routeData['endLon']);
+    } else if (requestData != null) {
+    }
 
-      // Decodifica Polyline (Se il backend manda una stringa codificata o una lista di punti)
-      // Per semplicità qui assumiamo una linea retta o usiamo i punti start/end
-      // Se nel JSON 'polyline' è una stringa codificata, servirebbe un decoder.
-      // Se 'polyline' non è gestita, disegniamo una retta Start -> End.
+    // 2. LOGICA DI DECODIFICA PERCORSO (Cuore della modifica)
+    List<LatLng> polylinePoints = [];
+
+    // Cerchiamo la stringa polyline nel JSON (può chiamarsi 'polyline', 'geometry', etc.)
+    String? encodedPolyline = routeData?['polyline'] ?? routeData?['geometry'];
+
+    if (encodedPolyline != null && encodedPolyline.isNotEmpty) {
+      try {
+        PolylinePoints polylineDecoder = PolylinePoints();
+        List<PointLatLng> result = polylineDecoder.decodePolyline(encodedPolyline);
+
+        if (result.isNotEmpty) {
+          // Conversione da PointLatLng a LatLng (latlong2)
+          polylinePoints = result
+              .map((point) => LatLng(point.latitude, point.longitude))
+              .toList();
+        }
+      } catch (e) {
+        debugPrint("⚠️ Errore decodifica polyline navigazione: $e");
+      }
+    }
+
+    // Fallback: Se la decodifica fallisce o non c'è stringa, usiamo la retta Start->End
+    if (polylinePoints.isEmpty) {
       polylinePoints = [start, end];
+    }
+
+    // 3. Calcolo Distanza per UI (Opzionale, formatta bene i km)
+    String distanceDisplay = "- km";
+    if (routeData != null && routeData['distance'] != null) {
+      double dist = (routeData['distance'] is int)
+          ? (routeData['distance'] as int).toDouble()
+          : routeData['distance'];
+      // Se è in metri converti, se è km lascia così (assumo km dal tuo model precedente)
+      distanceDisplay = "${dist.toStringAsFixed(1)} km";
     }
 
     return Scaffold(
@@ -40,23 +68,29 @@ class DriverNavigationScreen extends StatelessWidget {
           FlutterMap(
             options: MapOptions(
               initialCenter: start, // Centra sul punto di partenza
-              initialZoom: 14.0,
+              initialZoom: 15.0,    // Zoom più alto per la navigazione
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.all, // Permetti pinch/pan
+              ),
             ),
             children: [
               TileLayer(
-                urlTemplate: "https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token={accessToken}",
+                urlTemplate: "https://api.mapbox.com/styles/v1/mapbox/navigation-day-v1/tiles/{z}/{x}/{y}?access_token={accessToken}",
+                // Nota: ho cambiato lo stile in 'navigation-day-v1' che è più bello per guidare
                 additionalOptions: {
                   'accessToken': dotenv.maybeGet('MAPBOX_ACCESS_TOKEN') ?? '',
                 },
               ),
 
-              // Disegna il percorso
+              // Disegna il percorso REALE
               PolylineLayer(
                 polylines: [
                   Polyline(
                     points: polylinePoints,
-                    strokeWidth: 5.0,
+                    strokeWidth: 6.0, // Linea più spessa per navigazione
                     color: Colors.blueAccent,
+                    borderStrokeWidth: 2.0, // Bordo per visibilità
+                    borderColor: Colors.blue.shade900,
                   ),
                 ],
               ),
@@ -81,14 +115,6 @@ class DriverNavigationScreen extends StatelessWidget {
                   ),
                 ],
               ),
-
-              // Attribution Widget (Anti-Crash)
-              RichAttributionWidget(
-                showFlutterMapAttribution: false,
-                attributions: [
-                  TextSourceAttribution('Mapbox', onTap: () {}),
-                ],
-              ),
             ],
           ),
 
@@ -100,7 +126,7 @@ class DriverNavigationScreen extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: const Color(0xFF0D0D1A),
+                color: const Color(0xFF0D0D1A), // Colore scuro HeavyRoute
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 15)],
               ),
@@ -112,7 +138,7 @@ class DriverNavigationScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("Destinazione", style: TextStyle(color: Colors.grey, fontSize: 14)),
+                        const Text("Destinazione", style: TextStyle(color: Colors.grey, fontSize: 12)),
                         const SizedBox(height: 4),
                         Text(
                           trip['request']?['destinationAddress'] ?? "Destinazione Sconosciuta",
@@ -128,7 +154,7 @@ class DriverNavigationScreen extends StatelessWidget {
             ),
           ),
 
-          // 3. PANNELLO INFERIORE (Termina Navigazione)
+          // 3. PANNELLO INFERIORE (Dati e Uscita)
           Positioned(
             bottom: 30,
             left: 16,
@@ -147,10 +173,10 @@ class DriverNavigationScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                          "${routeData?['distance'] ?? '-'} km", // Mostra distanza reale se c'è
-                          style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 18)
+                          distanceDisplay,
+                          style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 20)
                       ),
-                      const Text("In navigazione...", style: TextStyle(color: Colors.grey, fontSize: 14)),
+                      const Text("Restanti all'arrivo", style: TextStyle(color: Colors.grey, fontSize: 12)),
                     ],
                   ),
                   ElevatedButton.icon(
@@ -160,6 +186,7 @@ class DriverNavigationScreen extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFD32F2F),
                       foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
