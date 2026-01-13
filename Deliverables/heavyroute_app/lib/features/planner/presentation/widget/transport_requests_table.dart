@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../features/requests/models/transport_request.dart';
+import '../../../../common/models/enums.dart'; // Importa l'enum per usare RequestStatus.PENDING etc
 
 class TransportRequestsTable extends StatelessWidget {
   final List<TransportRequest> requests;
@@ -20,16 +21,15 @@ class TransportRequestsTable extends StatelessWidget {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: DataTable(
-          columnSpacing: 30,
+          columnSpacing: 24,
           showCheckboxColumn: false,
-          headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
+          headingRowColor: MaterialStateProperty.all(Colors.grey.shade50),
           columns: const [
             DataColumn(label: Text("ID", style: TextStyle(fontWeight: FontWeight.bold))),
             DataColumn(label: Text("Cliente", style: TextStyle(fontWeight: FontWeight.bold))),
             DataColumn(label: Text("Origine", style: TextStyle(fontWeight: FontWeight.bold))),
             DataColumn(label: Text("Destinazione", style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text("Peso", style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text("Data", style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text("Carico", style: TextStyle(fontWeight: FontWeight.bold))),
             DataColumn(label: Text("Stato", style: TextStyle(fontWeight: FontWeight.bold))),
             DataColumn(label: Text("Azioni", style: TextStyle(fontWeight: FontWeight.bold))),
           ],
@@ -40,17 +40,11 @@ class TransportRequestsTable extends StatelessWidget {
   }
 
   DataRow _buildRow(TransportRequest req) {
-    final String statusName = req.requestStatus.name;
+    final status = req.requestStatus;
 
-    // Logica stati
-    final bool isPending = statusName == "PENDING";
-    final bool isWaitingValidation = statusName == "WAITING_VALIDATION";
-
-    // Formattazione
-    final dateStr = req.pickupDate.toString().split(' ').first;
     final originSummary = req.originAddress.split(',').first;
     final destSummary = req.destinationAddress.split(',').first;
-    final weightStr = req.load != null ? "${req.load!.weightKg} kg" : "-";
+    final weightStr = req.load != null ? "${(req.load!.weightKg / 1000).toStringAsFixed(1)}t" : "-"; // In tonnellate
 
     return DataRow(
       onSelectChanged: (selected) {
@@ -61,87 +55,90 @@ class TransportRequestsTable extends StatelessWidget {
       cells: [
         DataCell(Text("#${req.id}", style: const TextStyle(fontWeight: FontWeight.bold))),
         DataCell(Text(req.clientFullName)),
-        DataCell(SizedBox(width: 150, child: Text(originSummary, overflow: TextOverflow.ellipsis))),
-        DataCell(SizedBox(width: 150, child: Text(destSummary, overflow: TextOverflow.ellipsis))),
+        DataCell(SizedBox(width: 120, child: Text(originSummary, overflow: TextOverflow.ellipsis))),
+        DataCell(SizedBox(width: 120, child: Text(destSummary, overflow: TextOverflow.ellipsis))),
         DataCell(Text(weightStr)),
-        DataCell(Text(dateStr)),
-        // 1. Badge Stato Colorato
-        DataCell(_buildStatusBadge(statusName)),
 
-        // 2. Colonna Azioni Dinamica
-        DataCell(
-          _buildActionCell(isPending, isWaitingValidation, req),
-        ),
+        // 1. Badge Stato
+        DataCell(_buildStatusBadge(status)),
+
+        // 2. Azioni
+        DataCell(_buildActionCell(status, req)),
       ],
     );
   }
 
-  /// Costruisce il contenuto della cella azioni in base allo stato
-  Widget _buildActionCell(bool isPending, bool isWaitingValidation, TransportRequest req) {
-    if (isPending) {
-      // CASO 1: Nuova richiesta da pianificare
+  Widget _buildActionCell(RequestStatus status, TransportRequest req) {
+    // Se è PENDING o APPROVED (In Lavorazione), mostriamo il tasto Pianifica
+    if (status == RequestStatus.PENDING || status == RequestStatus.APPROVED) {
+      bool isResume = status == RequestStatus.APPROVED;
+
       return ElevatedButton.icon(
         onPressed: () => onPlanTap(req),
-        icon: const Icon(Icons.map, size: 14),
-        label: const Text("Pianifica", style: TextStyle(fontSize: 12)),
+        icon: Icon(isResume ? Icons.edit : Icons.map, size: 14),
+        label: Text(isResume ? "Riprendi" : "Pianifica", style: const TextStyle(fontSize: 12)),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF0D0D1A),
+          backgroundColor: isResume ? Colors.orange[800] : const Color(0xFF0D0D1A),
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
           minimumSize: const Size(0, 32),
         ),
       );
-    } else if (isWaitingValidation) {
-      // CASO 2: Inviata al TC, in attesa di validazione
-      return Row(
-        children: [
-          Icon(Icons.hourglass_top, size: 16, color: Colors.indigo[300]),
-          const SizedBox(width: 6),
-          Text("Attesa TC", style: TextStyle(color: Colors.indigo[900], fontSize: 12, fontWeight: FontWeight.w600)),
-        ],
-      );
-    } else {
-      // CASO 3: Approvata, Rifiutata o altro
-      return const Text("Gestita",
-          style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic, fontSize: 12));
+    }
+    // Se è già pianificata
+    else if (status == RequestStatus.PLANNED) {
+      return Row(children: [
+        Icon(Icons.check_circle, size: 16, color: Colors.green),
+        const SizedBox(width: 6),
+        Text("Pianificato", style: TextStyle(color: Colors.green[800], fontSize: 12, fontWeight: FontWeight.bold)),
+      ]);
+    }
+    // Altri casi (completato, cancellato)
+    else {
+      return const SizedBox();
     }
   }
 
-  Widget _buildStatusBadge(String status) {
+  Widget _buildStatusBadge(RequestStatus status) {
     Color color = Colors.grey;
-    String label = status;
+    String label = status.name;
 
     // Mappatura Colori e Testi
     switch (status) {
-      case "APPROVED":
-        color = Colors.green;
-        break;
-      case "PENDING":
+      case RequestStatus.PENDING:
         color = Colors.orange;
+        label = "NUOVA";
         break;
-      case "REJECTED":
-        color = Colors.red;
-        break;
-      case "PLANNED":
+      case RequestStatus.APPROVED:
         color = Colors.blue;
+        label = "IN BOZZA";
         break;
-      case "WAITING_VALIDATION":
-        color = Colors.indigo;
-        label = "VALIDAZIONE";
+      case RequestStatus.PLANNED:
+        color = Colors.green;
+        label = "PIANIFICATA";
         break;
+      case RequestStatus.REJECTED:
+        color = Colors.red;
+        label = "RIFIUTATA";
+        break;
+      case RequestStatus.COMPLETED:
+        color = Colors.grey;
+        label = "COMPLETATA";
+        break;
+      default:
+        color = Colors.grey;
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.5)),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Text(
         label,
-        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
+        style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
       ),
     );
   }
