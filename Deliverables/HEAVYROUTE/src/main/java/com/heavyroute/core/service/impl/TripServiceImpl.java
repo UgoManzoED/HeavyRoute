@@ -322,10 +322,17 @@ public class TripServiceImpl implements TripService {
             // ... logica standard ...
             trip.setStatus(statusEnum);
 
-            // Gestione risorse (copia la tua logica di prima qui)
+            // Se il viaggio è finito, libera le risorse
             if (statusEnum == TripStatus.COMPLETED) {
-                if (trip.getDriver() != null) trip.getDriver().setDriverStatus(DriverStatus.FREE);
-                if (trip.getVehicle() != null) trip.getVehicle().setStatus(VehicleStatus.AVAILABLE);
+                if (trip.getDriver() != null) {
+                    trip.getDriver().setDriverStatus(DriverStatus.FREE);
+                    driverRepository.save(trip.getDriver());
+                }
+                if (trip.getVehicle() != null) {
+                    trip.getVehicle().setStatus(VehicleStatus.AVAILABLE);
+                    vehicleRepository.save(trip.getVehicle());
+                }
+                log.info("✅ Viaggio {} completato. Risorse liberate.", tripId);
             }
 
             tripRepository.save(trip);
