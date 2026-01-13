@@ -323,47 +323,52 @@ public class TripServiceImpl implements TripService {
         try {
             if (newStatus == null) throw new IllegalArgumentException("Stato nullo");
 
-            // 1. Pulizia stringa
             String cleanStatus = newStatus.replaceAll("[^A-Z_]", "");
+            if (cleanStatus.equals("ASSIGNED")) cleanStatus = "ACCEPTED";
 
-            // --- FIX PER L'ERRORE "ASSIGNED" ---
-            // Se il frontend manda "ASSIGNED", noi capiamo che intende "ACCEPTED"
-            if (cleanStatus.equals("ASSIGNED")) {
-                log.warn("⚠️ Mapping automatico stato: ASSIGNED -> ACCEPTED");
-                cleanStatus = "ACCEPTED";
-            }
-            // -----------------------------------
-
-            // 2. Conversione
             TripStatus statusEnum = TripStatus.valueOf(cleanStatus);
+            trip.setStatus(statusEnum); // Aggiorna il Viaggio (per Autista e Coordinator)
 
-            trip.setStatus(statusEnum);
+            // 2. SINCRONIZZAZIONE STATO CLIENTE (RequestStatus)
+            switch (statusEnum) {
+                case IN_TRANSIT:
+                case DELIVERING:
+                case PAUSED:
+                    trip.getRequest().setRequestStatus(RequestStatus.IN_PROGRESS);
+                    break;
 
-            // 3. Sincronizzazione stati Request
-            if (statusEnum == TripStatus.IN_TRANSIT) {
-                trip.getRequest().setRequestStatus(RequestStatus.IN_PROGRESS);
-                requestRepository.save(trip.getRequest());
-            } else if (statusEnum == TripStatus.COMPLETED) {
-                trip.getRequest().setRequestStatus(RequestStatus.COMPLETED);
+                case COMPLETED:
+                    trip.getRequest().setRequestStatus(RequestStatus.COMPLETED);
+                    _releaseResources(trip); // Metodo helper per liberare autista/veicolo
+                    break;
 
-                // Rilascio risorse
-                if (trip.getDriver() != null) {
-                    trip.getDriver().setDriverStatus(DriverStatus.FREE);
-                    driverRepository.save(trip.getDriver());
-                }
-                if (trip.getVehicle() != null) {
-                    trip.getVehicle().setStatus(VehicleStatus.AVAILABLE);
-                    vehicleRepository.save(trip.getVehicle());
-                }
-                requestRepository.save(trip.getRequest());
-                log.info("✅ Viaggio e Richiesta completati.");
+                case CANCELLED:
+                    trip.getRequest().setRequestStatus(RequestStatus.CANCELLED);
+                    _releaseResources(trip);
+                    break;
+
+                default:
+                    break;
             }
 
+            requestRepository.save(trip.getRequest());
             tripRepository.save(trip);
 
+            log.info("✅ Stato aggiornato: Trip={}, Request={}", statusEnum, trip.getRequest().getRequestStatus());
+
         } catch (IllegalArgumentException e) {
-            log.error("❌ ERRORE CONVERSIONE! Input pulito: '{}'", newStatus);
             throw new BusinessRuleException("Stato non valido: '" + newStatus + "'");
+        }
+    }
+
+    private void _releaseResources(Trip trip) {
+        if (trip.getDriver() != null) {
+            trip.getDriver().setDriverStatus(DriverStatus.FREE);
+            driverRepository.save(trip.getDriver());
+        }
+        if (trip.getVehicle() != null) {
+            trip.getVehicle().setStatus(VehicleStatus.AVAILABLE);
+            vehicleRepository.save(trip.getVehicle());
         }
     }
 
