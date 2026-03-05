@@ -1,106 +1,103 @@
-# HeavyRoute - Sistema di Gestione Trasporti Eccezionali
-![Project Status](https://img.shields.io/badge/status-active-success.svg)
-![Backend](https://img.shields.io/badge/backend-Spring%20Boot-green)
-![Frontend](https://img.shields.io/badge/frontend-Flutter-blue)
-![License](https://img.shields.io/badge/license-Apache-lightgrey)
+*[Read this in English](README.md) | [Leggi in Italiano](README.it.md)*
 
-HeavyRoute è una piattaforma software integrata progettata per digitalizzare, automatizzare e ottimizzare il processo di gestione dei trasporti eccezionali. Il sistema connette Committenti, Pianificatori Logistici e Autisti attraverso un'architettura moderna a 3 livelli.
+# HeavyRoute - Exceptional Transport Management System
 
----
+**University of Salerno** **Course:** Software Engineering - A.Y. 2025/2026  
+**Professor:** Andrea DE LUCIA  
 
-## Indice
-1. Panoramica del Progetto
-2. Architettura e Tecnologie
-3. Funzionalità Principali
-4. Prerequisiti
-5. Guida all'Installazione e Avvio
-6. Documentazione API
-7. Autori
+**Team:** 
+* Umberto Manfredini (Matricola: 0512119797) - [GitHub](https://github.com/umanfredini)
+* Ugo Manzo (Matricola: 0512119071) - [GitHub](https://github.com/UgoManzoED)
+* Pino Fiorello Romano (Matricola: 0512120259) - [GitHub](https://github.com/piifiore)
 
----
+> An integrated software platform designed to digitize, automate, and optimize the management process of exceptional transports, connecting Clients, Logistics Planners, and Drivers through a modern 3-tier architecture.
 
-## Panoramica del Progetto
-Il sistema sostituisce i flussi di lavoro manuali con una soluzione digitale che copre l'intero ciclo di vita del trasporto:
-* Back-office: Gestione anagrafiche, pianificazione viaggi, validazione percorsi.
-* Committenti: Inserimento richieste, monitoraggio stato, download documenti.
-* Operatività: App mobile per autisti per gestione incarichi e segnalazione imprevisti.
+![Project Status](https://img.shields.io/badge/Status-Active-success)
+![Backend](https://img.shields.io/badge/Backend-Spring%20Boot-green)
+![Frontend](https://img.shields.io/badge/Frontend-Flutter-blue)
+![License](https://img.shields.io/badge/License-APACHE-lightgrey)
 
 ---
 
-## Architettura e Tecnologie
-
-Il progetto segue un'architettura Monolitica Modulare (Modular Monolith) basata su 3-Tier (Presentation, Logic, Data).
-
-### Backend (Logic Tier e Data Tier)
-* Linguaggio: Java 17 LTS
-* Framework: Spring Boot 3.x
-* Database: MariaDB (eseguito via Docker)
-* Sicurezza: Spring Security + JWT (Stateless Authentication)
-* ORM: Spring Data JPA (Hibernate)
-* Build Tool: Maven
-
-### Frontend (Presentation Tier)
-* Framework: Flutter (Dart)
-* Piattaforme Supportate: Web (Dashboard) e Mobile (App Autista)
-* HTTP Client: Dio + Interceptors
-* Code Generation: json_serializable, build_runner
+## Table of Contents
+* [About the Project](#about-the-project)
+* [Architecture & Methodology](#architecture--methodology)
+* [Key Features](#key-features)
+* [Built With](#built-with)
+* [Getting Started](#getting-started)
+  * [Prerequisites](#prerequisites)
+  * [Installation & Execution](#installation--execution)
+* [API Documentation](#api-documentation)
 
 ---
 
-## Funzionalità Principali
-* Autenticazione e Sicurezza: Login sicuro, RBAC (Role-Based Access Control) con 5 ruoli distinti, Password Hashing (BCrypt).
-* Gestione Utenti: Registrazione self-service per clienti, gestione staff interno da parte dell'Admin.
-* Core Business: Creazione richieste di trasporto, approvazione, generazione automatica Viaggi (Trip), assegnazione risorse (Autista/Veicolo).
-* Gestione Risorse: Censimento flotta veicoli e verifica compatibilità (peso/dimensioni).
-* Gestione Errori: Gestione centralizzata delle eccezioni con risposte RFC 7807 (Problem Details).
+## About the Project
+**HeavyRoute** replaces manual workflows with a digital solution that covers the entire lifecycle of exceptional transport. The system provides a unified ecosystem divided into three main operational areas:
+* **Back-office:** Registry management, trip planning, and route validation.
+* **Clients:** Transport request submission, status tracking, and document downloads.
+* **Operations:** A dedicated mobile app for drivers to manage assignments and report unexpected events in real-time.
+
+## Architecture & Methodology
+The project follows a **Modular Monolith** architecture based on a standard 3-Tier design (Presentation, Logic, Data).
+
+* **Backend (Logic & Data Tier):** Developed in Java 17 LTS using Spring Boot 3.x. It implements stateless authentication via Spring Security and JWT, relies on Spring Data JPA (Hibernate) as its ORM, and uses Maven as the build tool. The database is MariaDB, containerized via Docker.
+* **Frontend (Presentation Tier):** Built with Flutter (Dart), supporting both Web (for the management dashboard) and Mobile (for the driver app) platforms. It utilizes Dio with Interceptors for HTTP networking and code generation tools like `json_serializable` and `build_runner`.
+
+## Key Features
+**Authentication & Security:** Secure login, Role-Based Access Control (RBAC) with 5 distinct roles, and BCrypt password hashing. \
+**User Management:** Self-service registration for clients and internal staff management handled by the Admin. \
+**Core Business Logic:** End-to-end management of transport requests, approvals, automatic Trip generation, and resource assignment (Driver/Vehicle). \
+**Resource Management:** Vehicle fleet registry coupled with physical compatibility checks (weight/dimensions). \
+**Error Handling:** Centralized exception management compliant with RFC 7807 (Problem Details) responses. \
+
+## Built With
+* [Java 17](https://www.oracle.com/java/) & [Spring Boot 3.x](https://spring.io/projects/spring-boot)
+* [Flutter](https://flutter.dev/) & [Dart](https://dart.dev/)
+* [MariaDB](https://mariadb.org/) & [Docker](https://www.docker.com/)
+* [Maven](https://maven.apache.org/)
 
 ---
 
-## Prerequisiti
-Assicurati di avere installato sulla tua macchina:
-* Java JDK 17 o superiore.
-* Flutter SDK (ultima versione stabile).
-* Docker Desktop (per il database) o un'istanza MariaDB locale.
-* IDE consigliati: IntelliJ IDEA (Backend), VS Code (Frontend).
+## Getting Started
+Follow these instructions to get a local copy up and running on your machine.
+
+### Prerequisites
+Ensure you have the following installed on your system:
+* Java JDK 17 or higher
+* Flutter SDK (latest stable version)
+* Docker Desktop (for the database) or a local MariaDB instance
+* Recommended IDEs: IntelliJ IDEA (Backend), VS Code (Frontend)
+
+### Installation & Execution
+
+1. **Start the Database (Docker)**
+Run the following command to spin up a ready-to-use MariaDB container:
+```bash
+docker run --name heavyroute-db \
+  -e MARIADB_ROOT_PASSWORD=root \
+  -e MARIADB_DATABASE=heavyroute_db \
+  -p 3306:3306 \
+  -d mariadb:latest
+```
+
+2. **Start the Backend (Spring Boot)**
+Open the backend folder in your terminal or IntelliJ and execute:
+```bash
+mvn spring-boot:run
+```
+*The server will be active at: `http://localhost:8080`.*
+*Note: On the first run, the `DataSeeder` will automatically populate the database with mock data.*
+
+3. **Start the Frontend (Flutter)**
+Navigate to the `heavyroute_app` directory and run these commands to fetch dependencies and launch the web app:
+```bash
+flutter pub get
+dart run build_runner build --delete-conflicting-outputs
+flutter run -d chrome
+```
 
 ---
 
-## Guida all'Installazione e Avvio
-
-### 1. Avvio del Database (Docker)
-Esegui questo comando per avviare un container MariaDB pronto all'uso:
-
-    docker run --name heavyroute-db \
-      -e MARIADB_ROOT_PASSWORD=root \
-      -e MARIADB_DATABASE=heavyroute_db \
-      -p 3306:3306 \
-      -d mariadb:latest
-
-### 2. Avvio del Backend (Spring Boot)
-Apri la cartella del backend con IntelliJ o terminale ed esegui:
-
-    mvn spring-boot:run
-
-Il server sarà attivo su: http://localhost:8080.
-Nota: Al primo avvio, il DataSeeder popolerà automaticamente il database con dati di prova.
-
-### 3. Avvio del Frontend (Flutter)
-Apri la cartella heavyroute_app ed esegui i seguenti comandi per scaricare le dipendenze e avviare l'applicazione:
-
-    flutter pub get
-    dart run build_runner build --delete-conflicting-outputs
-    flutter run -d chrome
-
----
-
-## Documentazione API
-Una volta avviato il backend, la documentazione Swagger/OpenAPI è disponibile all'indirizzo:
-http://localhost:8080/swagger-ui.html
-
----
-
-## Autori
-Progetto sviluppato per il corso di Ingegneria del Software (UNISA - 2025/2026).
-* Umberto Manfredini
-* Ugo Manzo
-* Pino Fiorello Romano
+## API Documentation
+Once the backend is running, the Swagger/OpenAPI documentation is automatically generated and accessible at:
+`http://localhost:8080/swagger-ui.html`
