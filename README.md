@@ -7,7 +7,7 @@
 
 **Team:** 
 * Umberto Manfredini (Matricola: 0512119797) - [GitHub](https://github.com/umanfredini)
-* Ugo Manzo (Matricola: 0512119071) - [GitHub](https://github.com/UgoManzoED)
+* Ugo Manzo (Matricola: 0512119071)(Coordinator) - [GitHub](https://github.com/UgoManzoED)
 * Pino Fiorello Romano (Matricola: 0512120259) - [GitHub](https://github.com/piifiore)
 
 > An integrated software platform designed to digitize, automate, and optimize the management process of exceptional transports, connecting Clients, Logistics Planners, and Drivers through a modern 3-tier architecture.
